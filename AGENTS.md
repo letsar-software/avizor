@@ -1,4 +1,4 @@
-# AGENTS.md — Avizor
+﻿# AGENTS.md — Avizor
 
 Contexto para Claude Code. Leer antes de cualquier tarea.
 
@@ -279,5 +279,6 @@ Nunca mostrar errores técnicos (500, stack traces, mensajes de base de datos) a
 ## Equipo
 
 - **Andy** — producto, desarrollo y estrategia
+- **Eze** — desarrollo, IA
 
 Toda decisión que amplíe el scope del MVP debe consultarse antes de implementarse.
