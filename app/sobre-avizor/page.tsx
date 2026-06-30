@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -196,16 +196,17 @@ export default function SobreAvizorPage() {
       <section className="mx-auto max-w-[1320px] px-8 py-8">
         <article className="grid gap-9 rounded-xl border border-[#d9e2dc] bg-white p-4 shadow-[0_10px_35px_rgba(7,29,54,0.05)] md:grid-cols-[380px_1fr] md:p-5">
           <div className="relative min-h-[320px] overflow-hidden rounded-lg md:min-h-[360px]">
-            <Image src="/Andrea.jpg" alt="Andrea, creadora de Avizor" fill priority className="object-cover object-center" sizes="(max-width: 768px) 100vw, 380px" />
+            <Image src="/Andy y eze.png" alt="Andrea y Ezequiel, equipo creador de Avizor" fill priority className="object-cover object-center" sizes="(max-width: 768px) 100vw, 380px" />
           </div>
           <div className="px-2 py-3 md:px-4">
             <h2 className="text-[29px] font-extrabold text-[#071d36]">Detrás de Avizor</h2>
-            <h3 className="mt-1 text-[31px] font-extrabold text-avizor-green">Hola, soy Andrea 🌿</h3>
+            <h3 className="mt-1 text-[31px] font-extrabold text-avizor-green">Hola, somos Andrea y Ezequiel 🌱</h3>
             <div className="mt-4 max-w-[770px] space-y-2 text-[17px] leading-[1.45] text-[#071d36]">
-              <p>Soy Técnica Superior en Administración Agropecuaria y Analista Programadora en Desarrollo de Aplicaciones.</p>
-              <p>Durante años trabajé tanto en tecnología como en el sector agropecuario y siempre observé el mismo problema: mucha información disponible, pero pocas herramientas que la transformen en decisiones simples.</p>
-              <p>Creé Avizor con la convicción de que la tecnología debe acompañar al productor, no reemplazarlo.</p>
-              <p>Mi objetivo es acercar información clara, basada en evidencia y fácil de interpretar para ayudar a tomar mejores decisiones en el campo.</p>
+              <p>Somos un equipo que combina experiencia en agro, tecnología y desarrollo de productos digitales.</p>
+              <p>Andrea aporta su experiencia en administración agropecuaria, análisis funcional y calidad de software, acercando la mirada del productor y transformando necesidades reales del campo en soluciones simples y útiles.</p>
+              <p>Ezequiel lidera el desarrollo tecnológico de Avizor, construyendo la arquitectura y las herramientas que permiten convertir datos climáticos y conocimiento agronómico en información accionable.</p>
+              <p>Creamos Avizor con una convicción compartida: la tecnología debe acompañar al productor, no reemplazarlo.</p>
+              <p>Nuestro objetivo es acercar información clara, basada en evidencia y fácil de interpretar para ayudar a tomar mejores decisiones en el campo.</p>
             </div>
             <div className="mt-7 grid grid-cols-2 gap-4 border-t border-[#e6eee8] pt-5 sm:grid-cols-5">
               {andreaTags.map(({ Icon, label }) => (
