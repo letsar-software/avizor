@@ -1,0 +1,10 @@
+﻿.next/
+node_modules/
+.playwright-mcp/
+.agents/
+.claude/
+tsconfig.tsbuildinfo
+.env*
+!.env.example
+
+

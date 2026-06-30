@@ -1,0 +1,26 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F4F6F3;
+    color: #1a1a1a;
+    font-family: Inter, Aptos, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+
+@layer utilities {
+  .font-extrabold {
+    font-weight: 700;
+  }
+
+  .font-bold {
+    font-weight: 600;
+  }
+
+  .font-semibold {
+    font-weight: 500;
+  }
+}
