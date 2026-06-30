@@ -22,7 +22,7 @@ Slogan: *La señal antes del problema.*
 | Frontend | Next.js 14 (App Router) + React + TypeScript | |
 | Estilos | Tailwind CSS | Sin librerías de componentes por ahora |
 | Backend | Next.js API Routes | Todo en la misma app |
-| Base de datos | Supabase (PostgreSQL) | |
+| Base de datos | Railway PostgreSQL | |
 | API Clima | Open-Meteo | Siempre via ClimateProvider, nunca directo |
 | Analítica | PostHog | |
 | Hosting | Railway | Cuenta existente — mismo proyecto que otros servicios |
@@ -122,10 +122,10 @@ interface ResultadoConsulta {
 ## Reglas de arquitectura (no negociables)
 
 1. **El frontend nunca llama a Open-Meteo directamente.** Todo pasa por ClimateProvider.
-2. **Las reglas agronómicas viven en Supabase** (tabla `reglas_agronomicas`), no hardcodeadas en el código. Cambiar un umbral = cambiar un registro, no un deploy.
+2. **Las reglas agronómicas viven en PostgreSQL** (tabla `reglas_agronomicas`), no hardcodeadas en el código. Cambiar un umbral = cambiar un registro, no un deploy.
 3. **RulesEngine y ScoreEngine son servicios separados.** RulesEngine evalúa qué condiciones se cumplen. ScoreEngine decide el Estado General combinando los resultados.
 4. **Cache climático obligatorio.** Misma localidad + mismo día = una sola llamada a Open-Meteo. TTL: 3 horas.
-5. **Logs completos por consulta.** Cada llamada a `/api/consulta` debe loguear: localidad, cultivo, datos climáticos usados, reglas evaluadas, resultado, versión de reglas, errores.
+5. **Logs completos por consulta.** Cada llamada a `/api/consulta` debe loguear en PostgreSQL: localidad, cultivo, datos climáticos usados, reglas evaluadas, resultado, versión de reglas, errores.
 6. **Normalizar localidades antes de cualquier consulta a la BD.** "tandil", "TANDIL", "Tandil" son lo mismo.
 
 ---
@@ -207,7 +207,7 @@ Agregar `railway.json` en la raíz del proyecto:
 
 Railway detecta Next.js automáticamente con Nixpacks. Conectar el repo de GitHub desde el panel de Railway y el deploy es automático en cada push a `main`.
 
-Las variables de entorno se configuran en el panel de Railway (no en `.env` en producción).
+Las variables de entorno se configuran en el panel de Railway (no en `.env` en producción). Agregar un servicio Railway PostgreSQL y vincular `DATABASE_URL` al servicio Next.js.
 
 ---
 
@@ -272,7 +272,7 @@ Antes de cada deploy, verificar estos escenarios:
 | Cultivo no soportado | "Avizor todavía no cubre ese cultivo. Por ahora solo soja está disponible." |
 | Datos insuficientes | "Los datos disponibles son limitados. El resultado se muestra con confianza Baja." |
 
-Nunca mostrar errores técnicos (500, stack traces, mensajes de Supabase) al usuario.
+Nunca mostrar errores técnicos (500, stack traces, mensajes de base de datos) al usuario.
 
 ---
 

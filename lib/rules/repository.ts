@@ -1,5 +1,5 @@
-import type { ReglaAgronomica } from "@/types";
-import { supabaseRest } from "@/lib/supabase/rest";
+﻿import type { ReglaAgronomica } from "@/types";
+import { query } from "@/lib/db/postgres";
 
 type ReglaRow = Omit<ReglaAgronomica, "condiciones"> & {
   condiciones: ReglaAgronomica["condiciones"] | string;
@@ -13,13 +13,24 @@ function parseRule(row: ReglaRow): ReglaAgronomica {
 }
 
 export async function getReglasAgronomicas(cultivo: string) {
-  const query = new URLSearchParams({
-    select: "*",
-    cultivo: `eq.${cultivo.toLowerCase()}`,
-    activa: "eq.true",
-    order: "prioridad.desc",
-  });
+  const result = await query<ReglaRow>(
+    `select
+      id::text,
+      cultivo,
+      categoria_nombre,
+      condicion,
+      causas,
+      recomendacion,
+      regla_version,
+      prioridad,
+      activa,
+      combinador,
+      condiciones
+    from reglas_agronomicas
+    where cultivo = $1 and activa = true
+    order by prioridad desc`,
+    [cultivo.toLowerCase()],
+  );
 
-  const rows = await supabaseRest<ReglaRow[]>(`reglas_agronomicas?${query.toString()}`);
-  return rows.map(parseRule);
+  return result.rows.map(parseRule);
 }

@@ -1,3 +1,5 @@
+﻿create extension if not exists pgcrypto;
+
 create table if not exists reglas_agronomicas (
   id uuid primary key default gen_random_uuid(),
   cultivo text not null,
@@ -47,7 +49,7 @@ insert into reglas_agronomicas (
     'enfermedades_foliares',
     'favorable',
     array['humedad_alta', 'lluvia_reciente', 'temperatura_media'],
-    'Monitorear el lote durante los próximos 5 días.',
+    'Monitorear el lote durante los prÃ³ximos 5 dÃ­as.',
     'v1.0',
     300,
     'all',
@@ -80,7 +82,7 @@ insert into reglas_agronomicas (
     'estres_hidrico',
     'favorable',
     array['lluvia_baja', 'temperatura_media_alta'],
-    'Revisar disponibilidad de agua y observar síntomas de estrés en sectores representativos.',
+    'Revisar disponibilidad de agua y observar sÃ­ntomas de estrÃ©s en sectores representativos.',
     'v1.0',
     300,
     'all',
@@ -91,7 +93,7 @@ insert into reglas_agronomicas (
     'estres_hidrico',
     'moderada',
     array['lluvia_baja_7d'],
-    'Observar evolución del lote y registrar cambios visibles.',
+    'Observar evoluciÃ³n del lote y registrar cambios visibles.',
     'v1.0',
     200,
     'all',
@@ -102,7 +104,7 @@ insert into reglas_agronomicas (
     'estres_hidrico',
     'desfavorable',
     array['lluvia_suficiente'],
-    'Sin señales climáticas relevantes para estrés hídrico en este período.',
+    'Sin seÃ±ales climÃ¡ticas relevantes para estrÃ©s hÃ­drico en este perÃ­odo.',
     'v1.0',
     100,
     'all',
@@ -113,7 +115,7 @@ insert into reglas_agronomicas (
     'heladas',
     'favorable',
     array['temperatura_baja'],
-    'Revisar pronóstico local y observar sectores bajos del lote.',
+    'Revisar pronÃ³stico local y observar sectores bajos del lote.',
     'v1.0',
     300,
     'all',
@@ -124,10 +126,11 @@ insert into reglas_agronomicas (
     'heladas',
     'desfavorable',
     array['temperatura_sin_umbral_critico'],
-    'Sin señales climáticas relevantes para heladas en este período.',
+    'Sin seÃ±ales climÃ¡ticas relevantes para heladas en este perÃ­odo.',
     'v1.0',
     100,
     'all',
     '[]'::jsonb
   )
 on conflict do nothing;
+
