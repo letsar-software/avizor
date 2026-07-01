@@ -1,7 +1,8 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type { ConsultaErrorCode, ConsultaRequest, ResultadoConsulta } from "@/types";
 import { ClimateProvider } from "@/lib/climate/provider";
 import { logConsulta } from "@/lib/consultas/logs";
+import { createConsulta } from "@/lib/consultas/repository";
 import { featureFlags } from "@/lib/config/featureFlags";
 import { normalizeLocalidad } from "@/lib/localidades/normalize";
 import { getReglasAgronomicas } from "@/lib/rules/repository";
@@ -33,7 +34,7 @@ function normalizeCultivo(cultivo: string) {
 
 function isCultivoSoportado(cultivo: string) {
   if (cultivo === "soja") return true;
-  if (cultivo === "maiz" || cultivo === "maÃ­z") return featureFlags.enableMaiz;
+  if (cultivo === "maiz" || cultivo === "maíz") return featureFlags.enableMaiz;
   return false;
 }
 
@@ -65,22 +66,21 @@ export async function POST(request: Request) {
       return jsonError("LOCALIDAD_NO_RECONOCIDA", 404);
     }
 
-    const climateProvider = new ClimateProvider();
-    const climateData = await climateProvider.getLast14Days(localidad);
-
     let rules;
     try {
       rules = await getReglasAgronomicas(body.cultivo);
     } catch (error) {
-      await logConsulta({ request: body, climateData, error });
+      await logConsulta({ request: body, error });
       return jsonError("REGLAS_NO_DISPONIBLES", 503);
     }
 
     if (rules.length === 0) {
-      await logConsulta({ request: body, climateData, rules, error: "No hay reglas activas" });
+      await logConsulta({ request: body, rules, error: "No hay reglas activas" });
       return jsonError("REGLAS_NO_DISPONIBLES", 503);
     }
 
+    const climateProvider = new ClimateProvider();
+    const climateData = await climateProvider.getLast14Days(localidad);
     const rulesEngine = new RulesEngine();
     const scoreEngine = new ScoreEngine();
     const categorias = rulesEngine.evaluate(rules, climateData.resumen);
@@ -90,7 +90,15 @@ export async function POST(request: Request) {
       dias_datos: climateData.resumen.dias_datos,
       categorias,
       share_token: crypto.randomUUID(),
+      localidad,
+      clima_resumen: climateData.resumen,
     };
+
+    try {
+      await createConsulta({ request: body, climateData, rules, result });
+    } catch (error) {
+      console.error("No se pudo guardar consulta", error);
+    }
 
     await logConsulta({ request: body, climateData, rules, result });
 
@@ -103,7 +111,5 @@ export async function POST(request: Request) {
     return jsonError("CLIMA_NO_DISPONIBLE", 503);
   }
 }
-
-
 
 

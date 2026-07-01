@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
+import type { ResultadoConsulta } from "@/types";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,6 +35,7 @@ import {
 } from "lucide-react";
 
 type View = "resumen" | "atencion" | "monitoreo" | "recomendaciones";
+type StoredConsulta = { localidad?: string; cultivo?: string; fechaSiembra?: string };
 type Tone = "red" | "blue" | "green" | "amber" | "purple" | "sky";
 
 const climateMetrics = [
@@ -44,6 +46,24 @@ const climateMetrics = [
   { icon: CalendarDays, label: "Días con lluvia (acum.)", value: "3 días", color: "#4f8c45", chart: "line" as const },
 ];
 
+function formatMetric(value: number | null | undefined, suffix = "") {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "Sin dato";
+  return `${value}${suffix}`;
+}
+
+function getClimateMetrics(resultado?: ResultadoConsulta | null) {
+  const resumen = resultado?.clima_resumen;
+
+  if (!resumen) return climateMetrics;
+
+  return [
+    { icon: Droplets, label: "Humedad media", value: formatMetric(resumen.humedad_media_14d, "%"), color: "#5d7897", chart: "line" as const },
+    { icon: Droplets, label: "Lluvias últimos 5 días", value: formatMetric(resumen.lluvia_5d_mm, " mm"), color: "#2f80ed", chart: "bars" as const },
+    { icon: Thermometer, label: "Temperatura media", value: formatMetric(resumen.temp_media_14d, " °C"), color: "#8a5bd6", chart: "line" as const },
+    { icon: Wind, label: "Viento medio", value: formatMetric(resumen.viento_medio_14d_kmh, " km/h"), color: "#4f8c45", chart: "line" as const },
+    { icon: CalendarDays, label: "Días con lluvia (acum.)", value: `${resumen.dias_lluvia_14d} días`, color: "#4f8c45", chart: "line" as const },
+  ];
+}
 const watchItems = [
   { icon: Bug, title: "Plagas clave", status: "Condiciones desfavorables", tone: "green" as Tone },
   { icon: Sprout, title: "Enfermedades de tallo", status: "Condiciones moderadas", tone: "purple" as Tone },
@@ -109,18 +129,23 @@ function Sparkline({ color = "#2f8f4e", bars = false }: { color?: string; bars?:
   );
 }
 
-function QuerySummary() {
+function QuerySummary({ consulta, resultado }: { consulta?: StoredConsulta | null; resultado?: ResultadoConsulta | null }) {
+  const localidad = resultado?.localidad
+    ? `${resultado.localidad.nombre}, ${resultado.localidad.provincia}`
+    : consulta?.localidad ?? "Tandil, Buenos Aires";
+  const cultivo = consulta?.cultivo ? consulta.cultivo.charAt(0).toUpperCase() + consulta.cultivo.slice(1) : "Soja";
+  const fechaSiembra = consulta?.fechaSiembra || "Sin fecha de siembra";
+
   return (
     <div className="flex flex-wrap items-center gap-5 rounded-lg border border-[#d8e3dd] bg-white px-6 py-4 text-[15px] text-[#0b2138] shadow-sm">
-      <span className="inline-flex items-center gap-2 font-semibold"><MapPin className="h-5 w-5 text-avizor-green" /> Tandil, Buenos Aires</span>
+      <span className="inline-flex items-center gap-2 font-semibold"><MapPin className="h-5 w-5 text-avizor-green" /> {localidad}</span>
       <span className="text-[#8b9aa7]">•</span>
-      <span className="inline-flex items-center gap-2 font-semibold"><Sprout className="h-5 w-5 text-avizor-green" /> Soja</span>
+      <span className="inline-flex items-center gap-2 font-semibold"><Sprout className="h-5 w-5 text-avizor-green" /> {cultivo}</span>
       <span className="text-[#8b9aa7]">•</span>
-      <span className="inline-flex items-center gap-2"><CalendarDays className="h-5 w-5 text-avizor-green" /> Fecha de siembra: <strong>25/10/2026</strong> <span className="text-[#66768a]">(opcional)</span></span>
+      <span className="inline-flex items-center gap-2"><CalendarDays className="h-5 w-5 text-avizor-green" /> Fecha de siembra: <strong>{fechaSiembra}</strong> <span className="text-[#66768a]">(opcional)</span></span>
     </div>
   );
 }
-
 function SectionButton({ tone, onClick }: { tone: "red" | "blue" | "green"; onClick: () => void }) {
   const styles = {
     red: "border-[#f0b2b2] text-[#c51f1f] hover:bg-[#fff4f4]",
@@ -229,13 +254,15 @@ function SummaryCards({ setView }: { setView: (view: View) => void }) {
   );
 }
 
-function ClimateSummary() {
+function ClimateSummary({ resultado }: { resultado?: ResultadoConsulta | null }) {
+  const metrics = getClimateMetrics(resultado);
+
   return (
     <section className="mt-8 rounded-xl border border-[#d8e3dd] bg-white p-7 shadow-sm">
       <h2 className="text-[18px] font-bold">¿Qué está viendo Avizor?</h2>
       <p className="mt-1 text-[14px] text-[#52657a]">Resumen climático de los últimos 14 días.</p>
       <div className="mt-8 grid gap-5 md:grid-cols-5 md:divide-x md:divide-[#dfe7e2]">
-        {climateMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <div key={metric.label} className="px-3">
             <div className="flex items-center gap-4">
               <metric.icon className="h-8 w-8 text-[#5d7897]" />
@@ -258,6 +285,98 @@ function ClimateSummary() {
 function FeedbackSection({ accent = "green" }: { accent?: "green" | "blue" }) {
   const observationButtons = ["Nada relevante", "Posibles plagas", "Posibles enfermedades", "Exceso de agua", "Sequía", "Otro"];
   const submitClass = accent === "blue" ? "bg-[#145edc]" : "bg-avizor-green";
+  const [utilidad, setUtilidad] = useState<"si" | "parcialmente" | "no" | null>(null);
+  const [observaciones, setObservaciones] = useState<string[]>([]);
+  const [sugerencia, setSugerencia] = useState("");
+  const [email, setEmail] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [interesadoStatus, setInteresadoStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  function getStoredContext() {
+    if (typeof window === "undefined") return {};
+
+    const resultado = window.sessionStorage.getItem("avizor_resultado");
+    const consulta = window.sessionStorage.getItem("avizor_consulta");
+    const sessionId = window.localStorage.getItem("avizor_session_id") ?? undefined;
+
+    return {
+      share_token: resultado ? JSON.parse(resultado).share_token : undefined,
+      session_id: sessionId,
+      consulta: consulta ? JSON.parse(consulta) : undefined,
+    };
+  }
+
+  function toggleObservacion(label: string) {
+    setObservaciones((current) =>
+      current.includes(label) ? current.filter((item) => item !== label) : [...current, label],
+    );
+  }
+
+  async function submitFeedback() {
+    setFeedbackStatus("saving");
+    const context = getStoredContext();
+
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          share_token: context.share_token,
+          session_id: context.session_id,
+          utilidad,
+          observaciones,
+          sugerencia: sugerencia || undefined,
+        }),
+      });
+
+      if (!response.ok) throw new Error("No se pudo guardar feedback");
+
+      if (observaciones.length > 0) {
+        const observacionResponse = await fetch("/api/observaciones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            share_token: context.share_token,
+            session_id: context.session_id,
+            opciones: observaciones,
+          }),
+        });
+
+        if (!observacionResponse.ok) throw new Error("No se pudo guardar observacion");
+      }
+
+      setFeedbackStatus("saved");
+    } catch {
+      setFeedbackStatus("error");
+    }
+  }
+
+  async function submitInteresado() {
+    if (!email.trim()) return;
+
+    setInteresadoStatus("saving");
+    const context = getStoredContext();
+
+    try {
+      const response = await fetch("/api/interesados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          share_token: context.share_token,
+          session_id: context.session_id,
+          email,
+          localidad: context.consulta?.localidad,
+          cultivo: context.consulta?.cultivo,
+        }),
+      });
+
+      if (!response.ok) throw new Error("No se pudo guardar interesado");
+      setInteresadoStatus("saved");
+    } catch {
+      setInteresadoStatus("error");
+    }
+  }
+
   return (
     <section className="mt-8 overflow-hidden rounded-xl border border-[#d8e3dd] bg-white shadow-sm">
       <div className="grid gap-8 p-7 lg:grid-cols-3 lg:divide-x lg:divide-[#e1e8e4]">
@@ -265,9 +384,9 @@ function FeedbackSection({ accent = "green" }: { accent?: "green" | "blue" }) {
           <h2 className="text-[20px] font-bold">¿Te resultó útil esta información?</h2>
           <p className="mt-6 text-[15px] leading-relaxed">¿Las condiciones que describe Avizor coinciden con lo que ves en el campo?</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button className="inline-flex h-12 items-center gap-3 rounded-md border border-[#9ccdad] px-5 text-[#087238]"><ThumbsUp className="h-5 w-5" /> Sí</button>
-            <button className="inline-flex h-12 items-center gap-3 rounded-md border border-[#efc66f] px-5 text-[#b86600]"><Meh className="h-5 w-5" /> Parcialmente</button>
-            <button className="inline-flex h-12 items-center gap-3 rounded-md border border-[#f2b1aa] px-5 text-[#c51f1f]"><ThumbsDown className="h-5 w-5" /> No</button>
+            <button onClick={() => setUtilidad("si")} className={`inline-flex h-12 items-center gap-3 rounded-md border px-5 ${utilidad === "si" ? "border-[#087238] bg-[#e8f6ed] text-[#087238]" : "border-[#9ccdad] text-[#087238]"}`}><ThumbsUp className="h-5 w-5" /> Sí</button>
+            <button onClick={() => setUtilidad("parcialmente")} className={`inline-flex h-12 items-center gap-3 rounded-md border px-5 ${utilidad === "parcialmente" ? "border-[#b86600] bg-[#fff0ce] text-[#b86600]" : "border-[#efc66f] text-[#b86600]"}`}><Meh className="h-5 w-5" /> Parcialmente</button>
+            <button onClick={() => setUtilidad("no")} className={`inline-flex h-12 items-center gap-3 rounded-md border px-5 ${utilidad === "no" ? "border-[#c51f1f] bg-[#ffe9e7] text-[#c51f1f]" : "border-[#f2b1aa] text-[#c51f1f]"}`}><ThumbsDown className="h-5 w-5" /> No</button>
           </div>
         </div>
 
@@ -276,17 +395,19 @@ function FeedbackSection({ accent = "green" }: { accent?: "green" | "blue" }) {
           <p className="text-[13px] text-[#52657a]">(podés seleccionar más de una)</p>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {observationButtons.map((label) => (
-              <button key={label} className="rounded-md border border-[#d8e3dd] px-3 py-2 text-[13px] font-semibold text-[#0b2138] hover:bg-[#f7fbf8]">{label}</button>
+              <button key={label} onClick={() => toggleObservacion(label)} className={`rounded-md border px-3 py-2 text-[13px] font-semibold ${observaciones.includes(label) ? "border-avizor-green bg-[#f7fbf8] text-avizor-green" : "border-[#d8e3dd] text-[#0b2138] hover:bg-[#f7fbf8]"}`}>{label}</button>
             ))}
           </div>
-          <button className={`mx-auto mt-6 flex h-11 min-w-[240px] items-center justify-center gap-2 rounded-md px-7 text-white ${submitClass}`}><Send className="h-4 w-4" /> Enviar feedback</button>
+          <button onClick={submitFeedback} disabled={feedbackStatus === "saving"} className={`mx-auto mt-6 flex h-11 min-w-[240px] items-center justify-center gap-2 rounded-md px-7 text-white disabled:opacity-70 ${submitClass}`}><Send className="h-4 w-4" /> {feedbackStatus === "saving" ? "Enviando..." : "Enviar feedback"}</button>
+          {feedbackStatus === "saved" && <p className="mt-3 text-center text-[13px] font-semibold text-avizor-green">Gracias por tu feedback.</p>}
+          {feedbackStatus === "error" && <p className="mt-3 text-center text-[13px] font-semibold text-[#c51f1f]">No pudimos guardar el feedback.</p>}
         </div>
 
         <div className="lg:pl-7">
           <h3 className="text-[16px] font-bold">¿Qué te gustaría que incorpore Avizor?</h3>
           <p className="text-[13px] text-[#52657a]">(opcional)</p>
-          <textarea className="mt-5 h-32 w-full resize-none rounded-md border border-[#d8e3dd] p-4 text-[14px] outline-none focus:border-avizor-green" placeholder="Contanos tu sugerencia..." />
-          <p className="mt-1 text-right text-[12px] text-[#52657a]">0 / 300</p>
+          <textarea value={sugerencia} onChange={(event) => setSugerencia(event.target.value.slice(0, 300))} className="mt-5 h-32 w-full resize-none rounded-md border border-[#d8e3dd] p-4 text-[14px] outline-none focus:border-avizor-green" placeholder="Contanos tu sugerencia..." />
+          <p className="mt-1 text-right text-[12px] text-[#52657a]">{sugerencia.length} / 300</p>
         </div>
       </div>
 
@@ -308,9 +429,11 @@ function FeedbackSection({ accent = "green" }: { accent?: "green" | "blue" }) {
             <h3 className="font-bold">¿Querés recibir un aviso si las condiciones cambian?</h3>
             <p className="mt-1 text-[14px] text-[#52657a]">Te enviaremos un email si es necesario que prestes atención.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <div className="relative"><Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8493a3]" /><input className="h-11 w-full rounded-md border border-[#d8e3dd] pl-11 pr-4 outline-none focus:border-avizor-green" placeholder="Ingresá tu email" /></div>
-              <button className="h-11 rounded-md bg-avizor-green px-6 text-white">Guardar seguimiento</button>
+              <div className="relative"><Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8493a3]" /><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" className="h-11 w-full rounded-md border border-[#d8e3dd] pl-11 pr-4 outline-none focus:border-avizor-green" placeholder="Ingresá tu email" /></div>
+              <button onClick={submitInteresado} disabled={interesadoStatus === "saving"} className="h-11 rounded-md bg-avizor-green px-6 text-white disabled:opacity-70">{interesadoStatus === "saving" ? "Guardando..." : "Guardar seguimiento"}</button>
             </div>
+            {interesadoStatus === "saved" && <p className="mt-3 text-[13px] font-semibold text-avizor-green">Seguimiento guardado.</p>}
+            {interesadoStatus === "error" && <p className="mt-3 text-[13px] font-semibold text-[#c51f1f]">No pudimos guardar el seguimiento.</p>}
           </div>
           <Heart className="hidden h-12 w-12 text-[#64b56d] lg:block" />
         </div>
@@ -318,7 +441,6 @@ function FeedbackSection({ accent = "green" }: { accent?: "green" | "blue" }) {
     </section>
   );
 }
-
 function AttentionHeader({ setView }: { setView: (view: View) => void }) {
   return (
     <section>
@@ -786,23 +908,23 @@ function RecommendationDetail({ setView }: { setView: (view: View) => void }) {
   );
 }
 
-function SummaryView({ setView }: { setView: (view: View) => void }) {
+function SummaryView({ setView, consulta, resultado }: { setView: (view: View) => void; consulta?: StoredConsulta | null; resultado?: ResultadoConsulta | null }) {
   return (
     <>
       <section className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-[42px] font-bold leading-tight">Resultados</h1>
           <p className="mt-3 text-[18px] text-[#40556c]">Resumen de las condiciones para tu consulta</p>
-          <div className="mt-6"><QuerySummary /></div>
+          <div className="mt-6"><QuerySummary consulta={consulta} resultado={resultado} /></div>
         </div>
         <div className="flex flex-col gap-8 lg:items-end">
-          <div className="flex items-start gap-4"><ShieldCheck className="h-7 w-7 text-avizor-green" /><p><strong>Basado en 14 días completos</strong><br />de datos climáticos</p></div>
+          <div className="flex items-start gap-4"><ShieldCheck className="h-7 w-7 text-avizor-green" /><p><strong>Basado en {resultado?.dias_datos ?? 14} días de datos</strong><br />climáticos disponibles</p></div>
           <button className="inline-flex h-14 items-center justify-center gap-3 rounded-lg border border-[#d8e3dd] bg-white px-7 text-[16px] font-semibold"><Map className="h-6 w-6 text-[#5d7897]" /> Ver en mapa</button>
         </div>
       </section>
 
       <SummaryCards setView={setView} />
-      <ClimateSummary />
+      <ClimateSummary resultado={resultado} />
       <FeedbackSection />
       <section className="mt-8 flex flex-col gap-5 rounded-xl border border-[#d8e3dd] bg-[#f7fbf8] p-5 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4"><ToneIcon icon={ShieldCheck} tone="green" /><p className="text-[#40556c]">Este resultado se genera con datos climáticos y reglas agronómicas validadas.<br />No reemplaza la observación a campo ni el criterio de tu asesor agronómico.</p></div>
@@ -814,19 +936,33 @@ function SummaryView({ setView }: { setView: (view: View) => void }) {
 
 export default function ResultadoPage() {
   const [view, setView] = useState<View>("resumen");
+  const [resultado, setResultado] = useState<ResultadoConsulta | null>(null);
+  const [consulta, setConsulta] = useState<StoredConsulta | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const initialView = new URLSearchParams(window.location.search).get("vista");
     if (initialView === "atencion" || initialView === "monitoreo" || initialView === "recomendaciones") {
       setView(initialView);
+    }
+
+    try {
+      const storedResultado = window.sessionStorage.getItem("avizor_resultado");
+      const storedConsulta = window.sessionStorage.getItem("avizor_consulta");
+
+      if (storedResultado) setResultado(JSON.parse(storedResultado));
+      if (storedConsulta) setConsulta(JSON.parse(storedConsulta));
+    } catch {
+      setResultado(null);
+      setConsulta(null);
     }
   }, []);
 
   return (
     <div className="bg-[#fbfdfc] text-[#0b2138]">
       <main className="mx-auto max-w-[1320px] px-6 py-10 lg:px-10">
-        {view === "resumen" && <SummaryView setView={setView} />}
+        {view === "resumen" && <SummaryView setView={setView} consulta={consulta} resultado={resultado} />}
         {view === "atencion" && <AttentionDetail setView={setView} />}
         {view === "monitoreo" && <MonitorDetail setView={setView} />}
         {view === "recomendaciones" && <RecommendationDetail setView={setView} />}
@@ -834,8 +970,4 @@ export default function ResultadoPage() {
     </div>
   );
 }
-
-
-
-
 

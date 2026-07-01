@@ -1,4 +1,4 @@
-﻿export type Condicion = "favorable" | "moderada" | "desfavorable";
+export type Condicion = "favorable" | "moderada" | "desfavorable";
 
 export type Confianza = "Alta" | "Media" | "Baja";
 
@@ -21,6 +21,8 @@ export interface ResultadoConsulta {
   dias_datos: number;
   categorias: CategoriaResultado[];
   share_token: string;
+  localidad?: LocalidadNormalizada;
+  clima_resumen?: ClimateMetrics;
 }
 
 export interface ConsultaRequest {
