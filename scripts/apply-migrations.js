@@ -37,6 +37,7 @@ async function main() {
     "db/migrations/001_mvp_schema.sql",
     "db/migrations/002_consultas_interacciones.sql",
     "db/migrations/003_dedupe_reglas_agronomicas.sql",
+    "db/migrations/004_reglas_estado_experimental.sql",
   ];
 
   for (const migration of migrations) {
@@ -44,7 +45,7 @@ async function main() {
   }
 
   const rules = await pool.query(
-    "select count(*)::int as total from reglas_agronomicas where cultivo = $1 and activa = true",
+    "select count(*)::int as total from reglas_agronomicas where cultivo = $1 and activa = true and estado_regla in ('validada', 'experimental')",
     ["soja"],
   );
   console.log(`active_soja_rules ${rules.rows[0].total}`);

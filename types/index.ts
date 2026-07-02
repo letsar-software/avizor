@@ -2,6 +2,8 @@ export type Condicion = "favorable" | "moderada" | "desfavorable";
 
 export type Confianza = "Alta" | "Media" | "Baja";
 
+export type EstadoRegla = "validada" | "experimental" | "pendiente";
+
 export type EstadoGeneral =
   | "Atención recomendada"
   | "Monitoreo preventivo sugerido"
@@ -85,6 +87,7 @@ export interface ReglaAgronomica {
   causas: string[];
   recomendacion: string;
   regla_version: string;
+  estado_regla: EstadoRegla;
   prioridad: number;
   activa: boolean;
   combinador: "all" | "any";

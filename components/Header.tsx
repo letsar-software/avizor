@@ -7,7 +7,6 @@ import { Leaf, Menu, X } from "lucide-react";
 
 const NAV = [
   { label: "Inicio", href: "/" },
-  { label: "¿Cómo funciona?", href: "/como-funciona" },
   { label: "Metodología", href: "/metodologia" },
   { label: "Sobre Avizor", href: "/sobre-avizor" },
 ];

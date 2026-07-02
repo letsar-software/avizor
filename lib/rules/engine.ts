@@ -38,6 +38,7 @@ export class RulesEngine {
   evaluate(rules: ReglaAgronomica[], metrics: ClimateMetrics): CategoriaResultado[] {
     const matchedRules = rules
       .filter((rule) => rule.activa)
+      .filter((rule) => rule.estado_regla !== "pendiente")
       .filter((rule) => matchesRule(rule, metrics))
       .sort((a, b) => b.prioridad - a.prioridad);
 

@@ -1,4 +1,4 @@
-﻿import type { ReglaAgronomica } from "@/types";
+import type { ReglaAgronomica } from "@/types";
 import { query } from "@/lib/db/postgres";
 
 type ReglaRow = Omit<ReglaAgronomica, "condiciones"> & {
@@ -22,12 +22,15 @@ export async function getReglasAgronomicas(cultivo: string) {
       causas,
       recomendacion,
       regla_version,
+      estado_regla,
       prioridad,
       activa,
       combinador,
       condiciones
     from reglas_agronomicas
-    where cultivo = $1 and activa = true
+    where cultivo = $1
+      and activa = true
+      and estado_regla in ('validada', 'experimental')
     order by prioridad desc`,
     [cultivo.toLowerCase()],
   );

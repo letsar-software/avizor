@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     if (rules.length === 0) {
-      await logConsulta({ request: body, rules, error: "No hay reglas activas" });
+      await logConsulta({ request: body, rules, error: "No hay reglas evaluables" });
       return jsonError("REGLAS_NO_DISPONIBLES", 503);
     }
 
