@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronDown,
   Leaf,
+  Loader2,
   MapPin,
   MessageSquare,
   ShieldCheck,
@@ -42,6 +43,8 @@ export default function HeroSection() {
   }
 
   async function handleConsulta() {
+    if (isLoading) return;
+
     setError("");
     setIsLoading(true);
 
@@ -148,6 +151,7 @@ export default function HeroSection() {
                     value={localidad}
                     onChange={(event) => setLocalidad(event.target.value)}
                     aria-label="Localidad"
+                    required
                   />
                   <X
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8a9690]"
@@ -174,7 +178,6 @@ export default function HeroSection() {
                     onChange={(event) => setCultivo(event.target.value)}
                   >
                     <option value="soja">Soja</option>
-                    <option value="maiz">Maíz</option>
                   </select>
                   <ChevronDown
                     className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#8a9690]"
@@ -185,13 +188,31 @@ export default function HeroSection() {
               </div>
 
               <button
+                type="button"
                 onClick={handleConsulta}
                 disabled={isLoading}
-                className="inline-flex h-[50px] items-center justify-center gap-5 rounded-lg bg-avizor-green px-9 text-[13px] font-extrabold text-white shadow-sm transition-colors hover:bg-[#256427] disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex h-[50px] items-center justify-center gap-3 rounded-lg bg-avizor-green px-9 text-[13px] font-extrabold text-white shadow-sm transition-colors hover:bg-[#256427] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isLoading ? "Consultando..." : "Consultar"} <ArrowRight size={17} strokeWidth={2} />
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight size={17} strokeWidth={2} />}
+                {isLoading ? "Consultando..." : "Consultar"}
               </button>
             </div>
+
+            {isLoading && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-4 flex items-start gap-3 rounded-lg border border-[#c9dbd0] bg-[#f7fbf8] px-4 py-3 text-[#102333]"
+              >
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-avizor-green" />
+                <div>
+                  <p className="text-[13px] font-extrabold">Estamos cargando los resultados</p>
+                  <p className="mt-1 text-[12px] font-semibold leading-relaxed text-[#66727a]">
+                    Consultando datos climáticos y evaluando las reglas agronómicas. Esto puede tardar unos segundos.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {error && (
               <p className="mt-4 rounded-lg border border-[#f2b1aa] bg-[#fff4f4] px-4 py-3 text-[13px] font-semibold text-[#b42318]">

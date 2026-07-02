@@ -1,8 +1,9 @@
 ﻿"use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Leaf } from "lucide-react";
+import { Leaf, Menu, X } from "lucide-react";
 
 const NAV = [
   { label: "Inicio", href: "/" },
@@ -37,10 +38,17 @@ function Brand() {
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const ctaLabel = pathname === "/resultado" ? "Nueva consulta" : "Realizar consulta";
+
+  function goToConsulta() {
+    setIsMenuOpen(false);
+    router.push("/");
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#dde5df] bg-white/96 backdrop-blur">
-      <div className="mx-auto flex h-[68px] w-full max-w-[1320px] items-center gap-4 px-4 sm:h-[76px] sm:gap-7 sm:px-8">
+      <div className="mx-auto flex h-[68px] w-full max-w-[1320px] items-center gap-3 px-4 sm:h-[76px] sm:gap-5 sm:px-8">
         <Brand />
 
         <nav className="hidden flex-1 items-center justify-center gap-12 lg:flex">
@@ -62,15 +70,52 @@ export default function Header() {
         </nav>
 
         <button
-          onClick={() => router.push("/")}
-          className="ml-auto rounded-lg bg-avizor-green px-4 py-3 text-[12px] font-extrabold text-white shadow-sm transition-colors hover:bg-[#256427] sm:px-7 sm:py-3.5 sm:text-[14px]"
+          onClick={goToConsulta}
+          className="ml-auto hidden rounded-lg bg-avizor-green px-5 py-3 text-[13px] font-extrabold text-white shadow-sm transition-colors hover:bg-[#256427] sm:inline-flex lg:px-7 lg:py-3.5 lg:text-[14px]"
         >
-          {pathname === "/resultado" ? "Nueva consulta" : "Realizar consulta"}
+          {ctaLabel}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsMenuOpen((current) => !current)}
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-navigation"
+          aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#d8e3dd] bg-white text-[#0b2138] shadow-sm transition-colors hover:bg-[#f7fbf8] sm:ml-0 lg:hidden"
+        >
+          {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
+
+      {isMenuOpen && (
+        <div id="mobile-navigation" className="border-t border-[#e2e9e4] bg-white lg:hidden">
+          <nav className="mx-auto flex max-w-[1320px] flex-col px-4 py-3 sm:px-8">
+            {NAV.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`rounded-lg px-3 py-3 text-[14px] font-extrabold transition-colors ${
+                    active ? "bg-[#f0f7f1] text-avizor-green" : "text-[#0b2138] hover:bg-[#f7fbf8] hover:text-avizor-green"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+            <button
+              type="button"
+              onClick={goToConsulta}
+              className="mt-2 inline-flex h-11 items-center justify-center rounded-lg bg-avizor-green px-5 text-[13px] font-extrabold text-white shadow-sm transition-colors hover:bg-[#256427] sm:hidden"
+            >
+              {ctaLabel}
+            </button>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
-
-
-

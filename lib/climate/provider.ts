@@ -1,5 +1,7 @@
-﻿import type { ClimateData, ClimateMetrics, DiaClimatico, LocalidadNormalizada } from "@/types";
+import type { ClimateData, ClimateMetrics, DiaClimatico, LocalidadNormalizada } from "@/types";
 import { buildClimateCacheKey, getClimateCache, setClimateCache } from "./cache";
+
+const OPEN_METEO_TIMEOUT_MS = 12000;
 
 interface OpenMeteoHourly {
   time?: string[];
@@ -95,6 +97,7 @@ export class ClimateProvider {
 
     const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
       next: { revalidate: 60 * 60 * 3 },
+      signal: AbortSignal.timeout(OPEN_METEO_TIMEOUT_MS),
     });
 
     if (!response.ok) {

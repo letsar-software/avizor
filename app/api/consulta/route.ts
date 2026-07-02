@@ -66,12 +66,18 @@ export async function POST(request: Request) {
       return jsonError("LOCALIDAD_NO_RECONOCIDA", 404);
     }
 
+    const climateProvider = new ClimateProvider();
     let rules;
+    let climateData;
     try {
-      rules = await getReglasAgronomicas(body.cultivo);
+      [rules, climateData] = await Promise.all([
+        getReglasAgronomicas(body.cultivo),
+        climateProvider.getLast14Days(localidad),
+      ]);
     } catch (error) {
       await logConsulta({ request: body, error });
-      return jsonError("REGLAS_NO_DISPONIBLES", 503);
+      const message = error instanceof Error ? error.message : String(error);
+      return jsonError(message.includes("Open-Meteo") || message.includes("climatica") ? "CLIMA_NO_DISPONIBLE" : "REGLAS_NO_DISPONIBLES", 503);
     }
 
     if (rules.length === 0) {
@@ -79,8 +85,7 @@ export async function POST(request: Request) {
       return jsonError("REGLAS_NO_DISPONIBLES", 503);
     }
 
-    const climateProvider = new ClimateProvider();
-    const climateData = await climateProvider.getLast14Days(localidad);
+
     const rulesEngine = new RulesEngine();
     const scoreEngine = new ScoreEngine();
     const categorias = rulesEngine.evaluate(rules, climateData.resumen);
@@ -94,13 +99,16 @@ export async function POST(request: Request) {
       clima_resumen: climateData.resumen,
     };
 
-    try {
-      await createConsulta({ request: body, climateData, rules, result });
-    } catch (error) {
-      console.error("No se pudo guardar consulta", error);
-    }
+    const persistenceResults = await Promise.allSettled([
+      createConsulta({ request: body, climateData, rules, result }),
+      logConsulta({ request: body, climateData, rules, result }),
+    ]);
 
-    await logConsulta({ request: body, climateData, rules, result });
+    persistenceResults.forEach((persistenceResult) => {
+      if (persistenceResult.status === "rejected") {
+        console.error("No se pudo guardar informacion de consulta", persistenceResult.reason);
+      }
+    });
 
     return NextResponse.json(result);
   } catch (error) {
