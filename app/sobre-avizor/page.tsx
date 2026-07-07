@@ -66,7 +66,28 @@ const processSteps: { Icon: LucideIcon; title: string; text: string }[] = [
   },
 ];
 
-const andreaTags: { Icon: LucideIcon; label: string }[] = [
+const teamMembers: { image: string; name: string; role: string; bio: string }[] = [
+  {
+    image: "/sobre-avizor-andrea.svg",
+    name: "Andrea",
+    role: "Producto · IA · Desarrollo",
+    bio: "Creadora de Avizor. Lidera el diseño del producto, define la metodología funcional y participa activamente en el desarrollo de la plataforma y en la integración de inteligencia artificial para transformar datos complejos en herramientas simples y útiles.",
+  },
+  {
+    image: "/sobre-avizor-ezequiel.svg",
+    name: "Ezequiel",
+    role: "Arquitectura · Agentes de IA",
+    bio: "Especialista en desarrollo de software y agentes de inteligencia artificial. Responsable de la arquitectura técnica, el backend y la construcción de los componentes de IA que permiten que Avizor evolucione.",
+  },
+  {
+    image: "/sobre-avizor-natali.svg",
+    name: "Ing. Agr. Natali",
+    role: "Validación técnica agronómica",
+    bio: "Ingeniera Agrónoma del Laboratorio Agropecuario Horizonte. Colabora en la validación técnica de las reglas agronómicas, revisando umbrales y criterios para asegurar que cada recomendación esté respaldada por conocimiento agronómico actualizado.",
+  },
+];
+
+const teamTags: { Icon: LucideIcon; label: string }[] = [
   { Icon: Sprout, label: "Agro" },
   { Icon: Monitor, label: "Tecnología" },
   { Icon: ShieldCheck, label: "Calidad de software" },
@@ -194,23 +215,36 @@ export default function SobreAvizorPage() {
       </section>
 
       <section className="mx-auto max-w-[1320px] px-8 py-8">
-        <article className="grid gap-9 rounded-xl border border-[#d9e2dc] bg-white p-4 shadow-[0_10px_35px_rgba(7,29,54,0.05)] md:grid-cols-[380px_1fr] md:p-5">
-          <div className="relative min-h-[320px] overflow-hidden rounded-lg md:min-h-[360px]">
-            <Image src="/Andy y eze.png" alt="Andrea y Ezequiel, equipo creador de Avizor" fill priority className="object-cover object-center" sizes="(max-width: 768px) 100vw, 380px" />
+        <article className="grid items-center gap-8 rounded-xl border border-[#cfe1d4] bg-white px-6 py-8 shadow-[0_10px_35px_rgba(7,29,54,0.04)] lg:grid-cols-[430px_1fr] lg:px-7 lg:py-9">
+          <div className="relative mx-auto aspect-[430/386] w-full max-w-[430px]">
+            <Image
+              src="/sobre-avizor-lab.svg"
+              alt="Estación meteorológica, cultivo y panel de Avizor"
+              fill
+              className="object-contain"
+              sizes="(max-width: 1024px) 100vw, 430px"
+            />
           </div>
-          <div className="px-2 py-3 md:px-4">
-            <h2 className="text-[29px] font-extrabold text-[#071d36]">Detrás de Avizor</h2>
-            <h3 className="mt-1 text-[31px] font-extrabold text-avizor-green">Hola, somos Andrea y Ezequiel 🌱</h3>
-            <div className="mt-4 max-w-[770px] space-y-2 text-[17px] leading-[1.45] text-[#071d36]">
-              <p>Somos un equipo que combina experiencia en agro, tecnología y desarrollo de productos digitales.</p>
-              <p>Andrea lidera la definición funcional y el desarrollo de producto, combinando experiencia en agro, software y procesos para convertir problemas reales del campo en soluciones digitales.</p>
-              <p>Ezequiel lidera la arquitectura tecnológica y el desarrollo de capacidades basadas en inteligencia artificial, transformando datos climáticos y conocimiento agronómico en información útil para la toma de decisiones.</p>
-              <p>Creamos Avizor con una convicción compartida: la tecnología debe acompañar al productor, no reemplazarlo.</p>
-              <p>Nuestro objetivo es acercar información clara, basada en evidencia y fácil de interpretar para ayudar a tomar mejores decisiones en el campo.</p>
+          <div className="min-w-0 px-1 py-1 lg:px-3">
+            <h2 className="text-center text-[29px] font-extrabold leading-tight text-[#071d36] lg:text-left">Detrás de Avizor</h2>
+            <h3 className="mt-2 text-center text-[15px] font-extrabold text-avizor-green lg:text-left">
+              Tecnología, inteligencia artificial y agronomía trabajando juntas.
+            </h3>
+            <div className="mt-6 grid gap-7 md:grid-cols-3 lg:gap-8">
+              {teamMembers.map(({ image, name, role, bio }) => (
+                <div key={name} className="flex flex-col items-center text-center md:items-start md:text-left">
+                  <div className="relative h-[136px] w-[136px] overflow-hidden rounded-full border border-[#cfe3cf] bg-[#eef7ec]">
+                    <Image src={image} alt={name} fill className="object-cover" sizes="136px" />
+                  </div>
+                  <h4 className="mt-4 text-[17px] font-extrabold leading-tight text-[#071d36]">{name}</h4>
+                  <p className="mt-1 text-[14px] font-extrabold leading-snug text-avizor-green">{role}</p>
+                  <p className="mt-3 text-[13px] leading-[1.65] text-[#071d36]">{bio}</p>
+                </div>
+              ))}
             </div>
-            <div className="mt-7 grid grid-cols-2 gap-4 border-t border-[#e6eee8] pt-5 sm:grid-cols-5">
-              {andreaTags.map(({ Icon, label }) => (
-                <div key={label} className="flex items-center gap-2 text-[14px] font-semibold text-[#0c6f3d]">
+            <div className="mt-8 grid grid-cols-2 gap-x-5 gap-y-4 border-t border-[#cfded3] pt-6 sm:grid-cols-5">
+              {teamTags.map(({ Icon, label }) => (
+                <div key={label} className="flex items-center justify-center gap-2 text-[13px] font-semibold text-[#0c6f3d] sm:justify-start">
                   <Icon className="h-5 w-5" />
                   <span>{label}</span>
                 </div>
