@@ -1,4 +1,4 @@
-import { AlertTriangle, TrendingUp, CheckCircle } from "lucide-react";
+﻿import { AlertTriangle, TrendingUp, CheckCircle } from "lucide-react";
 
 export type EstadoType = "atencion" | "monitoreo" | "ok";
 
@@ -22,24 +22,24 @@ const CONFIG = {
   atencion: {
     Icon: AlertTriangle,
     iconClass: "text-amber-500",
-    label: "Atención recomendada",
-    desc: "Las condiciones actuales merecen atención.",
+    label: "Condiciones favorables",
+    desc: "Las condiciones coinciden con los umbrales documentados.",
     bgClass: "bg-orange-50 border-orange-100",
     titleClass: "text-orange-800",
   },
   monitoreo: {
     Icon: TrendingUp,
     iconClass: "text-blue-500",
-    label: "Monitoreo preventivo sugerido",
-    desc: "Las condiciones sugieren mantener vigilancia.",
+    label: "Condiciones parcialmente favorables",
+    desc: "Las condiciones coinciden parcialmente con los umbrales documentados.",
     bgClass: "bg-blue-50 border-blue-100",
     titleClass: "text-blue-800",
   },
   ok: {
     Icon: CheckCircle,
     iconClass: "text-avizor-green",
-    label: "Sin alertas activas",
-    desc: "Las condiciones no presentan riesgo elevado.",
+    label: "Condiciones desfavorables",
+    desc: "Las condiciones no coinciden con los umbrales documentados.",
     bgClass: "bg-green-50 border-green-100",
     titleClass: "text-green-800",
   },
@@ -60,7 +60,7 @@ export default function EstadoGeneral({ estado }: { estado: EstadoType }) {
             <span className="text-gray-300">·</span>
             <span className="flex items-center gap-1 text-sm text-gray-500">
               <span className="inline-block w-2 h-2 rounded-full bg-avizor-green" />
-              Confianza{" "}
+              Cobertura{" "}
               <span className="font-semibold text-avizor-green">Alta</span>
             </span>
           </div>
@@ -70,3 +70,4 @@ export default function EstadoGeneral({ estado }: { estado: EstadoType }) {
     </div>
   );
 }
+

@@ -1,33 +1,11 @@
-﻿import { Leaf } from "lucide-react";
+import Link from "next/link";
+import { Mail, MapPin, MessageCircle, Sprout } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
-function LogoMark() {
-  return (
-    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white">
-      <span className="absolute inset-x-1 top-1 h-5 rounded-t-full border-4 border-current border-b-0" />
-      <span className="absolute inset-x-1 bottom-1 h-5 rounded-b-full border-4 border-current border-t-0" />
-      <span className="absolute h-3.5 w-3.5 rounded-full border-[3px] border-current" />
-      <Leaf className="absolute -bottom-0.5 left-1 h-5 w-5" strokeWidth={2.2} />
-    </span>
-  );
-}
+const navigation = [["Inicio", "/"], ["Metodología", "/metodologia"], ["Sobre Avizor", "/sobre-avizor"], ["Contacto", "/contacto"]];
+const information = [["Bibliografía", "/bibliografia"], ["Privacidad", "/privacidad"], ["Alcance y limitaciones", "/alcance-limitaciones"], ["Estado del sistema", "/estado-sistema"]];
 
 export default function Footer() {
-  return (
-    <footer id="contacto" className="bg-[linear-gradient(135deg,#063f2c,#08733f)] text-white">
-      <div className="mx-auto grid max-w-[1320px] grid-cols-1 gap-8 px-8 py-7 md:grid-cols-3 md:items-center">
-        <div className="flex items-center gap-3">
-          <LogoMark />
-          <div>
-            <p className="text-[24px] font-extrabold tracking-[0.08em]">AVIZOR</p>
-            <p className="text-[13px] text-white/85">La señal antes del problema.</p>
-          </div>
-        </div>
-        <div className="text-[14px] leading-relaxed md:text-center">
-          <p className="font-bold">Creado por Andrea ♡</p>
-          <p className="text-white/85">Apasionada por el agro y la tecnología.</p>
-        </div>
-        <p className="text-[14px] text-white/90 md:text-right">© 2026 Avizor. Todos los derechos reservados.</p>
-      </div>
-    </footer>
-  );
+  return <footer className="bg-[#064d35] text-white"><div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-14"><div className="grid gap-8 md:grid-cols-[1.1fr_.7fr_.8fr_1fr]"><div className="self-start"><BrandLogo inverse compact/></div><FooterLinks title="Navegación" links={navigation}/><FooterLinks title="Información" links={information}/><div><h2 className="text-xs font-bold text-[#8bd4a8]">Contacto</h2><div className="mt-4 space-y-3 text-xs text-white/80"><p className="flex gap-2"><Mail className="h-4 w-4"/>hola@avizor.com.ar</p><p className="flex gap-2"><MapPin className="h-4 w-4"/>Tandil, Buenos Aires</p><p className="flex gap-2"><MessageCircle className="h-4 w-4"/>Respondemos en 24 a 48 horas hábiles</p></div></div></div><div className="mt-7 flex flex-col gap-3 border-t border-white/15 pt-5 text-[11px] text-white/65 sm:flex-row sm:justify-between"><p>© 2026 Avizor. Todos los derechos reservados.</p><p className="flex gap-2"><Sprout className="h-4 w-4"/>Avizor no diagnostica ni reemplaza el asesoramiento profesional.</p></div></div></footer>;
 }
+function FooterLinks({title,links}:{title:string;links:string[][]}){return <nav><h2 className="text-xs font-bold text-[#8bd4a8]">{title}</h2><div className="mt-4 space-y-2">{links.map(([label,href])=><Link key={href} href={href} className="block text-xs text-white/80 hover:text-white">{label}</Link>)}</div></nav>}

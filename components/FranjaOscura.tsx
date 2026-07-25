@@ -1,4 +1,4 @@
-﻿import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export default function FranjaOscura() {
@@ -10,7 +10,7 @@ export default function FranjaOscura() {
           <div>
             <p className="font-bold text-white">Transparente. Responsable. Confiable.</p>
             <p className="text-sm text-white/70 mt-1">
-              Mostramos cÃ³mo llegamos a cada resultado, para que entiendas y decidas.
+              Mostramos cómo llegamos a cada resultado, para que entiendas y decidas.
             </p>
           </div>
         </div>
@@ -18,7 +18,7 @@ export default function FranjaOscura() {
           href="/metodologia"
           className="border border-white/30 text-white rounded-lg px-5 py-3 text-sm font-medium hover:bg-white/10 flex items-center gap-2 whitespace-nowrap transition-colors"
         >
-          ConocÃ© nuestra metodologÃ­a â†’
+          Conocé nuestra metodología →
         </Link>
       </div>
     </section>

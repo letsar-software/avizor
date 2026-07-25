@@ -1,4 +1,4 @@
-﻿import DatosClimaticos from "./DatosClimaticos";
+import DatosClimaticos from "./DatosClimaticos";
 
 export default function EjemploResultado() {
   return (
@@ -10,29 +10,29 @@ export default function EjemploResultado() {
             Ejemplo de resultado
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Tandil, Buenos Aires Â· Soja Â· 14/06/2026
+            Tandil, Buenos Aires · Soja · 14/06/2026
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Columna resultado â€” 2/3 */}
+          {/* Columna resultado — 2/3 */}
           <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             {/* Estado */}
             <div className="flex items-start gap-3">
-              <span className="text-2xl flex-shrink-0">âš ï¸</span>
+              <span className="text-2xl flex-shrink-0">⚠️</span>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg leading-tight">
-                  AtenciÃ³n recomendada
+                  Atención recomendada
                 </h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Las condiciones actuales merecen atenciÃ³n.
+                  Las condiciones actuales merecen atención.
                 </p>
               </div>
             </div>
 
             <div className="border-t border-gray-100 my-4" />
 
-            {/* CondiciÃ³n */}
+            {/* Condición */}
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-gray-700">
                 Condiciones para enfermedades foliares
@@ -42,31 +42,31 @@ export default function EjemploResultado() {
               </span>
             </div>
 
-            {/* RecomendaciÃ³n */}
+            {/* Recomendación */}
             <div className="mt-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                RecomendaciÃ³n
+                Recomendación
               </p>
               <p className="text-sm text-gray-700">
-                Monitorear el lote durante los prÃ³ximos 5 dÃ­as.
+                Monitorear el lote durante los próximos 5 días.
               </p>
             </div>
 
             {/* Footer card */}
             <div className="border-t border-gray-100 pt-3 mt-4">
               <p className="text-xs text-gray-400">
-                Basado en 14 dÃ­as completos de datos climÃ¡ticos
+                Basado en 14 días completos de datos climáticos
               </p>
             </div>
           </div>
 
-          {/* Columna lateral â€” 1/3 */}
+          {/* Columna lateral — 1/3 */}
           <div className="flex flex-col gap-4">
             <DatosClimaticos />
 
             {/* Card verde */}
             <div className="bg-avizor-green-light rounded-xl p-6 border border-[#c8e6c9]">
-              <span className="text-avizor-green text-2xl">ðŸŒ¿</span>
+              <span className="text-avizor-green text-2xl">🌿</span>
               <h4 className="font-bold text-avizor-navy-dark mt-3 text-sm">
                 Siempre en simple
               </h4>
@@ -76,7 +76,7 @@ export default function EjemploResultado() {
                 que pueden favorecer riesgos.
               </p>
               <p className="font-semibold text-avizor-green mt-3 text-sm">
-                Vos decidÃ­s.
+                Vos decidís.
               </p>
             </div>
           </div>

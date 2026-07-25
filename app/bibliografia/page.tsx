@@ -1,0 +1,12 @@
+import { ExternalLink, FileText } from "lucide-react";
+import { PublicPage } from "@/components/PublicPage";
+const sources=[
+ {title:"INTA. Manual de enfermedades de fin de ciclo en soja",meta:"INTA Ediciones, 2022.",tag:"Enfermedades foliares",action:"Ver PDF"},
+ {title:"FAO. Water and agriculture: Facing water scarcity",meta:"FAO Water Reports, 2021.",tag:"Estrés hídrico",action:"Ver PDF"},
+ {title:"Servicio Meteorológico Nacional. Normales climáticas",meta:"Serie 1981–2010.",tag:"Clima",action:"Ver sitio"},
+ {title:"Ciampitti, I. A. et al. Manejo del cultivo de soja",meta:"EEA INTA Pergamino, 2019.",tag:"Soja",action:"Ver PDF"},
+ {title:"Magurris, R. et al. SEVWA risk model for foliar diseases",meta:"Plant Pathology, 2025.",tag:"Enfermedades foliares",action:"DOI"},
+ {title:"Universidad Nacional de Córdoba. Guía de heladas en cultivos",meta:"FCA UNC, 2020.",tag:"Heladas",action:"Ver PDF"},
+];
+const tabs=["Todas","Enfermedades foliares","Heladas","Estrés hídrico","Exceso hídrico"];
+export default function Bibliography(){return <PublicPage><header><h1 className="text-3xl font-bold">Bibliografía</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[#405369]">Las reglas agronómicas utilizadas por Avizor se basan en publicaciones técnicas y científicas de referencia.</p></header><div className="mt-7 flex gap-5 overflow-x-auto border-b">{tabs.map((tab,index)=><button key={tab} className={`shrink-0 border-b-2 px-1 pb-3 text-xs font-semibold ${index===0?"border-[#087b4b] text-[#087b4b]":"border-transparent text-[#526477]"}`}>{tab}</button>)}</div><section className="mt-5 overflow-hidden rounded-xl border bg-white">{sources.map(source=><article key={source.title} className="grid gap-3 border-b p-4 last:border-0 sm:grid-cols-[1fr_auto_auto] sm:items-center"><div className="flex gap-3"><FileText className="h-5 w-5 shrink-0 text-[#087b4b]"/><div><h2 className="text-xs font-bold">{source.title}</h2><p className="mt-1 text-[11px] text-[#526477]">{source.meta}</p></div></div><span className="w-fit rounded bg-green-50 px-2 py-1 text-[10px] text-[#087b4b]">{source.tag}</span><button className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-4 text-xs font-semibold text-[#087b4b]">{source.action}<ExternalLink className="h-3 w-3"/></button></article>)}</section><p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-[#6b5524]">La reglas se revisan y actualizan periódicamente en base a nueva evidencia técnica y validación con especialistas.</p></PublicPage>}
