@@ -1,129 +1,25 @@
 import Image from "next/image";
-import {
-  BarChart3,
-  BookOpen,
-  CalendarDays,
-  Cpu,
-  Database,
-  Leaf,
-  Lightbulb,
-  MapPin,
-  ShieldCheck,
-  Sprout,
-  UserRoundCheck,
-} from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, Cpu, Database, Leaf, Lightbulb, MapPin, ShieldCheck, Sprout, UserRoundCheck } from "lucide-react";
 import { ScopeDisclaimer } from "@/components/PublicPage";
 
-const principles = [
-  { Icon: BookOpen, title: "Basado en ciencia", text: "Reglas construidas a partir de bibliografía técnica y validadas por profesionales." },
-  { Icon: Lightbulb, title: "Claro y simple", text: "Señales fáciles de entender para tomar mejores decisiones." },
-  { Icon: UserRoundCheck, title: "Siempre orientativo", text: "No reemplaza el asesoramiento profesional ni la evaluación del lote." },
+const principles=[
+  {Icon:ShieldCheck,title:"Basado en ciencia",text:"Usamos datos reales y reglas agronómicas técnicas validadas por especialistas."},
+  {Icon:Lightbulb,title:"Claro y simple",text:"Creamos información de calidad que todos pueden entender y aplicar."},
+  {Icon:UserRoundCheck,title:"Siempre orientados",text:"Nos comprometemos a mantener confiable y actualizado el conocimiento agronómico."},
 ];
-
-const people = [
-  {
-    image: "/sobre-avizor-andrea.svg",
-    name: "Andrea",
-    role: "Producto · IA · Desarrollo",
-    text: "Creadora de Avizor. Lidera el diseño del producto, define la metodología funcional y participa activamente en el desarrollo de la plataforma y en la integración de inteligencia artificial para transformar datos complejos en herramientas simples y útiles.",
-  },
-  {
-    image: "/sobre-avizor-ezequiel.svg",
-    name: "Ezequiel",
-    role: "Arquitectura · Agentes de IA",
-    text: "Especialista en desarrollo de software y agentes de inteligencia artificial. Responsable de la arquitectura técnica, el backend y la construcción de los componentes de IA que permiten que Avizor evolucione.",
-  },
-  {
-    image: "/sobre-avizor-natali.svg",
-    name: "Natali",
-    role: "Validación técnica agronómica",
-    text: "Ingeniera Agrónoma del Laboratorio Agropecuario Horizonte. Colabora en la validación técnica de las reglas agronómicas, revisando umbrales y criterios para asegurar que cada recomendación esté respaldada por conocimiento agronómico actualizado.",
-  },
+const people=[
+  {image:"/sobre-avizor-andrea.svg",name:"Andrea",role:"Fundadora & Desarrollo",text:"Creadora de Avizor. Lidera el desarrollo de producto, define la visión tecnológica y combina herramientas modernas e información agronómica para crear una experiencia útil y simple para el productor."},
+  {image:"/sobre-avizor-ezequiel.svg",name:"Ezequiel",role:"Inteligencia Artificial & IA",text:"Especialista en IA aplicada. Diseña y entrena modelos que transforman datos climáticos e información técnica en señales claras y accionables."},
+  {image:"/sobre-avizor-natali.svg",name:"Natali",role:"Validación técnica agronómica",text:"Ingeniera Agrónoma especialista en producción de cultivos. Valida el conocimiento técnico y asegura que cada recomendación sea agronómicamente sólida."},
 ];
+const disciplines=[{Icon:Sprout,label:"Agro"},{Icon:Cpu,label:"Tecnología"},{Icon:ShieldCheck,label:"Ciencia de datos"},{Icon:BarChart3,label:"Clima"},{Icon:Leaf,label:"Cultivos"}];
 
-const disciplines = [
-  { Icon: Sprout, label: "Agro" },
-  { Icon: Cpu, label: "Tecnología" },
-  { Icon: ShieldCheck, label: "Calidad de software" },
-  { Icon: BarChart3, label: "Datos" },
-  { Icon: Leaf, label: "Producto" },
-];
+export default function AboutPage(){return <main className="mx-auto max-w-[1180px] px-5 py-9 text-[#081a31] sm:px-8 sm:py-12">
+  <section className="grid gap-7 lg:grid-cols-[.95fr_1.05fr] lg:items-center"><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#087b4b]">Sobre Avizor</p><h1 className="mt-4 max-w-[570px] text-[34px] font-bold leading-[1.12] tracking-tight sm:text-4xl lg:text-[42px]">Tecnología y conocimiento al servicio del productor</h1><span className="mt-5 block h-0.5 w-10 bg-[#168c50]"/><p className="mt-6 max-w-[540px] text-sm leading-6 text-[#405369]">Avizor nace para acercar información climática y conocimiento agronómico de forma simple, clara y confiable.</p><p className="mt-4 max-w-[560px] text-sm leading-6 text-[#405369]">Nuestro objetivo es ayudar a tomar decisiones informadas observando las condiciones ambientales que pueden coincidir con riesgos para tus cultivos.</p></div><div className="relative min-h-[195px] overflow-hidden rounded-2xl sm:min-h-[330px]"><Image src="/campo-hojas.png" alt="Cultivo de soja al amanecer" fill priority className="object-cover object-center" sizes="(min-width:1024px) 540px,100vw"/></div></section>
+  <section className="mt-5 grid gap-3 md:mt-8 md:grid-cols-3" aria-label="Principios de Avizor">{principles.map(({Icon,title,text})=><article key={title} className="flex min-h-[112px] gap-4 rounded-xl border border-[#e0e8e3] bg-white p-4 shadow-[0_5px_18px_rgba(8,26,49,.025)]"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#edf7f0] text-[#087b4b]"><Icon className="h-6 w-6"/></span><div><h2 className="text-base font-bold">{title}</h2><p className="mt-2 text-sm leading-5 text-[#405369]">{text}</p></div></article>)}</section>
+  <section className="mt-6 rounded-2xl border border-[#dfe8e2] bg-white p-5 sm:mt-8 sm:bg-[linear-gradient(135deg,#f8fbf8,#f2f7f3)] sm:p-8"><h2 className="text-2xl font-bold">Detrás de Avizor</h2><p className="mt-2 text-sm font-semibold leading-6 text-[#087b4b]">Tecnología, inteligencia artificial y agronomía trabajando juntos.</p><div className="mt-6 grid lg:grid-cols-[1.1fr_1fr_1fr_1fr] lg:gap-7"><div className="hidden items-center justify-center border-r border-[#d9e5dd] pr-7 lg:flex"><Image src="/sobre-avizor-lab.svg" alt="Tecnología y monitoreo agrícola de Avizor" width={430} height={386} className="h-auto w-full max-w-[270px]"/></div>{people.map(person=><article key={person.name} className="grid grid-cols-[82px_1fr] gap-4 border-b border-[#dfe5e1] py-5 last:border-0 lg:flex lg:flex-col lg:items-start lg:border-0 lg:py-0"><Image src={person.image} alt={`Ilustración de ${person.name}`} width={96} height={96} className="h-20 w-20 lg:h-24 lg:w-24"/><div><h3 className="text-base font-bold">{person.name}</h3><p className="mt-1 text-xs font-bold text-[#087b4b]">{person.role}</p><p className="mt-3 text-xs leading-5 text-[#405369]">{person.text}</p></div></article>)}</div><div className="mt-6 grid grid-cols-5 gap-2 rounded-xl border border-[#dce6e0] bg-[#f8faf9] px-2 py-4 sm:mt-8 sm:border-x-0 sm:border-b-0 sm:bg-transparent sm:pt-6">{disciplines.map(({Icon,label})=><div key={label} className="flex min-w-0 flex-col items-center gap-2 text-center text-[10px] font-semibold text-[#30465a] sm:flex-row sm:justify-center sm:text-xs sm:font-bold sm:text-[#087b4b]"><Icon className="h-5 w-5 shrink-0 text-[#087b4b]"/>{label}</div>)}</div></section>
+  <section className="mt-7 rounded-2xl border border-[#dfe7e3] bg-white p-6 sm:mt-8 sm:p-8"><h2 className="text-xl font-bold">El proyecto</h2><span className="mt-4 block h-0.5 w-9 bg-[#168c50]"/><p className="mt-5 max-w-2xl text-sm leading-6 text-[#405369]">Avizor es un proyecto en constante evolución. Combinamos datos climáticos, inteligencia artificial y reglas agronómicas validadas por especialistas para generar señales accionables que te ayuden a decidir mejor.</p><div className="mt-7 grid md:grid-cols-3"> <ProjectMetric Icon={CalendarDays} value="2026" label="Año de inicio"/><ProjectMetric Icon={MapPin} value="+150" label="Localidades cubiertas"/><ProjectMetric Icon={Leaf} value="1" label="Cultivo principal: soja"/></div></section>
+  <ScopeDisclaimer/>
+</main>}
 
-export default function AboutPage() {
-  return (
-    <main className="mx-auto max-w-[1180px] px-5 py-8 text-[#081a31] sm:px-8 sm:py-12">
-      <section className="grid gap-8 lg:grid-cols-[.95fr_1.05fr] lg:items-center">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[.12em] text-[#087b4b]">Sobre Avizor</p>
-          <h1 className="mt-4 max-w-[530px] text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[42px]">
-            Tecnología y conocimiento<br className="hidden sm:block" /> al servicio del productor
-          </h1>
-          <span className="mt-6 block h-0.5 w-12 bg-[#168c50]" />
-          <p className="mt-7 max-w-[530px] text-sm leading-7 text-[#405369]">
-            Avizor nació para acercar información climática y conocimiento agronómico de forma simple, clara y confiable.
-          </p>
-          <p className="mt-5 max-w-[560px] text-sm leading-7 text-[#405369]">
-            Nuestro objetivo es ayudarte a tomar decisiones informadas observando las condiciones ambientales que pueden coincidir con reglas documentadas.
-          </p>
-        </div>
-        <div className="relative min-h-[260px] overflow-hidden rounded-2xl sm:min-h-[360px]">
-          <Image src="/campo-hojas.png" alt="Cultivo de soja al amanecer" fill priority className="object-cover object-center" sizes="(min-width: 1024px) 540px, 100vw" />
-        </div>
-      </section>
-
-      <section className="mt-8 grid gap-4 md:grid-cols-3" aria-label="Principios de Avizor">
-        {principles.map(({ Icon, title, text }) => (
-          <article key={title} className="flex gap-4 rounded-xl border border-[#e0e8e3] bg-white p-5 shadow-[0_5px_18px_rgba(8,26,49,.025)]">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#edf7f0] text-[#087b4b]"><Icon className="h-6 w-6" /></span>
-            <div><h2 className="text-sm font-bold">{title}</h2><p className="mt-2 text-xs leading-6 text-[#405369]">{text}</p></div>
-          </article>
-        ))}
-      </section>
-
-      <section className="mt-8 rounded-2xl border border-[#dfe8e2] bg-[linear-gradient(135deg,#f8fbf8,#f2f7f3)] p-6 sm:p-8">
-        <h2 className="text-2xl font-bold">Detrás de Avizor</h2>
-        <p className="mt-2 text-sm font-semibold text-[#087b4b]">Tecnología, inteligencia artificial y agronomía trabajando juntas.</p>
-        <div className="mt-7 grid gap-7 lg:grid-cols-[1.1fr_1fr_1fr_1fr]">
-          <div className="flex items-center justify-center border-b border-[#d9e5dd] pb-7 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-7">
-            <Image src="/sobre-avizor-lab.svg" alt="Tecnología y monitoreo agrícola de Avizor" width={430} height={386} className="h-auto w-full max-w-[270px]" />
-          </div>
-          {people.map((person) => (
-            <article key={person.name} className="flex flex-col items-center text-center lg:items-start lg:text-left">
-              <Image src={person.image} alt={`Ilustración de ${person.name}`} width={112} height={112} className="h-24 w-24" />
-              <h3 className="mt-4 text-base font-bold">{person.name}</h3>
-              <p className="mt-1 text-xs font-bold text-[#087b4b]">{person.role}</p>
-              <p className="mt-3 text-xs leading-6 text-[#405369]">{person.text}</p>
-            </article>
-          ))}
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4 border-t border-[#d9e5dd] pt-6 sm:grid-cols-5">
-          {disciplines.map(({ Icon, label }) => <div key={label} className="flex items-center justify-center gap-2 text-xs font-bold text-[#087b4b]"><Icon className="h-5 w-5" />{label}</div>)}
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-2xl border border-[#e0e8e3] bg-white p-6 sm:p-8">
-        <div className="grid gap-7 md:grid-cols-[1.35fr_repeat(3,.65fr)] md:items-center">
-          <div>
-            <h2 className="text-xl font-bold">El proyecto</h2>
-            <p className="mt-3 text-sm leading-7 text-[#405369]">Avizor es un proyecto en crecimiento continuo. Combinamos datos climáticos de múltiples fuentes, reglas agronómicas validadas y tecnología para generar señales accionables que te ayuden a anticiparte.</p>
-          </div>
-          <ProjectMetric Icon={CalendarDays} value="2026" label="Año de inicio" />
-          <ProjectMetric Icon={MapPin} value="+150" label="Localidades cubiertas" />
-          <ProjectMetric Icon={Leaf} value="1" label="Cultivo disponible (Soja)" />
-        </div>
-      </section>
-
-      <ScopeDisclaimer />
-    </main>
-  );
-}
-
-function ProjectMetric({ Icon, value, label }: { Icon: typeof Database; value: string; label: string }) {
-  return (
-    <div className="border-t border-[#e3eae6] pt-5 text-center md:border-l md:border-t-0 md:pl-5 md:pt-0">
-      <Icon className="mx-auto h-8 w-8 text-[#087b4b]" />
-      <p className="mt-3 text-2xl font-bold">{value}</p>
-      <p className="mt-1 text-xs leading-5 text-[#405369]">{label}</p>
-    </div>
-  );
-}
+function ProjectMetric({Icon,value,label}:{Icon:typeof Database;value:string;label:string}){return <div className="grid grid-cols-[52px_1fr] items-center gap-4 border-b border-[#e3eae6] py-6 last:border-0 md:block md:border-b-0 md:border-l md:px-5 md:text-center"><Icon className="h-10 w-10 text-[#087b4b] md:mx-auto"/><div><p className="text-2xl font-bold">{value}</p><p className="mt-1 text-xs uppercase leading-5 tracking-wide text-[#526477]">{label}</p></div></div>}
