@@ -62,8 +62,15 @@ export async function createConsulta(input: CreateConsultaInput) {
       datos_climaticos_usados,
       reglas_evaluadas,
       resultado,
-      versiones_reglas
-    ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14)
+      versiones_reglas,
+      grupo_madurez,
+      cultivar_id,
+      estadio_estimado,
+      fecha_inicio_estimada,
+      fecha_fin_estimada,
+      nivel_confianza_fenologia,
+      modelo_fenologico_version
+    ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14, $15, $16, $17, $18, $19, $20, $21)
     returning id::text`,
     [
       input.result.share_token,
@@ -80,6 +87,13 @@ export async function createConsulta(input: CreateConsultaInput) {
       JSON.stringify(input.rules),
       JSON.stringify(input.result),
       input.rules.map((rule) => rule.regla_version),
+      input.request.grupo_madurez ?? null,
+      input.request.cultivar_id ?? null,
+      input.result.fenologia?.estadio_actual_estimado ?? null,
+      input.result.fenologia?.fecha_inicio_estimada ?? null,
+      input.result.fenologia?.fecha_fin_estimada ?? null,
+      input.result.fenologia?.confianza ?? null,
+      input.result.fenologia?.version ?? null,
     ],
   );
 

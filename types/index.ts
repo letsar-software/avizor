@@ -25,6 +25,7 @@ export interface ResultadoConsulta {
   share_token: string;
   localidad?: LocalidadNormalizada;
   clima_resumen?: ClimateMetrics;
+  fenologia?: FenologiaEstimada;
 }
 
 export interface ConsultaRequest {
@@ -32,6 +33,8 @@ export interface ConsultaRequest {
   cultivo: string;
   session_id?: string;
   fecha_siembra?: string;
+  grupo_madurez?: GrupoMadurez;
+  cultivar_id?: string;
   observacion?: string;
   email?: string;
 }
@@ -71,6 +74,29 @@ export interface ClimateMetrics {
   temp_min_14d: number | null;
 }
 
+export type GrupoMadurez = "III" | "IV corto" | "IV largo" | "V";
+
+export interface HitoFenologico {
+  codigo: "E" | "R1" | "R3" | "R5" | "R7";
+  nombre: string;
+  fecha_estimada: string;
+}
+
+export interface FenologiaEstimada {
+  estadio_actual_estimado: string;
+  nombre_estadio: string;
+  fecha_estimada: string;
+  fecha_inicio_estimada: string;
+  fecha_fin_estimada: string;
+  margen_dias: number;
+  confianza: "alta" | "media" | "baja";
+  metodo: "modelo_calendario_grupo_madurez";
+  version: "v1.0";
+  fecha_siembra: string;
+  grupo_madurez: GrupoMadurez;
+  cultivar_id?: string;
+  hitos: HitoFenologico[];
+}
 export type RuleOperator = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 export interface RuleCondition {

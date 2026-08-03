@@ -8,6 +8,7 @@ import { normalizeLocalidad } from "@/lib/localidades/normalize";
 import { getReglasAgronomicas } from "@/lib/rules/repository";
 import { RulesEngine } from "@/lib/rules/engine";
 import { ScoreEngine } from "@/lib/rules/score";
+import { PhenologyProvider } from "@/lib/phenology/provider";
 
 const USER_MESSAGES: Record<ConsultaErrorCode, string> = {
   CLIMA_NO_DISPONIBLE: "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.",
@@ -27,6 +28,8 @@ function isValidRequest(value: unknown): value is ConsultaRequest {
   const request = value as Partial<ConsultaRequest>;
   return typeof request.localidad === "string" && request.localidad.trim().length > 0 && typeof request.cultivo === "string";
 }
+
+const GRUPOS_MADUREZ = new Set(["III", "IV corto", "IV largo", "V"]);
 
 function normalizeCultivo(cultivo: string) {
   return cultivo.trim().toLowerCase();
@@ -89,6 +92,9 @@ export async function POST(request: Request) {
     const rulesEngine = new RulesEngine();
     const scoreEngine = new ScoreEngine();
     const categorias = rulesEngine.evaluate(rules, climateData.resumen);
+    const fenologia = body.fecha_siembra && body.grupo_madurez && GRUPOS_MADUREZ.has(body.grupo_madurez)
+      ? new PhenologyProvider().estimate({ fechaSiembra: body.fecha_siembra, grupoMadurez: body.grupo_madurez, cultivarId: body.cultivar_id })
+      : undefined;
     const result: ResultadoConsulta = {
       estado_general: scoreEngine.getEstadoGeneral(categorias),
       confianza: scoreEngine.getConfianza(climateData.resumen.dias_datos),
@@ -97,6 +103,7 @@ export async function POST(request: Request) {
       share_token: crypto.randomUUID(),
       localidad,
       clima_resumen: climateData.resumen,
+      fenologia,
     };
 
     const persistenceResults = await Promise.allSettled([

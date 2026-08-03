@@ -1,4 +1,4 @@
-﻿import type { ClimateData, ConsultaRequest, ResultadoConsulta, ReglaAgronomica } from "@/types";
+import type { ClimateData, ConsultaRequest, ResultadoConsulta, ReglaAgronomica } from "@/types";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
 
 interface ConsultaLogInput {
@@ -15,6 +15,13 @@ export async function logConsulta(input: ConsultaLogInput) {
     cultivo: input.request.cultivo,
     session_id: input.request.session_id ?? null,
     fecha_siembra: input.request.fecha_siembra ?? null,
+    grupo_madurez: input.request.grupo_madurez ?? null,
+    cultivar_id: input.request.cultivar_id ?? null,
+    estadio_estimado: input.result?.fenologia?.estadio_actual_estimado ?? null,
+    fecha_inicio_estimada: input.result?.fenologia?.fecha_inicio_estimada ?? null,
+    fecha_fin_estimada: input.result?.fenologia?.fecha_fin_estimada ?? null,
+    nivel_confianza_fenologia: input.result?.fenologia?.confianza ?? null,
+    modelo_fenologico_version: input.result?.fenologia?.version ?? null,
     datos_climaticos_usados: input.climateData ?? null,
     reglas_evaluadas: input.rules ?? [],
     resultado: input.result ?? null,
@@ -38,8 +45,15 @@ export async function logConsulta(input: ConsultaLogInput) {
       reglas_evaluadas,
       resultado,
       versiones_reglas,
-      error
-    ) values ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9)`,
+      error,
+      grupo_madurez,
+      cultivar_id,
+      estadio_estimado,
+      fecha_inicio_estimada,
+      fecha_fin_estimada,
+      nivel_confianza_fenologia,
+      modelo_fenologico_version
+    ) values ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
     [
       payload.localidad,
       payload.cultivo,
@@ -50,6 +64,13 @@ export async function logConsulta(input: ConsultaLogInput) {
       payload.resultado ? JSON.stringify(payload.resultado) : null,
       payload.versiones_reglas,
         payload.error,
+        payload.grupo_madurez,
+        payload.cultivar_id,
+        payload.estadio_estimado,
+        payload.fecha_inicio_estimada,
+        payload.fecha_fin_estimada,
+        payload.nivel_confianza_fenologia,
+        payload.modelo_fenologico_version,
       ],
     );
   } catch (error) {
