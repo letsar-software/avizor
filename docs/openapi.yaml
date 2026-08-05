@@ -1,0 +1,77 @@
+openapi: 3.1.0
+info:
+  title: Avizor Backend API
+  version: 2.0.0
+  description: API de monitoreo ambiental. Avizor identifica condiciones; no diagnostica ni predice.
+servers:
+  - url: /
+paths:
+  /api/public/consultas:
+    post:
+      summary: Ejecuta y guarda una consulta web
+      operationId: createPublicQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConsultaInput' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/public/consultas/{shareToken}:
+    get:
+      summary: Recupera una consulta compartida
+      parameters:
+        - { name: shareToken, in: path, required: true, schema: { type: string } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/public/consultas/{id}/observaciones:
+    post:
+      summary: Guarda una observación que no modifica el resultado
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '201': { $ref: '#/components/responses/Success' } }
+  /api/public/consultas/{id}/feedback:
+    post:
+      summary: Guarda feedback de campo
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '201': { $ref: '#/components/responses/Success' } }
+  /api/public/consultas/{id}/guardar:
+    post:
+      summary: Guarda seguimiento por email sin login
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { '201': { $ref: '#/components/responses/Success' } }
+  /api/v1/consultas:
+    post:
+      summary: Consulta empresarial sobre el mismo servicio de dominio
+      security: [ { ApiKey: [] } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ConsultaInput' } } } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
+  /api/admin/reglas:
+    get: { summary: Lista reglas, security: [ { InternalToken: [] } ], responses: { '200': { $ref: '#/components/responses/Success' } } }
+  /api/admin/reglas/{id}:
+    get: { summary: Obtiene una regla, security: [ { InternalToken: [] } ], parameters: [ { name: id, in: path, required: true, schema: { type: string } } ], responses: { '200': { $ref: '#/components/responses/Success' } } }
+    patch: { summary: Modifica y audita una regla, security: [ { InternalToken: [] } ], parameters: [ { name: id, in: path, required: true, schema: { type: string } } ], responses: { '200': { $ref: '#/components/responses/Success' } } }
+  /api/admin/simulaciones:
+    post: { summary: Ejecuta una simulación protegida, security: [ { InternalToken: [] } ], responses: { '200': { $ref: '#/components/responses/Success' } } }
+components:
+  securitySchemes:
+    ApiKey: { type: apiKey, in: header, name: x-api-key }
+    InternalToken: { type: http, scheme: bearer }
+  schemas:
+    ConsultaInput:
+      type: object
+      required: [cultivo, localidad]
+      properties:
+        cultivo: { type: string, examples: [soja] }
+        localidad: { type: string, examples: [Tandil] }
+        fechaSiembra: { type: string, format: date }
+        grupoMadurez: { type: string }
+        cultivar: { type: string }
+        sessionId: { type: string }
+        fechaRef: { type: string, format: date }
+  responses:
+    Success:
+      description: Respuesta exitosa con data, meta y request_id
+      content: { application/json: { schema: { type: object, required: [data, meta, request_id] } } }
+    Error:
+      description: Error funcional sin stack trace
+      content: { application/json: { schema: { type: object, required: [error, request_id] } } }

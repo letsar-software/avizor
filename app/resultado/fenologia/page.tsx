@@ -9,7 +9,7 @@ export default function PhenologyDetailPage() {
   const [data, setData] = useState<FenologiaEstimada | null>(null);
   useEffect(() => {
     const stored = sessionStorage.getItem("avizor_resultado");
-    if (stored) setData(JSON.parse(stored).fenologia ?? null);
+    if (stored) setData(JSON.parse(stored).contexto_fenologico?.detalle ?? JSON.parse(stored).fenologia ?? null);
   }, []);
 
   return <main className="mx-auto max-w-[1180px] px-5 py-7 text-[#081a31] sm:px-8 sm:py-10">

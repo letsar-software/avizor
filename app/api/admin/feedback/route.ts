@@ -1,0 +1,2 @@
+import { query } from "@/lib/db/postgres"; import { failure,requestId,success } from "@/lib/http/responses"; import { requireInternalAuth } from "@/lib/security/internal-auth";
+export async function GET(request:Request){const rid=requestId(request);try{requireInternalAuth(request);return success((await query('select * from feedback order by created_at desc limit 100')).rows,rid);}catch(error){return failure(error,rid);}}

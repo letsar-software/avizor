@@ -312,3 +312,26 @@ En `scripts/` existen pruebas Playwright de smoke para Inicio, menú, footer, co
 - Natali Lazzaro — validación técnica agronómica.
 
 © 2026 Avizor. Todos los derechos reservados.
+
+## Backend v2
+
+El backend principal se organiza alrededor de `ConsultaService`, reutilizado por web, API empresarial, simulaciones administrativas y el gateway preparado para WhatsApp.
+
+- API pública: `POST /api/public/consultas` y recursos asociados por consulta.
+- API empresarial: `POST /api/v1/consultas`, autenticada con `x-api-key`.
+- API interna: `/api/admin`, autenticada con `Authorization: Bearer $AVIZOR_INTERNAL_TOKEN`.
+- Contrato OpenAPI: `docs/openapi.yaml`.
+- Relevamiento y decisiones: `docs/backend-gap-analysis.md`.
+- Migración y seeds v2: `db/migrations/007_backend_v2.sql`.
+- Golden dataset: `npm test`.
+
+La fenología es contexto opcional. Mientras no exista un proveedor oficial o modelo propio validado, devuelve `proveedor_no_configurado` o `entradas_insuficientes`, y siempre `modifica_reglas: false`.
+
+### Variables nuevas
+
+```env
+CLIMATE_CACHE_TTL_SECONDS=10800
+AVIZOR_INTERNAL_TOKEN=
+```
+
+Para crear una API key empresarial, generar un secreto aleatorio, guardar únicamente su SHA-256 en `api_keys.key_hash` y entregar el valor original una sola vez al consumidor.

@@ -1,4 +1,4 @@
-﻿import { Pool } from "pg";
+import { Pool } from "pg";
 import type { QueryResultRow } from "pg";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -22,6 +22,7 @@ export function getPool() {
       connectionString: DATABASE_URL,
       ssl: DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
       max: 5,
+      connectionTimeoutMillis: Number(process.env.DATABASE_CONNECTION_TIMEOUT_MS ?? 10000),
     });
   }
 

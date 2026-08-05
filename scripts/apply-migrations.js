@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
+const { loadEnvConfig } = require("@next/env");
+
+loadEnvConfig(process.cwd());
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -38,6 +41,9 @@ async function main() {
     "db/migrations/002_consultas_interacciones.sql",
     "db/migrations/003_dedupe_reglas_agronomicas.sql",
     "db/migrations/004_reglas_estado_experimental.sql",
+    "db/migrations/005_interesados_consentimiento.sql",
+    "db/migrations/006_fenologia_consultas.sql",
+    "db/migrations/007_backend_v2.sql",
   ];
 
   for (const migration of migrations) {
