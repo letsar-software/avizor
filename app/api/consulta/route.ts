@@ -4,7 +4,7 @@ import { ClimateProvider } from "@/lib/climate/provider";
 import { logConsulta } from "@/lib/consultas/logs";
 import { createConsulta } from "@/lib/consultas/repository";
 import { featureFlags } from "@/lib/config/featureFlags";
-import { normalizeLocalidad } from "@/lib/localidades/normalize";
+import { resolveLocalidad } from "@/lib/localidades/normalize";
 import { getReglasAgronomicas } from "@/lib/rules/repository";
 import { RulesEngine } from "@/lib/rules/engine";
 import { ScoreEngine } from "@/lib/rules/score";
@@ -62,7 +62,13 @@ export async function POST(request: Request) {
       return jsonError("CULTIVO_NO_SOPORTADO", 400);
     }
 
-    const localidad = normalizeLocalidad(body.localidad);
+    let localidad;
+    try {
+      localidad = await resolveLocalidad(body.localidad);
+    } catch (error) {
+      await logConsulta({ request: body, error });
+      return jsonError("CLIMA_NO_DISPONIBLE", 503);
+    }
 
     if (!localidad) {
       await logConsulta({ request: body, error: USER_MESSAGES.LOCALIDAD_NO_RECONOCIDA });

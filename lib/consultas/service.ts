@@ -1,11 +1,12 @@
 import type { ClimateSeriesProvider } from "@/lib/climate/contract";
 import { OpenMeteoAdapter } from "@/lib/climate/open-meteo-adapter";
-import { normalizeLocalidad } from "@/lib/localidades/normalize";
+import { normalizeLocalidad, resolveLocalidad } from "@/lib/localidades/normalize";
 import type { PhenologyProviderV2 } from "@/lib/phenology/provider-v2";
 import { CalculatedPhenologyProvider } from "@/lib/phenology/provider-v2";
 import { getReglasVigentes } from "@/lib/rules/repository-v2";
 import { RulesEngineV2 } from "@/lib/rules/engine-v2";
 import { ScoreEngineV2 } from "@/lib/rules/score-v2";
+import { buildConsultationSummary } from "@/lib/results/consultation-summary";
 import { persistConsultaV2 } from "./repository-v2";
 import type { ConsultaInput, ContextoFenologico, EstadoGeneral, ReglaAgronomicaV2, ResultadoReglaV2 } from "@/types";
 
@@ -13,12 +14,13 @@ export class DomainError extends Error { constructor(public readonly code: strin
 
 export interface ConsultaResultadoV2 {
   id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string;
+  resumen_consulta: { descripcion: string; destaque: string };
   localidad: ReturnType<typeof normalizeLocalidad>; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string;
   reglas: ResultadoReglaV2[]; contexto_fenologico: ContextoFenologico; duracion_ms: number;
   clima: { serie: Awaited<ReturnType<ClimateSeriesProvider["obtenerSerie"]>>["serie"]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; adapter_version: string };
 }
 
-interface Dependencies { climate?: ClimateSeriesProvider; phenology?: PhenologyProviderV2; loadRules?: (cultivo: string) => Promise<ReglaAgronomicaV2[]>; persist?: typeof persistConsultaV2; }
+interface Dependencies { climate?: ClimateSeriesProvider; phenology?: PhenologyProviderV2; loadRules?: (cultivo: string) => Promise<ReglaAgronomicaV2[]>; persist?: typeof persistConsultaV2; resolveLocation?: typeof resolveLocalidad; }
 
 export class ConsultaService {
   constructor(private readonly dependencies: Dependencies = {}) {}
@@ -26,7 +28,9 @@ export class ConsultaService {
     const started = performance.now();
     const cultivo = input.cultivo.trim().toLowerCase();
     if (cultivo !== "soja") throw new DomainError("CULTIVO_NO_SOPORTADO", "Avizor todavía no cubre ese cultivo. Por ahora solo soja está disponible.");
-    const localidad = normalizeLocalidad(input.localidad);
+    let localidad;
+    try { localidad = await (this.dependencies.resolveLocation ?? resolveLocalidad)(input.localidad); }
+    catch { throw new DomainError("DATOS_CLIMATICOS_NO_DISPONIBLES", "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.", 503); }
     if (!localidad) throw new DomainError("LOCALIDAD_NO_ENCONTRADA", "No encontramos esa localidad. Probá con el nombre completo.", 404);
     const fechaRef = normalizeDate(input.fechaRef);
     const rules = await (this.dependencies.loadRules ?? getReglasVigentes)(cultivo);
@@ -42,7 +46,7 @@ export class ConsultaService {
     let phenology: ContextoFenologico;
     try { phenology = await (this.dependencies.phenology ?? new CalculatedPhenologyProvider()).estimarEstadio({ fechaSiembra: input.fechaSiembra, grupoMadurez: input.grupoMadurez, cultivar: input.cultivar, latitud: localidad.latitud, longitud: localidad.longitud, fechaRef }); }
     catch { phenology = { disponible: false, motivo: "error_proveedor", modifica_reglas: false }; }
-    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, contexto_fenologico: phenology, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, adapter_version: climate.adapterVersion }, duracion_ms: Math.round(performance.now() - started) };
+    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, contexto_fenologico: phenology, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, adapter_version: climate.adapterVersion }, duracion_ms: Math.round(performance.now() - started) };
     result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result });
     return result;
   }

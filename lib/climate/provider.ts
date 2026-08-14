@@ -81,7 +81,7 @@ function assertHourly(hourly: OpenMeteoHourly | undefined): asserts hourly is Re
 
 export class ClimateProvider {
   async getLast14Days(localidad: LocalidadNormalizada): Promise<ClimateData> {
-    const cacheKey = buildClimateCacheKey(localidad.nombre);
+    const cacheKey = buildClimateCacheKey(`${localidad.latitud},${localidad.longitud}`);
     const cached = getClimateCache(cacheKey);
 
     if (cached) return cached;

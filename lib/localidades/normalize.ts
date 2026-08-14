@@ -50,6 +50,19 @@ function normalizeKey(value: string) {
     .toLowerCase();
 }
 
+interface GeocodingResult {
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  country_code?: string;
+  admin1?: string;
+  admin2?: string;
+}
+
+interface GeocodingResponse {
+  results?: GeocodingResult[];
+}
+
 export function normalizeLocalidad(input: string): LocalidadNormalizada | null {
   const key = normalizeKey(input);
   const canonicalName = ALIASES[key];
@@ -57,6 +70,54 @@ export function normalizeLocalidad(input: string): LocalidadNormalizada | null {
   if (!canonicalName) return null;
 
   return LOCALIDADES.find((localidad) => localidad.nombre === canonicalName) ?? null;
+}
+
+export async function resolveLocalidad(
+  input: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LocalidadNormalizada | null> {
+  const known = normalizeLocalidad(input);
+  if (known) return known;
+
+  return (await searchLocalidades(input, fetchImpl))[0] ?? null;
+}
+
+export async function searchLocalidades(
+  input: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<LocalidadNormalizada[]> {
+
+  const query = input.trim().replace(/\s+/g, " ");
+  if (query.length < 2) return [];
+
+  const params = new URLSearchParams({
+    name: query,
+    count: "10",
+    language: "es",
+    format: "json",
+    countryCode: "AR",
+  });
+  const response = await fetchImpl(`https://geocoding-api.open-meteo.com/v1/search?${params}`, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`Open-Meteo Geocoding respondio ${response.status}`);
+
+  const payload = await response.json() as GeocodingResponse;
+  const matches = payload.results?.filter((result) =>
+    result.country_code === "AR" &&
+    typeof result.name === "string" &&
+    typeof result.latitude === "number" &&
+    typeof result.longitude === "number"
+  ) ?? [];
+
+  return matches.map((match) => ({
+    nombre: match.name!,
+    provincia: match.admin1 ?? match.admin2 ?? "Argentina",
+    pais: "Argentina" as const,
+    latitud: match.latitude!,
+    longitud: match.longitude!,
+  }));
 }
 
 export function formatLocalidad(localidad: LocalidadNormalizada) {

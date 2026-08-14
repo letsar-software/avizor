@@ -8,7 +8,7 @@ type Hourly = { time: string[]; temperature_2m: Array<number | null>; relative_h
 
 export class OpenMeteoAdapter implements ClimateSeriesProvider {
   async obtenerSerie(input: ClimateSeriesRequest): Promise<ClimateSeriesResult> {
-    const key = `${input.localidad.nombre.toLowerCase()}:${input.fechaRef}:${input.dias}`;
+    const key = `${input.localidad.latitud},${input.localidad.longitud}:${input.fechaRef}:${input.dias}`;
     const cached = cache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
 
