@@ -7,6 +7,10 @@ export interface ClimateSeriesResult {
   fechaConsulta: string;
   rangoTemporal: { desde: string; hasta: string };
   variablesDisponibles: string[];
+  variablesFaltantes: string[];
+  diasSolicitados: number;
+  diasDisponibles: number;
+  obtenidoEn: string;
   cobertura: number;
   errores: string[];
   adapterVersion: string;

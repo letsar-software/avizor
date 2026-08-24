@@ -30,7 +30,15 @@ export async function logConsulta(input: ConsultaLogInput) {
   };
 
   if (!hasDatabaseConfig()) {
-    console.info("consulta_log", payload);
+    console.info("consulta_log", {
+      persistido: false,
+      localidad: payload.localidad,
+      cultivo: payload.cultivo,
+      tiene_sesion: Boolean(payload.session_id),
+      cantidad_reglas: payload.reglas_evaluadas.length,
+      tiene_resultado: Boolean(payload.resultado),
+      error: payload.error,
+    });
     return;
   }
 

@@ -7,5 +7,5 @@ export function requireInternalAuth(request: Request) {
   if (!expected || !received) throw new DomainError("NO_AUTORIZADO", "No autorizado.", 401);
   const a = Buffer.from(expected); const b = Buffer.from(received);
   if (a.length !== b.length || !timingSafeEqual(a, b)) throw new DomainError("NO_AUTORIZADO", "No autorizado.", 401);
-  return request.headers.get("x-actor-id") || "service";
+  return process.env.AVIZOR_INTERNAL_ACTOR_ID || "service";
 }

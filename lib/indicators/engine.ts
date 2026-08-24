@@ -7,11 +7,22 @@ const COVERAGE_BY_AGGREGATOR: Record<AggregatorKey, number> = {
   dias_con_condicion: 1,
 };
 
-const FIELD_BY_VARIABLE: Record<SpecVariable, keyof SerieClimaticaDiaria> = {
-  humedad_relativa: "humedadRelativa",
-  precipitacion: "precipitacion",
-  temperatura_media: "temperaturaMedia",
-  temperatura_min: "temperaturaMinima",
+const VALUE_BY_VARIABLE: Record<SpecVariable, (day: SerieClimaticaDiaria) => number | null> = {
+  humedad_relativa: (day) => day.humedadRelativa, precipitacion: (day) => day.precipitacion,
+  temperatura_media: (day) => day.temperaturaMedia, temperatura_min: (day) => day.temperaturaMinima,
+  temperatura_max: (day) => day.temperaturaMaxima, viento_medio: (day) => day.vientoMedio,
+  punto_rocio: (day) => day.puntoRocio, deficit_presion_vapor: (day) => day.deficitPresionVapor,
+  evapotranspiracion: (day) => day.evapotranspiracion, et0_fao_56: (day) => day.et0,
+  humedad_suelo_0_1cm: (day) => day.humedadSuelo.profundidad0a1cm,
+  humedad_suelo_1_3cm: (day) => day.humedadSuelo.profundidad1a3cm,
+  humedad_suelo_3_9cm: (day) => day.humedadSuelo.profundidad3a9cm,
+  humedad_suelo_9_27cm: (day) => day.humedadSuelo.profundidad9a27cm,
+  humedad_suelo_27_81cm: (day) => day.humedadSuelo.profundidad27a81cm,
+  temperatura_suelo_0cm: (day) => day.temperaturaSuelo.profundidad0cm,
+  temperatura_suelo_6cm: (day) => day.temperaturaSuelo.profundidad6cm,
+  temperatura_suelo_18cm: (day) => day.temperaturaSuelo.profundidad18cm,
+  temperatura_suelo_54cm: (day) => day.temperaturaSuelo.profundidad54cm,
+  radiacion_solar: (day) => day.radiacionSolar,
 };
 
 export interface IndicadorCalculado {
@@ -37,7 +48,7 @@ export class IndicatorEngine {
   calculate(condition: CondicionDefinicion, series: SerieClimaticaDiaria[], windowDays: number): IndicadorCalculado {
     const window = series.slice(-windowDays);
     const values = window
-      .map((day) => day[FIELD_BY_VARIABLE[condition.variable]])
+      .map(VALUE_BY_VARIABLE[condition.variable])
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     const coverage = windowDays === 0 ? 0 : values.length / windowDays;
     const required = condition.cobertura_minima ?? COVERAGE_BY_AGGREGATOR[condition.agregador];

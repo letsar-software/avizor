@@ -1,45 +1,22 @@
 ﻿import { NextResponse } from "next/server";
 import { saveFeedback } from "@/lib/consultas/repository";
-
-const VALID_UTILIDAD = new Set(["si", "parcialmente", "no"]);
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
-function isValidPayload(value: unknown): value is {
-  utilidad?: "si" | "parcialmente" | "no";
-  observaciones?: string[];
-  sugerencia?: string;
-  share_token?: string;
-  session_id?: string;
-} {
-  if (!value || typeof value !== "object") return false;
-
-  const payload = value as { utilidad?: unknown; observaciones?: unknown; sugerencia?: unknown };
-  const hasUtilidad = typeof payload.utilidad === "string" && VALID_UTILIDAD.has(payload.utilidad);
-  const hasObservaciones = isStringArray(payload.observaciones);
-  const hasSugerencia = typeof payload.sugerencia === "string";
-
-  return hasUtilidad || hasObservaciones || hasSugerencia;
-}
+import { DomainError } from "@/lib/consultas/service";
+import { readJsonBody } from "@/lib/http/json-body";
+import { feedbackLegacySchema,parseInput } from "@/lib/security/validation";
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
-
-    if (!isValidPayload(payload)) {
-      return NextResponse.json({ error: "La solicitud no tiene los datos necesarios." }, { status: 400 });
-    }
+    const payload = parseInput(feedbackLegacySchema,await readJsonBody(request));
 
     await saveFeedback({
       ...payload,
-      observaciones: isStringArray(payload.observaciones) ? payload.observaciones : [],
+      observaciones: payload.observaciones,
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "No pudimos guardar el feedback. Intentá nuevamente." }, { status: 500 });
+  } catch (error) {
+    const status=error instanceof DomainError?error.status:500;
+    return NextResponse.json({ error: status===413?"La solicitud supera el tamaño permitido.":status===400?"La solicitud no tiene los datos necesarios.":"No pudimos guardar el feedback. Intentá nuevamente." }, { status });
   }
 }
 

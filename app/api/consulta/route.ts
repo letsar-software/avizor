@@ -9,6 +9,10 @@ import { getReglasAgronomicas } from "@/lib/rules/repository";
 import { RulesEngine } from "@/lib/rules/engine";
 import { ScoreEngine } from "@/lib/rules/score";
 import { PhenologyProvider } from "@/lib/phenology/provider";
+import { DomainError } from "@/lib/consultas/service";
+import { readJsonBody } from "@/lib/http/json-body";
+import { consultaLegacySchema,parseInput } from "@/lib/security/validation";
+import { enforcePublicConsultationLimit } from "@/lib/security/rate-limit";
 
 const USER_MESSAGES: Record<ConsultaErrorCode, string> = {
   CLIMA_NO_DISPONIBLE: "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.",
@@ -20,13 +24,6 @@ const USER_MESSAGES: Record<ConsultaErrorCode, string> = {
 
 function jsonError(code: ConsultaErrorCode, status: number) {
   return NextResponse.json({ error: USER_MESSAGES[code], code }, { status });
-}
-
-function isValidRequest(value: unknown): value is ConsultaRequest {
-  if (!value || typeof value !== "object") return false;
-
-  const request = value as Partial<ConsultaRequest>;
-  return typeof request.localidad === "string" && request.localidad.trim().length > 0 && typeof request.cultivo === "string";
 }
 
 const GRUPOS_MADUREZ = new Set(["III", "IV corto", "IV largo", "V"]);
@@ -45,11 +42,8 @@ export async function POST(request: Request) {
   let body: ConsultaRequest | null = null;
 
   try {
-    const payload = await request.json();
-
-    if (!isValidRequest(payload)) {
-      return jsonError("REQUEST_INVALIDO", 400);
-    }
+    await enforcePublicConsultationLimit(request);
+    const payload = parseInput(consultaLegacySchema,await readJsonBody(request));
 
     body = {
       ...payload,
@@ -125,6 +119,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof DomainError && (error.status === 400 || error.status === 413 || error.status === 429 || error.status === 503)) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: error.status, headers: error.status === 429 ? { "Retry-After": String(error.details.retry_after ?? 3600) } : undefined });
+    }
     if (body) {
       await logConsulta({ request: body, error });
     }

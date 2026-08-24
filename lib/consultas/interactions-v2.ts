@@ -3,7 +3,7 @@ import { DomainError } from "./service";
 
 async function resolve(id: string) {
   if (!hasDatabaseConfig()) throw new DomainError("PERSISTENCIA_NO_DISPONIBLE", "La persistencia no está configurada.", 503);
-  const result=await query<{id:string;cultivo:string;localidad_normalizada:string}>("select id::text,cultivo,localidad_normalizada from consultas where id::text=$1 or share_token=$1",[id]);
+  const result=await query<{id:string;cultivo:string;localidad_normalizada:string}>("select id::text,cultivo,localidad_normalizada from consultas where share_token=$1",[id]);
   if(!result.rows[0]) throw new DomainError("CONSULTA_NO_ENCONTRADA","No encontramos esa consulta.",404); return result.rows[0];
 }
 export async function addObservation(id:string,body:{tipo:string;descripcion?:string}) { const c=await resolve(id); if(!body.tipo) throw new DomainError("REQUEST_INVALIDO","Falta el tipo de observación."); return query<{id:string}>("insert into observaciones(consulta_id,opciones,detalle,origen) values($1,$2,$3,'api_public') returning id::text",[c.id,[body.tipo],body.descripcion??null]); }

@@ -40,9 +40,10 @@ async function getConsultaIdByShareToken(shareToken?: string) {
 export async function createConsulta(input: CreateConsultaInput) {
   if (!hasDatabaseConfig()) {
     console.info("consulta", {
-      request: input.request,
+      persistido: false,
       localidad_normalizada: input.climateData.localidad,
-      resultado: input.result,
+      cultivo: input.request.cultivo,
+      estado_general: input.result.estado_general,
     });
     return null;
   }
@@ -107,7 +108,7 @@ export async function saveInteresado(input: SaveInteresadoInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("interesado", { ...input, email });
+    console.info("interesado", { persistido: false, tiene_consulta: Boolean(input.share_token), tiene_sesion: Boolean(input.session_id) });
     return null;
   }
 
@@ -131,7 +132,7 @@ export async function saveObservacion(input: SaveObservacionInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("observacion", { ...input, opciones, detalle });
+    console.info("observacion", { persistido: false, cantidad_opciones: opciones.length, tiene_detalle: Boolean(detalle), tiene_consulta: Boolean(input.share_token) });
     return null;
   }
 
@@ -155,7 +156,7 @@ export async function saveFeedback(input: SaveFeedbackInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("feedback", { ...input, observaciones, sugerencia });
+    console.info("feedback", { persistido: false, utilidad: input.utilidad ?? null, cantidad_observaciones: observaciones.length, tiene_sugerencia: Boolean(sugerencia), tiene_consulta: Boolean(input.share_token) });
     return null;
   }
 
