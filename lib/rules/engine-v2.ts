@@ -6,9 +6,18 @@ export class RulesEngineV2 {
 
   evaluate(rule: ReglaAgronomicaV2, series: SerieClimaticaDiaria[], evaluatedAt: string): ResultadoReglaV2 {
     const window = series.slice(-rule.ventana_dias);
+    const modo: "estable" | "experimental" = rule.estado === "experimental" ? "experimental" : "estable";
     const base = {
       riesgo: rule.clave,
-      regla: { clave: rule.clave, version: rule.version, estado: rule.estado },
+      regla: {
+        clave: rule.clave,
+        version: rule.version,
+        estado: rule.estado,
+        modo,
+        nombre: rule.nombre,
+        categoria: rule.categoria,
+        evaluabilidad: rule.evaluabilidad,
+      },
       ventana: { desde: window[0]?.fecha ?? "", hasta: window.at(-1)?.fecha ?? "", dias: rule.ventana_dias },
       evaluado_en: evaluatedAt,
     };

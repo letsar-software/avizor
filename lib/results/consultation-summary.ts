@@ -8,10 +8,11 @@ export interface ResumenConsulta {
 const ACTIVE_STATES = new Set(["favorables", "condiciones_detectadas"]);
 
 export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenConsulta {
-  const active = results.filter((result) => ACTIVE_STATES.has(result.estado));
-  const moderate = results.filter((result) => result.estado === "moderadas");
-  const indeterminate = results.filter((result) => result.estado === "indeterminado");
-  const insufficient = results.length === 0 || indeterminate.length === results.length;
+  const stableResults = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
+  const active = stableResults.filter((result) => ACTIVE_STATES.has(result.estado));
+  const moderate = stableResults.filter((result) => result.estado === "moderadas");
+  const indeterminate = stableResults.filter((result) => result.estado === "indeterminado");
+  const insufficient = stableResults.length === 0 || indeterminate.length === stableResults.length;
 
   const opening = insufficient
     ? "Los datos disponibles no permiten realizar una evaluación completa de las condiciones ambientales."
@@ -23,7 +24,7 @@ export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenCo
       ? "Las condiciones ambientales analizadas indican que conviene prestar atención a un factor del cultivo."
       : "Las condiciones ambientales analizadas indican que conviene prestar atención a varios factores del cultivo.";
 
-  const details = categoryDetails(results);
+  const details = categoryDetails(stableResults);
   const uncertainty = indeterminate.length === 1
     ? "Una de las categorías no pudo evaluarse con suficiente información y conviene revisar su detalle."
     : indeterminate.length > 1

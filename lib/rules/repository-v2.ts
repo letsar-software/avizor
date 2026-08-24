@@ -11,15 +11,21 @@ function parse(row: RuleRow): ReglaAgronomicaV2 {
 }
 
 export async function getReglasVigentes(cultivo: string) {
-  const result = await query<RuleRow>(`select id::text, clave, version, cultivo, estado, ventana_dias, fuente_tecnica,
-    limitaciones_declaradas, validado_por, validado_en::text, condiciones_revision, decisiones_pendientes, definicion
-    from reglas_agronomicas where cultivo = $1 and estado = 'vigente' and activa = true order by clave`, [cultivo]);
+  const result = await query<RuleRow>(`select r.id::text, r.clave, r.version, r.cultivo, r.estado, r.ventana_dias, r.fuente_tecnica,
+    r.limitaciones_declaradas, r.validado_por, r.validado_en::text, r.condiciones_revision, r.decisiones_pendientes, r.definicion,
+    c.nombre, c.categoria, c.evaluabilidad
+    from reglas_agronomicas r left join catalogo_enfermedades c
+      on c.cultivo = r.cultivo and c.clave = r.clave and c.version = r.version
+    where r.cultivo = $1 and r.estado in ('vigente','experimental') and r.activa = true order by r.clave`, [cultivo]);
   return result.rows.map(parse);
 }
 
 export async function getReglasAdministrables() {
-  const result = await query<RuleRow>(`select id::text, clave, version, cultivo, estado, ventana_dias, fuente_tecnica,
-    limitaciones_declaradas, validado_por, validado_en::text, condiciones_revision, decisiones_pendientes, definicion
-    from reglas_agronomicas where estado <> 'retirada' order by cultivo, clave, version desc`);
+  const result = await query<RuleRow>(`select r.id::text, r.clave, r.version, r.cultivo, r.estado, r.ventana_dias, r.fuente_tecnica,
+    r.limitaciones_declaradas, r.validado_por, r.validado_en::text, r.condiciones_revision, r.decisiones_pendientes, r.definicion,
+    c.nombre, c.categoria, c.evaluabilidad
+    from reglas_agronomicas r left join catalogo_enfermedades c
+      on c.cultivo = r.cultivo and c.clave = r.clave and c.version = r.version
+    where r.estado <> 'retirada' order by r.cultivo, r.clave, r.version desc`);
   return result.rows.map(parse);
 }
