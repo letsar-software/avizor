@@ -53,8 +53,13 @@ export const ruleDefinitionSchema = z.object({
   sin_coincidencia: z.object({ estado: shortText(80), motivo: optionalText(240) }).strict().optional(),
 }).strict();
 
-export const adminRulePatchSchema = z.object({ estado: z.enum(["experimental", "revisada", "vigente", "retirada"]).optional(), definicion: ruleDefinitionSchema.optional() }).strict()
-  .refine((value) => value.estado !== undefined || value.definicion !== undefined, "No hay cambios");
+export const adminRulePatchSchema = z.object({
+  estado: z.enum(["experimental", "revisada", "vigente", "retirada"]).optional(),
+  definicion: ruleDefinitionSchema.optional(),
+  validado_por: shortText(120).optional(),
+  validado_en: z.string().datetime({ offset: true }).optional(),
+}).strict()
+  .refine((value) => value.estado !== undefined || value.definicion !== undefined || value.validado_por !== undefined || value.validado_en !== undefined, "No hay cambios");
 export const adminLoginSchema = z.object({ email, password: z.string().min(8).max(200) }).strict();
 export const adminCropCreateSchema = z.object({ clave: shortText(40).regex(/^[a-z0-9_]+$/), nombre: shortText(120), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict();
 export const adminCropPatchSchema = z.object({ nombre: shortText(120).optional(), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict()
