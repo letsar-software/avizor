@@ -5,12 +5,14 @@ import type {
   PLAGA_ESTADOS_CATALOGO,
   REGIONAL_ESTADOS,
   REGIONAL_PRIORIDADES,
+  REGLA_ESTADOS,
   SPEC_AGGREGATORS,
   SPEC_OPERATORS,
   SPEC_VARIABLES,
   TIPOS_REGLA,
   ZONA_MODOS_APLICABILIDAD,
 } from "@/lib/rules/condition-spec";
+import type { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
 
 export type Condicion = "favorable" | "moderada" | "desfavorable";
 
@@ -88,10 +90,11 @@ export interface ClimateMetrics {
   temp_min_14d: number | null;
 }
 
-export type GrupoMadurez = "III" | "IV corto" | "IV largo" | "V";
+export type GrupoMadurez = typeof GRUPOS_MADUREZ[number];
+export type HitoFenologicoCodigo = typeof HITOS_FENOLOGICOS_CODIGOS[number];
 
 export interface HitoFenologico {
-  codigo: "E" | "R1" | "R3" | "R5" | "R7";
+  codigo: HitoFenologicoCodigo;
   nombre: string;
   fecha_estimada: string;
 }
@@ -261,6 +264,24 @@ export interface ZonaAgronomica {
   id: string; clave: string; nombre: string;
   definicion_geografica: Record<string, unknown> | null;
   activa: boolean; created_at: string; updated_at: string;
+}
+
+// Coeficientes administrables del modelo de fenología (plan §3.3). El set de hitos
+// queda fijo (HITOS_FENOLOGICOS_CODIGOS); lo que varía por versión es cuántos días
+// después de la siembra ocurre cada hito, por grupo de madurez, y el margen de error.
+export interface HitoModeloFenologico { codigo: HitoFenologicoCodigo; nombre: string }
+export interface ModeloFenologicoParametros {
+  hitos: HitoModeloFenologico[];
+  offsets_dias: Record<GrupoMadurez, number[]>;
+  margen_dias: number;
+}
+
+export type ModeloFenologicoEstado = typeof REGLA_ESTADOS[number];
+export interface ModeloFenologico {
+  id: string; cultivo: string; version: string; estado: ModeloFenologicoEstado;
+  proveedor: string; parametros: ModeloFenologicoParametros;
+  fuente_tecnica: string | null; validado_por: string | null; validado_en: string | null;
+  created_at: string; updated_at: string;
 }
 
 export type RegionalPrioridad = typeof REGIONAL_PRIORIDADES[number];

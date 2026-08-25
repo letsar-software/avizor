@@ -12,22 +12,24 @@ import {
 } from "@/lib/rules/condition-spec";
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import { API_KEY_SCOPE_PATTERN, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
+import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Fecha inválida");
 const uuid = z.string().uuid();
 const email = z.string().trim().email().max(254).transform((value) => value.toLowerCase());
+const grupoMadurez = z.enum(GRUPOS_MADUREZ);
 
 export const consultaV2Schema = z.object({
   localidad: shortText(120), cultivo: shortText(30), fechaSiembra: isoDate.optional(),
-  grupoMadurez: z.enum(["III", "IV corto", "IV largo", "V"]).optional(), cultivar: optionalText(120),
+  grupoMadurez: grupoMadurez.optional(), cultivar: optionalText(120),
   sessionId: optionalText(128), canal: z.enum(["web", "whatsapp", "api_empresa", "admin"]).optional(), fechaRef: isoDate.optional(),
 }).strict();
 
 export const consultaLegacySchema = z.object({
   localidad: shortText(120), cultivo: shortText(30), session_id: optionalText(128), fecha_siembra: isoDate.optional(),
-  grupo_madurez: z.enum(["III", "IV corto", "IV largo", "V"]).optional(), cultivar_id: optionalText(120),
+  grupo_madurez: grupoMadurez.optional(), cultivar_id: optionalText(120),
   observacion: optionalText(2000), email: email.optional(),
 }).strict();
 
@@ -146,6 +148,28 @@ export const adminApiKeyCreateSchema = z.object({
   limite_mensual: z.number().int().positive().optional(),
   expira_en: isoDate.optional(),
 }).strict();
+
+// Fenología (plan §3.3): el set de hitos es fijo (HITOS_FENOLOGICOS_CODIGOS, en orden);
+// lo administrable son los offsets en días por grupo de madurez y el margen de error.
+const hitoModeloSchema = z.object({ codigo: z.enum(HITOS_FENOLOGICOS_CODIGOS), nombre: shortText(80) }).strict();
+const offsetsDiasSchema = z.record(z.string(), z.array(z.number().int().min(0).max(400)).length(HITOS_FENOLOGICOS_CODIGOS.length))
+  .refine((value) => GRUPOS_MADUREZ.length === Object.keys(value).length && GRUPOS_MADUREZ.every((grupo) => grupo in value), "offsets_dias debe tener exactamente los grupos de madurez válidos");
+export const parametrosFenologicosSchema = z.object({
+  hitos: z.array(hitoModeloSchema).length(HITOS_FENOLOGICOS_CODIGOS.length)
+    .refine((hitos) => hitos.every((hito, index) => hito.codigo === HITOS_FENOLOGICOS_CODIGOS[index]), "los hitos deben venir en el orden E, R1, R3, R5, R7"),
+  offsets_dias: offsetsDiasSchema,
+  margen_dias: z.number().int().min(0).max(60),
+}).strict();
+
+export const adminModeloFenologicoCreateSchema = z.object({
+  cultivo: shortText(30), version: shortText(20), proveedor: optionalText(60),
+  parametros: parametrosFenologicosSchema, fuente_tecnica: optionalText(500),
+}).strict();
+export const adminModeloFenologicoPatchSchema = z.object({
+  estado: z.enum(REGLA_ESTADOS).optional(), parametros: parametrosFenologicosSchema.optional(),
+  fuente_tecnica: optionalText(500), validado_por: shortText(120).optional(), validado_en: z.string().datetime({ offset: true }).optional(),
+}).strict()
+  .refine((value) => Object.keys(value).length > 0, "No hay cambios");
 
 export function parseInput<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
   const result = schema.safeParse(value);
