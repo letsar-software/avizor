@@ -55,6 +55,7 @@ export const ruleDefinitionSchema = z.object({
 
 export const adminRulePatchSchema = z.object({ estado: z.enum(["experimental", "revisada", "vigente", "retirada"]).optional(), definicion: ruleDefinitionSchema.optional() }).strict()
   .refine((value) => value.estado !== undefined || value.definicion !== undefined, "No hay cambios");
+export const adminLoginSchema = z.object({ email, password: z.string().min(8).max(200) }).strict();
 export const adminCropCreateSchema = z.object({ clave: shortText(40).regex(/^[a-z0-9_]+$/), nombre: shortText(120), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict();
 export const adminCropPatchSchema = z.object({ nombre: shortText(120).optional(), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict()
   .refine((value) => Object.keys(value).length > 0, "No hay cambios");

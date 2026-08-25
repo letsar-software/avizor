@@ -69,6 +69,7 @@ async function main() {
     "db/migrations/007_backend_v2.sql",
     "db/migrations/008_security_rate_limits.sql",
     "db/migrations/009_soja_enfermedades_v2.sql",
+    "db/migrations/010_usuarios_admin.sql",
   ];
 
   for (const migration of migrations) {
