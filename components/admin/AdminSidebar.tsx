@@ -1,24 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { hasAccess, type AdminModule, type AdminRole } from "@/lib/admin/permissions";
-
-const NAV: { href: string; label: string; modulo: AdminModule }[] = [
-  { href: "/admin", label: "Dashboard", modulo: "dashboard" },
-  { href: "/admin/reglas", label: "Reglas", modulo: "reglas" },
-  { href: "/admin/laboratorio", label: "Laboratorio", modulo: "laboratorio" },
-  { href: "/admin/plagas", label: "Plagas", modulo: "plagas_cultivos_fenologia" },
-  { href: "/admin/cultivos", label: "Cultivos", modulo: "plagas_cultivos_fenologia" },
-  { href: "/admin/fenologia", label: "Fenología", modulo: "plagas_cultivos_fenologia" },
-  { href: "/admin/usuarios", label: "Usuarios", modulo: "usuarios" },
-  { href: "/admin/empresas", label: "Empresas", modulo: "empresas" },
-  { href: "/admin/auditoria", label: "Auditoría", modulo: "auditoria" },
-  { href: "/admin/configuracion", label: "Configuración", modulo: "configuracion" },
-];
+import { hasAccess, type AdminRole } from "@/lib/admin/permissions";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 
 export default function AdminSidebar({ rol }: { rol: AdminRole }) {
   const pathname = usePathname();
-  const items = NAV.filter((item) => hasAccess(rol, item.modulo, "read"));
+  const items = ADMIN_NAV.filter((item) => hasAccess(rol, item.modulo, "read"));
 
   return (
     <aside className="w-60 shrink-0 border-r border-gray-200 bg-white">
