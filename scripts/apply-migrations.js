@@ -1,44 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const { Pool } = require("pg");
-const { checkServerIdentity } = require("node:tls");
-const { loadEnvConfig } = require("@next/env");
+const { createPgPool } = require("./lib/database-pool");
 
-loadEnvConfig(process.cwd());
-
-const databaseUrl = process.env.DATABASE_URL;
-const databaseSsl = process.env.DATABASE_SSL === "true" || databaseUrl?.includes("sslmode=require");
-const rejectUnauthorized = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false";
-const databaseCa = process.env.DATABASE_CA?.replace(/\\n/g, "\n");
-const databaseTlsServerName = process.env.DATABASE_TLS_SERVER_NAME;
-
-if (!databaseUrl) {
-  console.error("Falta DATABASE_URL");
-  process.exit(1);
-}
-if (process.env.NODE_ENV === "production") {
-  if (!rejectUnauthorized) {
-    console.error("Configuración insegura: DATABASE_SSL_REJECT_UNAUTHORIZED=false no está permitida en producción.");
-    process.exit(1);
-  }
-  if (!databaseSsl) {
-    console.error("Configuración insegura: TLS PostgreSQL es obligatorio en producción.");
-    process.exit(1);
-  }
-}
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: databaseSsl
-    ? {
-        rejectUnauthorized,
-        ca: databaseCa,
-        checkServerIdentity: databaseTlsServerName
-          ? (_host, certificate) => checkServerIdentity(databaseTlsServerName, certificate)
-          : undefined,
-      }
-    : undefined,
-});
+const { pool } = createPgPool();
 
 function readSql(migration) {
   return fs.readFileSync(path.join(process.cwd(), migration), "utf8").replace(/^\uFEFF/, "");

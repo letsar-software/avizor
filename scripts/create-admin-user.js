@@ -2,11 +2,7 @@
 // Uso: node scripts/create-admin-user.js <email> <nombre> <rol> <password>
 // rol: administrador | agronomo | soporte
 const { scryptSync, randomBytes } = require("node:crypto");
-const { Pool } = require("pg");
-const { checkServerIdentity } = require("node:tls");
-const { loadEnvConfig } = require("@next/env");
-
-loadEnvConfig(process.cwd());
+const { createPgPool } = require("./lib/database-pool");
 
 const [, , email, nombre, rol, password] = process.argv;
 if (!email || !nombre || !rol || !password) {
@@ -22,26 +18,7 @@ if (password.length < 8) {
   process.exit(1);
 }
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  console.error("Falta DATABASE_URL");
-  process.exit(1);
-}
-const databaseSsl = process.env.DATABASE_SSL === "true" || databaseUrl.includes("sslmode=require");
-const rejectUnauthorized = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false";
-const databaseCa = process.env.DATABASE_CA?.replace(/\\n/g, "\n");
-const databaseTlsServerName = process.env.DATABASE_TLS_SERVER_NAME;
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: databaseSsl
-    ? {
-        rejectUnauthorized,
-        ca: databaseCa,
-        checkServerIdentity: databaseTlsServerName ? (_host, certificate) => checkServerIdentity(databaseTlsServerName, certificate) : undefined,
-      }
-    : undefined,
-});
+const { pool } = createPgPool();
 
 function hashPassword(rawPassword) {
   const salt = randomBytes(16);

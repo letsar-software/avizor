@@ -29,3 +29,13 @@ export async function getReglasAdministrables() {
     where r.estado <> 'retirada' order by r.cultivo, r.clave, r.version desc`);
   return result.rows.map(parse);
 }
+
+export async function getReglaAdministrableById(id: string) {
+  const result = await query<RuleRow>(`select r.id::text, r.clave, r.version, r.cultivo, r.estado, r.ventana_dias, r.fuente_tecnica,
+    r.limitaciones_declaradas, r.validado_por, r.validado_en::text, r.condiciones_revision, r.decisiones_pendientes, r.definicion,
+    c.nombre, c.categoria, c.evaluabilidad
+    from reglas_agronomicas r left join catalogo_enfermedades c
+      on c.cultivo = r.cultivo and c.clave = r.clave and c.version = r.version
+    where r.id::text = $1`, [id]);
+  return result.rows[0] ? parse(result.rows[0]) : null;
+}

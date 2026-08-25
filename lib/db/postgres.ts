@@ -40,9 +40,11 @@ export function getPool() {
         ? {
             rejectUnauthorized: DATABASE_SSL_REJECT_UNAUTHORIZED,
             ca: DATABASE_CA,
-            checkServerIdentity: DATABASE_TLS_SERVER_NAME
-              ? (_host, certificate) => checkServerIdentity(DATABASE_TLS_SERVER_NAME, certificate)
-              : undefined,
+            // Node valida checkServerIdentity si la clave está presente, aunque sea undefined:
+            // solo se agrega cuando de verdad hay un hostname para validar.
+            ...(DATABASE_TLS_SERVER_NAME
+              ? { checkServerIdentity: (_host: string, certificate: Parameters<typeof checkServerIdentity>[1]) => checkServerIdentity(DATABASE_TLS_SERVER_NAME, certificate) }
+              : {}),
           }
         : undefined,
       max: 5,
