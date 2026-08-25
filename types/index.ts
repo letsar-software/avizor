@@ -206,6 +206,19 @@ export interface CatalogoPlaga {
   created_at: string; updated_at: string;
 }
 
+export interface DashboardMetrics {
+  consultas: { total: number; ultimos_7_dias: number; ultimos_30_dias: number };
+  por_estado_general: { estado_general: string; total: number }[];
+  por_confianza: { confianza: string; total: number }[];
+  reglas_activas: number;
+  cultivos_activos: number;
+}
+
+export interface Cultivo {
+  id: string; clave: string; nombre: string; activo: boolean;
+  feature_flag: string | null; created_at: string; updated_at: string;
+}
+
 export interface ZonaAgronomica {
   id: string; clave: string; nombre: string;
   definicion_geografica: Record<string, unknown> | null;
