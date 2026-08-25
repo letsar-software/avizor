@@ -1,11 +1,12 @@
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from "node:crypto";
 import { query as defaultQuery } from "@/lib/db/postgres";
 import { DomainError } from "@/lib/consultas/service";
+import { ADMIN_ROLES } from "@/lib/admin/user-spec";
 
 const SCRYPT_KEYLEN = 64;
 const SESSION_TTL_HOURS = 12;
 
-export type AdminRole = "administrador" | "agronomo" | "soporte";
+export type AdminRole = typeof ADMIN_ROLES[number];
 export interface AdminActor { id: string; email: string; nombre: string; rol: AdminRole }
 
 // Mismo patrón de inyección que lib/security/rate-limit.ts: la dependencia de datos entra

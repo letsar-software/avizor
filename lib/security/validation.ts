@@ -10,6 +10,7 @@ import {
   TIPOS_REGLA,
   ZONA_MODOS_APLICABILIDAD,
 } from "@/lib/rules/condition-spec";
+import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -80,6 +81,16 @@ export const adminRulePatchSchema = z.object({
 }).strict()
   .refine((value) => value.estado !== undefined || value.definicion !== undefined || value.validado_por !== undefined || value.validado_en !== undefined, "No hay cambios");
 export const adminLoginSchema = z.object({ email, password: z.string().min(8).max(200) }).strict();
+
+const adminPassword = z.string().min(8).max(200);
+export const adminUserCreateSchema = z.object({
+  email, nombre: shortText(120), rol: z.enum(ADMIN_ROLES), password: adminPassword,
+}).strict();
+export const adminUserPatchSchema = z.object({
+  nombre: shortText(120).optional(), rol: z.enum(ADMIN_ROLES).optional(),
+  estado: z.enum(ADMIN_USER_ESTADOS).optional(), password: adminPassword.optional(),
+}).strict()
+  .refine((value) => Object.keys(value).length > 0, "No hay cambios");
 export const adminCropCreateSchema = z.object({ clave: shortText(40).regex(/^[a-z0-9_]+$/), nombre: shortText(120), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict();
 export const adminCropPatchSchema = z.object({ nombre: shortText(120).optional(), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict()
   .refine((value) => Object.keys(value).length > 0, "No hay cambios");
