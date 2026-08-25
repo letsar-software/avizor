@@ -3,4 +3,5 @@ export const featureFlags = {
   enableAlertas: process.env.ENABLE_ALERTAS === "true",
   enableObservaciones: process.env.ENABLE_OBSERVACIONES !== "false",
   enableModoExperimental: process.env.ENABLE_MODO_EXPERIMENTAL === "true",
+  enablePlagas: process.env.ENABLE_PLAGAS === "true",
 };

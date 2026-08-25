@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import React, { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 type Props = { id: string; title: string; summary?: string; icon?: ReactNode; children: ReactNode; defaultOpen?: boolean };

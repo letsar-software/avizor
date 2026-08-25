@@ -7,8 +7,12 @@ import { getReglasVigentes } from "@/lib/rules/repository-v2";
 import { RulesEngineV2 } from "@/lib/rules/engine-v2";
 import { ScoreEngineV2 } from "@/lib/rules/score-v2";
 import { buildConsultationSummary } from "@/lib/results/consultation-summary";
+import { featureFlags } from "@/lib/config/featureFlags";
+import { PestRulesEngine } from "@/lib/pests/engine";
+import { getAsociacionRegional, getReglasPlagas } from "@/lib/pests/repository";
+import { resolveAgronomicZone } from "@/lib/pests/zone-resolver";
 import { persistConsultaV2 } from "./repository-v2";
-import type { ConsultaInput, ContextoFenologico, EstadoGeneral, ReglaAgronomicaV2, ResultadoReglaV2 } from "@/types";
+import type { AsociacionRegionalPlaga, ConsultaInput, ContextoFenologico, EstadoGeneral, EvaluacionPlaga, ReglaAgronomicaV2, ReglaPlaga, ResultadoReglaV2 } from "@/types";
 
 export class DomainError extends Error { constructor(public readonly code: string, message: string, public readonly status = 400, public readonly details: Record<string, unknown> = {}) { super(message); } }
 
@@ -16,11 +20,11 @@ export interface ConsultaResultadoV2 {
   id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string;
   resumen_consulta: { descripcion: string; destaque: string };
   localidad: ReturnType<typeof normalizeLocalidad>; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string;
-  reglas: ResultadoReglaV2[]; contexto_fenologico: ContextoFenologico; duracion_ms: number;
+  reglas: ResultadoReglaV2[]; plagas?: { evaluaciones: EvaluacionPlaga[]; disponibilidad: "disponible" | "zona_no_resuelta" }; contexto_fenologico: ContextoFenologico; duracion_ms: number;
   clima: { serie: Awaited<ReturnType<ClimateSeriesProvider["obtenerSerie"]>>["serie"]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes: string[]; dias_solicitados: number; dias_disponibles: number; obtenido_en: string; adapter_version: string };
 }
 
-interface Dependencies { climate?: ClimateSeriesProvider; phenology?: PhenologyProviderV2; loadRules?: (cultivo: string) => Promise<ReglaAgronomicaV2[]>; persist?: typeof persistConsultaV2; resolveLocation?: typeof resolveLocalidad; }
+interface Dependencies { climate?: ClimateSeriesProvider; phenology?: PhenologyProviderV2; loadRules?: (cultivo: string) => Promise<ReglaAgronomicaV2[]>; persist?: typeof persistConsultaV2; resolveLocation?: typeof resolveLocalidad; enablePests?: boolean; loadPestRules?: (cultivo: string) => Promise<ReglaPlaga[]>; resolvePestZone?: (localidad: ReturnType<typeof normalizeLocalidad>) => Promise<string | null>; loadPestRegion?: (ruleId: string, zone: string) => Promise<AsociacionRegionalPlaga | null>; }
 
 export class ConsultaService {
   constructor(private readonly dependencies: Dependencies = {}) {}
@@ -46,9 +50,26 @@ export class ConsultaService {
     let phenology: ContextoFenologico;
     try { phenology = await (this.dependencies.phenology ?? new CalculatedPhenologyProvider()).estimarEstadio({ fechaSiembra: input.fechaSiembra, grupoMadurez: input.grupoMadurez, cultivar: input.cultivar, latitud: localidad.latitud, longitud: localidad.longitud, fechaRef }); }
     catch { phenology = { disponible: false, motivo: "error_proveedor", modifica_reglas: false }; }
-    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, contexto_fenologico: phenology, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, variables_faltantes: climate.variablesFaltantes, dias_solicitados: climate.diasSolicitados, dias_disponibles: climate.diasDisponibles, obtenido_en: climate.obtenidoEn, adapter_version: climate.adapterVersion }, duracion_ms: Math.round(performance.now() - started) };
+    const pestsEnabled = this.dependencies.enablePests ?? featureFlags.enablePlagas;
+    let plagas: ConsultaResultadoV2["plagas"];
+    if (pestsEnabled) {
+      const zone = await (this.dependencies.resolvePestZone ?? resolveAgronomicZone)(localidad);
+      plagas = zone ? { evaluaciones: await this.evaluatePests(cultivo, zone, climate.serie, phenology, fechaRef, evaluatedAt), disponibilidad: "disponible" } : { evaluaciones: [], disponibilidad: "zona_no_resuelta" };
+    }
+    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, ...(plagas ? { plagas } : {}), contexto_fenologico: phenology, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, variables_faltantes: climate.variablesFaltantes, dias_solicitados: climate.diasSolicitados, dias_disponibles: climate.diasDisponibles, obtenido_en: climate.obtenidoEn, adapter_version: climate.adapterVersion }, duracion_ms: Math.round(performance.now() - started) };
     result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result });
     return result;
+  }
+
+  private async evaluatePests(cultivo: string, zone: string, series: Awaited<ReturnType<ClimateSeriesProvider["obtenerSerie"]>>["serie"], phenology: ContextoFenologico, fechaRef: string, evaluatedAt: string) {
+    const rules = await (this.dependencies.loadPestRules ?? getReglasPlagas)(cultivo);
+    const engine = new PestRulesEngine();
+    const evaluations: EvaluacionPlaga[] = [];
+    for (const rule of rules) {
+      const region = await (this.dependencies.loadPestRegion ?? getAsociacionRegional)(rule.id, zone);
+      if (region) evaluations.push(engine.evaluate({ rule, region, series, phenology, fechaRef, evaluatedAt }));
+    }
+    return evaluations;
   }
 }
 

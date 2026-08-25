@@ -36,6 +36,7 @@ async function main() {
     "db/migrations/010_usuarios_admin.sql",
     "db/migrations/011_reglas_aplicabilidad.sql",
     "db/migrations/012_plagas.sql",
+    "db/migrations/013_soja_plagas_rules.sql",
   ];
 
   for (const migration of migrations) {

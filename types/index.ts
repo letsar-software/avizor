@@ -226,4 +226,66 @@ export interface PlagaRegional {
 export interface EvaluacionObservada { variable: SpecVariable; agregador: AggregatorKey; valor: number; unidad: string; umbral: string; cumple: boolean; cobertura: number; }
 export interface ResultadoReglaV2 { riesgo: string; regla: { clave: string; version: string; estado: ReglaAgronomicaV2["estado"]; modo?: "estable" | "experimental"; nombre?: string; categoria?: string; evaluabilidad?: ReglaAgronomicaV2["evaluabilidad"] }; estado: string; etiqueta?: string; explicacion?: string; recomendacion?: string; fuente_tecnica?: string | null; limitaciones_declaradas?: string | null; orden_visual?: number; ventana: { desde: string; hasta: string; dias: number }; observado: EvaluacionObservada[]; calidad_dato: { cobertura_min: number; dias_faltantes: number; distancia_punto_km: number | null }; motivo?: string; detalle?: Record<string, unknown>; evaluado_en: string; }
 export interface ContextoFenologico { disponible: boolean; detalle?: FenologiaEstimada; motivo?: "proveedor_no_configurado" | "entradas_insuficientes" | "error_proveedor"; estadio_estimado?: string; descripcion?: string; fuente?: string; entradas?: Record<string, string | null>; incertidumbre?: { nota: string }; modifica_reglas: false; }
-export interface ResultadoConsultaV2Publica { id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string; resumen_consulta?: { descripcion: string; destaque: string }; localidad: LocalidadNormalizada | null; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string; reglas: ResultadoReglaV2[]; contexto_fenologico: ContextoFenologico; duracion_ms: number; clima: { serie: SerieClimaticaDiaria[]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes?: string[]; dias_solicitados?: number; dias_disponibles?: number; obtenido_en?: string; adapter_version: string }; }
+export interface ResultadoConsultaV2Publica { id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string; resumen_consulta?: { descripcion: string; destaque: string }; localidad: LocalidadNormalizada | null; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string; reglas: ResultadoReglaV2[]; plagas?: { evaluaciones: EvaluacionPlaga[]; disponibilidad: "disponible" | "zona_no_resuelta" }; contexto_fenologico: ContextoFenologico; duracion_ms: number; clima: { serie: SerieClimaticaDiaria[]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes?: string[]; dias_solicitados?: number; dias_disponibles?: number; obtenido_en?: string; adapter_version: string }; }
+
+export type TipoReglaPlaga = "climatica" | "prioridad_monitoreo";
+export type EstadoEvaluacionPlaga = "favorabilidad_alta" | "favorabilidad_moderada" | "periodo_relevante_monitoreo" | "sin_condiciones_destacadas" | "indeterminado" | "no_evaluada";
+export type MotivoEvaluacionPlaga = "fuera_zona" | "fuera_fenologia" | "fuera_periodo" | "fenologia_no_disponible" | "datos_insuficientes" | "configuracion_incompleta" | "sin_nivel_coincidente";
+export type PrioridadRegionalPlaga = "principal" | "variable" | "sin_evidencia_suficiente";
+export type NivelEvidenciaClimatica = "alto" | "medio" | "bajo" | "muy_bajo";
+
+export interface NivelPlagaClimatico {
+  orden: number;
+  estado: Extract<EstadoEvaluacionPlaga, "favorabilidad_alta" | "favorabilidad_moderada" | "sin_condiciones_destacadas">;
+  combinador: "all" | "any";
+  condiciones: Array<{ indicador: IndicadorPlaga; operador: SpecOperator; valor: number }>;
+}
+
+export type IndicadorPlaga = "temp_media_7d" | "temp_media_10d" | "temp_max_media_10d" | "dias_calidos_10d" | "precip_7d" | "precip_10d" | "dias_con_lluvia_7d" | "dias_consecutivos_sin_lluvia";
+
+export interface ReglaPlaga {
+  id: string;
+  version: string;
+  cultivo: "soja";
+  grupo_plaga: string;
+  especies: string[];
+  tipo_regla: TipoReglaPlaga;
+  estado: "experimental" | "revisada" | "vigente" | "retirada";
+  activa: boolean;
+  nivel_evidencia_climatica: NivelEvidenciaClimatica;
+  variables_requeridas: IndicadorPlaga[];
+  fenologia_desde: string | null;
+  fenologia_hasta: string | null;
+  configuracion: { niveles?: NivelPlagaClimatico[]; umbral_dia_lluvia_mm: number; tipo_agregacion_termica?: "temp_media" | "temp_max_media" | "dias_calidos"; umbral_termico?: number; cantidad_dias_minima?: number };
+  textos: { por_que_se_muestra: string; estado: string; que_significa: string; que_observar: string; seguimiento: string; evidencia_tecnica: string };
+}
+
+export interface AsociacionRegionalPlaga {
+  id: string;
+  zona_agronomica: string;
+  prioridad: PrioridadRegionalPlaga;
+  meses_desde: number | null;
+  meses_hasta: number | null;
+  aplicable: boolean;
+  version: string;
+}
+
+export interface EvaluacionPlaga {
+  grupo: string;
+  especies: string[];
+  tipo_regla: TipoReglaPlaga;
+  estado: EstadoEvaluacionPlaga;
+  motivo?: MotivoEvaluacionPlaga;
+  zona: string;
+  prioridad_regional: PrioridadRegionalPlaga;
+  fenologia: { estado: string; tipo: "estimada" } | null;
+  regla: string;
+  version: string;
+  nivel_evidencia_climatica: NivelEvidenciaClimatica;
+  calidad_dato: "alta" | "media" | "baja";
+  fuera_periodo_habitual?: boolean;
+  indicadores: Partial<Record<IndicadorPlaga, number>>;
+  cobertura: Partial<Record<IndicadorPlaga, number>>;
+  textos: ReglaPlaga["textos"];
+  evaluado_en: string;
+}
