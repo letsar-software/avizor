@@ -8,6 +8,7 @@
     "start": "next start -p $PORT",
     "lint": "eslint . --max-warnings 0",
     "db:migrate": "node scripts/apply-migrations.js",
+    "db:create-admin": "node scripts/create-admin-user.js",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
