@@ -46,7 +46,7 @@ with sync_playwright() as p:
         assert page.get_by_text(text, exact=True).first.is_visible(), text
     overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
     assert not overflow, "La pantalla tiene desborde horizontal"
-    page.screenshot(path="screenshots/result-summary-mobile.png", full_page=True)
+    page.screenshot(path="docs/screenshots/result-summary-mobile.png", full_page=True)
     browser.close()
 
 print("result summary mobile smoke: ok")

@@ -35,6 +35,6 @@ with sync_playwright() as playwright:
     assert overflow <= 1, overflow
 
     Path("screenshots").mkdir(exist_ok=True)
-    page.screenshot(path="screenshots/about-desktop-aligned.png", full_page=True)
+    page.screenshot(path="docs/screenshots/about-desktop-aligned.png", full_page=True)
     print({"linkedin_y": link_tops, "horizontal_overflow": overflow})
     browser.close()
