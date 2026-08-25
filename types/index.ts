@@ -1,5 +1,6 @@
 import type { AdminRole } from "@/lib/admin/auth";
 import type { ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
+import type { EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 import type {
   PLAGA_ESTADOS_CATALOGO,
   REGIONAL_ESTADOS,
@@ -220,6 +221,25 @@ export interface Cultivo {
   id: string; clave: string; nombre: string; activo: boolean;
   feature_flag: string | null; created_at: string; updated_at: string;
 }
+
+export type EmpresaEstado = typeof EMPRESA_ESTADOS[number];
+export interface Empresa {
+  id: string; nombre: string; contacto_nombre: string | null; contacto_email: string | null;
+  estado: EmpresaEstado; created_at: string; updated_at: string;
+}
+
+// Nunca incluye key_hash — ver lib/empresas/api-keys-repository.ts.
+export interface ApiKeyAdmin {
+  id: string; nombre: string; empresa_id: string | null; scopes: string[];
+  activa: boolean; revocada_at: string | null; expira_at: string | null;
+  limite_mensual: number | null; created_at: string;
+}
+
+export interface ApiKeyConUso extends ApiKeyAdmin { uso_mes_actual: number }
+
+// La clave en texto plano solo existe en la respuesta del alta — no se puede
+// volver a consultar después (mismo patrón que cualquier API key real).
+export interface ApiKeyCreada extends ApiKeyAdmin { key: string }
 
 export type AdminUserEstado = typeof ADMIN_USER_ESTADOS[number];
 

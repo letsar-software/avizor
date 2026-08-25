@@ -2,10 +2,17 @@ import { createHash } from "node:crypto";
 import { getPool } from "@/lib/db/postgres";
 import { DomainError } from "@/lib/consultas/service";
 
+// Única función que sabe cómo se deriva el hash almacenado a partir de la key en
+// texto plano — la usan tanto la verificación acá como la creación en
+// lib/empresas/api-keys-repository.ts, así nunca pueden desalinearse.
+export function hashApiKey(raw: string) {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
 export async function authenticateApiKey(request: Request, usage?: { requestId: string; endpoint: string }) {
   const raw = request.headers.get("x-api-key");
   if (!raw) throw new DomainError("API_KEY_INVALIDA", "API key inválida.", 401);
-  const hash = createHash("sha256").update(raw).digest("hex");
+  const hash = hashApiKey(raw);
   const client = await getPool().connect();
   try {
     await client.query("begin");
