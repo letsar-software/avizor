@@ -1,4 +1,32 @@
-import { query } from "@/lib/db/postgres"; import { failure,requestId,success } from "@/lib/http/responses"; import { requireInternalAuth } from "@/lib/security/internal-auth";
-import { readJsonBody } from "@/lib/http/json-body"; import { adminCropCreateSchema,parseInput } from "@/lib/security/validation";
-export async function GET(request:Request){const rid=requestId(request);try{requireInternalAuth(request);return success((await query('select * from cultivos order by nombre')).rows,rid);}catch(error){return failure(error,rid);}}
-export async function POST(request:Request){const rid=requestId(request);try{const actor=requireInternalAuth(request);const body=parseInput(adminCropCreateSchema,await readJsonBody(request));const r=await query('insert into cultivos(clave,nombre,activo,feature_flag) values($1,$2,$3,$4) returning *',[body.clave,body.nombre,body.activo??false,body.feature_flag??null]);await query("insert into auditoria(actor_id,actor_tipo,accion,entidad,entidad_id,valor_nuevo,request_id) values($1,'service','crear','cultivo',$2,$3::jsonb,$4)",[actor,r.rows[0].id,JSON.stringify(r.rows[0]),rid]);return success(r.rows[0],rid,{},201);}catch(error){return failure(error,rid);}}
+import { query } from "@/lib/db/postgres";
+import { failure, requestId, success } from "@/lib/http/responses";
+import { readJsonBody } from "@/lib/http/json-body";
+import { adminCropCreateSchema, parseInput } from "@/lib/security/validation";
+import { requireAdminAccess } from "@/lib/admin/access";
+import { createCultivo, getCultivos } from "@/lib/cultivos/repository";
+
+export async function GET(request: Request) {
+  const rid = requestId(request);
+  try {
+    await requireAdminAccess(request, "plagas_cultivos_fenologia", "read");
+    return success(await getCultivos(), rid);
+  } catch (error) {
+    return failure(error, rid);
+  }
+}
+
+export async function POST(request: Request) {
+  const rid = requestId(request);
+  try {
+    const actor = await requireAdminAccess(request, "plagas_cultivos_fenologia", "write");
+    const body = parseInput(adminCropCreateSchema, await readJsonBody(request));
+    const cultivo = await createCultivo(body);
+    await query(
+      "insert into auditoria(actor_id,actor_tipo,accion,entidad,entidad_id,valor_nuevo,request_id) values($1,$2,'crear','cultivo',$3,$4::jsonb,$5)",
+      [actor.actorId, actor.actorTipo, cultivo.id, JSON.stringify(cultivo), rid],
+    );
+    return success(cultivo, rid, {}, 201);
+  } catch (error) {
+    return failure(error, rid);
+  }
+}
