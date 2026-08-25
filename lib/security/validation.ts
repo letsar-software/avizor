@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DomainError } from "@/lib/consultas/service";
+import { REGLA_ESTADOS, SPEC_AGGREGATORS, SPEC_OPERATORS, SPEC_VARIABLES } from "@/lib/rules/condition-spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -33,9 +34,9 @@ export const feedbackV2Schema = z.object({ coincide_campo: z.enum(["si", "no", "
 export const feedbackLegacySchema = z.object({ utilidad: z.enum(["si", "parcialmente", "no"]).optional(), observaciones: z.array(shortText(120)).max(10).default([]), sugerencia: optionalText(2000), share_token: uuid.optional(), session_id: optionalText(128) }).strict()
   .refine((value) => Boolean(value.utilidad) || value.observaciones.length > 0 || Boolean(value.sugerencia), "Feedback vacío");
 
-const operator = z.enum(["gt", "gte", "lt", "lte", "eq", "between"]);
-const variable = z.enum(["humedad_relativa", "precipitacion", "temperatura_media", "temperatura_min", "temperatura_max", "viento_medio", "punto_rocio", "deficit_presion_vapor", "evapotranspiracion", "et0_fao_56", "humedad_suelo_0_1cm", "humedad_suelo_1_3cm", "humedad_suelo_3_9cm", "humedad_suelo_9_27cm", "humedad_suelo_27_81cm", "temperatura_suelo_0cm", "temperatura_suelo_6cm", "temperatura_suelo_18cm", "temperatura_suelo_54cm", "radiacion_solar"]);
-const aggregator = z.enum(["media_ventana", "min_ventana", "suma_ventana", "dias_con_condicion"]);
+const operator = z.enum(SPEC_OPERATORS);
+const variable = z.enum(SPEC_VARIABLES);
+const aggregator = z.enum(SPEC_AGGREGATORS);
 const finite = z.number().finite();
 const conditionSchema = z.object({
   variable, agregador: aggregator, operador: operator, valor: z.union([finite, z.tuple([finite, finite])]), unidad: shortText(30),
@@ -54,7 +55,7 @@ export const ruleDefinitionSchema = z.object({
 }).strict();
 
 export const adminRulePatchSchema = z.object({
-  estado: z.enum(["experimental", "revisada", "vigente", "retirada"]).optional(),
+  estado: z.enum(REGLA_ESTADOS).optional(),
   definicion: ruleDefinitionSchema.optional(),
   validado_por: shortText(120).optional(),
   validado_en: z.string().datetime({ offset: true }).optional(),

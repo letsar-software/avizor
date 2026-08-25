@@ -1,3 +1,5 @@
+import type { SPEC_AGGREGATORS, SPEC_OPERATORS, SPEC_VARIABLES } from "@/lib/rules/condition-spec";
+
 export type Condicion = "favorable" | "moderada" | "desfavorable";
 
 export type Confianza = "Alta" | "Media" | "Baja";
@@ -151,14 +153,9 @@ export interface SerieClimaticaDiaria {
   temperaturaSuelo: { profundidad0cm: number | null; profundidad6cm: number | null; profundidad18cm: number | null; profundidad54cm: number | null; };
   radiacionSolar: number | null;
 }
-export type AggregatorKey = "media_ventana" | "min_ventana" | "suma_ventana" | "dias_con_condicion";
-export type SpecOperator = "gt" | "gte" | "lt" | "lte" | "eq" | "between";
-export type SpecVariable =
-  | "humedad_relativa" | "precipitacion" | "temperatura_media" | "temperatura_min" | "temperatura_max"
-  | "viento_medio" | "punto_rocio" | "deficit_presion_vapor" | "evapotranspiracion" | "et0_fao_56"
-  | "humedad_suelo_0_1cm" | "humedad_suelo_1_3cm" | "humedad_suelo_3_9cm" | "humedad_suelo_9_27cm" | "humedad_suelo_27_81cm"
-  | "temperatura_suelo_0cm" | "temperatura_suelo_6cm" | "temperatura_suelo_18cm" | "temperatura_suelo_54cm"
-  | "radiacion_solar";
+export type AggregatorKey = typeof SPEC_AGGREGATORS[number];
+export type SpecOperator = typeof SPEC_OPERATORS[number];
+export type SpecVariable = typeof SPEC_VARIABLES[number];
 export interface CondicionDefinicion { variable: SpecVariable; agregador: AggregatorKey; operador: SpecOperator; valor: number | [number, number]; unidad: string; cobertura_minima?: number; subcondicion?: { operador: SpecOperator; valor: number; unidad: string }; provisorio?: boolean; }
 export interface NivelRegla { orden: number; clave: string; orden_visual: number; etiqueta: string; explicacion?: string; recomendacion?: string; condiciones: CondicionDefinicion[]; }
 export interface ReglaAgronomicaV2 { id: string; clave: string; version: string; cultivo: string; estado: "experimental" | "revisada" | "vigente" | "retirada"; nombre?: string; categoria?: string; evaluabilidad?: "EVALUABLE" | "PARCIALMENTE_EVALUABLE" | "NO_EVALUABLE" | "PENDIENTE_EVIDENCIA"; ventana_dias: number; fuente_tecnica: string | null; limitaciones_declaradas: string | null; validado_por: string | null; validado_en: string | null; condiciones_revision: string | null; decisiones_pendientes: string[]; definicion: { niveles: NivelRegla[]; sin_coincidencia?: { estado: string; motivo?: string } }; }
