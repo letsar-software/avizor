@@ -1,7 +1,7 @@
-# Panel de administración — Fase 0 y Fase 1
+# Panel de administración — Fases 0 a 7 (plan completo)
 
 Fecha: 2026-08-25
-Ramas: `feature/panel-admin-autenticacion` (Fase 0, en remoto), `feature/panel-admin-reglas-laboratorio` (Fase 1, local)
+Estado: las 7 fases del plan de arquitectura original están implementadas y mergeadas a `main` (PR #1, #2, #4, #5, #6, #7, #8, #9 — se saltea el #3, no correspondía a este plan).
 
 ## Fase 0 — Auth y layout base
 
@@ -47,3 +47,57 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 **Fuera de esta fase**
 - El flujo de "fork" para crear una nueva versión a partir de una regla vigente: el editor la bloquea pero todavía no ofrece el botón de "crear nueva versión".
 - No se pudo probar el flujo con datos reales (login, listar, guardar) porque no hay `DATABASE_URL` en este entorno de desarrollo. Se verificó con `tsc`, `eslint`, `next build` limpios, y en el browser que las rutas nuevas respetan el guard sin sesión.
+
+**Refactor SOLID posterior**: `lib/rules/condition-spec.ts` se agregó como fuente única de los enums de variable/agregador/operador/estado de regla (antes duplicados entre `validation.ts`, `types/index.ts` y el editor). `RuleEditor.tsx` se partió en un hook de estado (`useRuleDefinitionEditor`) + componentes de presentación puros (`RuleMetaFields`, `NivelEditor`, `CondicionEditor`).
+
+## Fase 2 — Plagas ([PR #4](https://github.com/letsar-software/avizor/pull/4), mergeado)
+
+- Migraciones `011` (`tipo_regla`/`grupo_plaga`/`especie`/`nivel_evidencia_climatica` en `reglas_agronomicas`) y `012` (`zonas_agronomicas`, `catalogo_plagas`, `plagas_regionales`).
+- `lib/rules/aplicabilidad.ts` — resuelve zona/fenología/período como paso previo a evaluar clima, función pura con 9 tests propios, integrada a `engine-v2.ts` vía un contexto opcional (backward compatible).
+- UI: `/admin/plagas`, `/admin/plagas/[id]` (catálogo + regionalización), `/admin/zonas`.
+- **Deliberadamente fuera de esta fase**: el algoritmo de zona-desde-localidad y el modo exclusión/prioridad por defecto (PEND-10, PEND-15 del documento de plagas) — son decisiones agronómicas, no técnicas.
+- ⚠️ **Actualización importante** (ver sección "Hallazgo" más abajo): un commit posterior y ajeno a este plan (`bd66ed7`, ya en `main`) construyó un segundo motor de evaluación de plagas en paralelo (`lib/pests/`), con su propia tabla (`reglas_plagas`) y su propia resolución de zona. El motor de esta fase (`lib/rules/aplicabilidad.ts` sobre `reglas_agronomicas`) **no es el que corre hoy en producción** para plagas — quedó como scaffolding sin conectar. El catálogo administrable (`catalogo_plagas`, `plagas_regionales`, `zonas_agronomicas`) sí lo usa el motor nuevo, así que `/admin/plagas` sigue siendo válido.
+
+## Fase 3 — Cultivos + Dashboard ([PR #5](https://github.com/letsar-software/avizor/pull/5), mergeado)
+
+- `/admin/cultivos`: `/api/admin/cultivos` y `/api/admin/cultivos/[id]` migrados a `requireAdminAccess` + repositorio propio (`lib/cultivos/repository.ts`).
+- `/admin` (dashboard) deja de ser un placeholder: `lib/dashboard/repository.ts` calcula consultas (7d/30d/total), desglose por estado general y por confianza (proxy de cobertura), reglas activas, cultivos activos — cada métrica su propia función chica.
+
+## Fase 4 — Usuarios y Auditoría ([PR #6](https://github.com/letsar-software/avizor/pull/6), mergeado)
+
+- Sin migraciones nuevas: `usuarios_admin`/`sesiones_admin`/`auditoria` ya existían.
+- `lib/admin/user-spec.ts` centraliza rol/estado de usuario. `lib/usuarios/repository.ts` nunca hace `select *`: `password_hash` no puede filtrarse a una respuesta ni a auditoría.
+- `/admin/usuarios` (alta + listado + edición de rol/estado/contraseña), `/admin/auditoria` (solo lectura, filtro por entidad/acción vía GET).
+- **Fuera de esta fase**: no hay invitación por email — el alta deja al usuario activo con la contraseña que carga el administrador.
+
+## Fase 5 — Empresas y API Keys ([PR #7](https://github.com/letsar-software/avizor/pull/7), mergeado)
+
+- Migración `014`: tabla `empresas` nueva, `api_keys` ligada a ella (`empresa_id`, `scopes`).
+- `hashApiKey` centralizado en `lib/security/api-keys.ts` (una sola función deriva el hash tanto para crear como para verificar). `lib/empresas/api-keys-repository.ts` nunca expone `key_hash`.
+- `/admin/empresas`, `/admin/empresas/[id]` (alta de API key con la clave mostrada una sola vez, consumo real vía `api_uso`, revocación).
+- **Bug encontrado y corregido en el mismo pase**: `window.confirm()` para revocar una key no funcionaba en el entorno de pruebas (diálogos nativos deshabilitados). Se reemplazó por confirmación en dos pasos dentro de la UI.
+- **Fuera de esta fase**: los scopes son texto libre, no hay taxonomía cerrada ni enforcement en `/api/v1` todavía.
+
+## Fase 6 — Fenología parametrizable ([PR #8](https://github.com/letsar-software/avizor/pull/8), mergeado)
+
+La fase que más tocaba producción: la fenología vivía hardcodeada en `lib/phenology/provider.ts` y pasa a ser dato administrable.
+
+- Migración `015`: tabla `modelos_fenologicos`, sembrada con los coeficientes originales promovidos directo a `vigente` (cero cambio de comportamiento al migrar).
+- `PhenologyProvider` recibe los parámetros por constructor con el modelo original como default. `CalculatedPhenologyProvider` lee el modelo vigente de la base, con degradación segura al default si falla o no hay modelo.
+- `lib/phenology/spec.ts` — de paso, eliminó una duplicación real (`grupoMadurez` estaba repetido dos veces en `validation.ts`).
+- `/admin/fenologia`, `/admin/fenologia/nuevo` (precargado con el modelo vigente), `/admin/fenologia/[id]`.
+- **Verificación extra**: además de 5 tests nuevos (`tests/phenologia.test.ts`), se corrió `ConsultaService.ejecutar()` completo contra Railway confirmando que el resultado es idéntico al cálculo hardcodeado original.
+- **Fuera de esta fase**: el set de hitos (E/R1/R3/R5/R7) queda fijo, no administrable.
+
+## Fase 7 — Estado del sistema y Configuración ([PR #9](https://github.com/letsar-software/avizor/pull/9), mergeado)
+
+- `/admin/estado-sistema`: chequeos reales contra la base (conectividad, latencia, versión de Postgres, filas por tabla clave) — a diferencia de la página pública `/estado-sistema`, que siempre muestra "Activo" hardcodeado.
+- `/admin/configuracion`: solo lectura de feature flags (reutiliza `lib/config/featureFlags.ts`) y config operativa. `lib/sistema/config-snapshot.ts` nunca devuelve el valor de un secreto.
+- `components/admin/StatCard.tsx` promovido desde `dashboard/` ahora que lo usa una segunda feature.
+- **Deliberadamente no construido**: Notificaciones e Integraciones no tienen CRUD ficticio — no hay infraestructura de envío ni integraciones de terceros en el código, y el plan no especifica qué eventos notificar ni con qué sistemas integrar. Cada página deja un aviso (`NotConfiguredNotice`) con lo que falta definir.
+
+## Hallazgo: dos motores de plagas en paralelo
+
+Durante el desarrollo de este plan, un commit ajeno (`bd66ed7 feat(plagas): integrar reglas agronómicas y resultados frontend`, ya en `main`) agregó `lib/pests/` (`engine.ts`, `repository.ts`, `zone-resolver.ts`) y la tabla `reglas_plagas` (migración `013_soja_plagas_rules.sql`), con su propia resolución de zona-desde-localidad. `lib/consultas/service.ts` usa **ambos** motores: `RulesEngineV2` (clima/enfermedades, `reglas_agronomicas`) y `PestRulesEngine` (plagas, `reglas_plagas`).
+
+Esto deja al motor de aplicabilidad de la Fase 2 (`lib/rules/aplicabilidad.ts`, pensado para vivir dentro de `reglas_agronomicas`) sin conectar al flujo real de plagas. No se tocó nada de `lib/pests/` en este trabajo — queda como algo a decidir: unificar los dos motores, o aceptar que `reglas_agronomicas.tipo_regla/grupo_plaga/especie` y `lib/rules/aplicabilidad.ts` quedan como capacidad no usada. El catálogo administrable de plagas (`/admin/plagas`, `/admin/zonas`) sigue vigente porque `lib/pests/` sí lee `catalogo_plagas`/`plagas_regionales`/`zonas_agronomicas`.
