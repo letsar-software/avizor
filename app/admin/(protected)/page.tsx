@@ -1,6 +1,6 @@
 import { requireAdminPageAccess } from "@/lib/admin/access";
 import { getDashboardMetrics } from "@/lib/dashboard/repository";
-import StatCard from "@/components/admin/dashboard/StatCard";
+import StatCard from "@/components/admin/StatCard";
 import BreakdownList from "@/components/admin/dashboard/BreakdownList";
 
 export default async function AdminDashboardPage() {

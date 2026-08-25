@@ -15,5 +15,8 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/usuarios", label: "Usuarios", modulo: "usuarios" },
   { href: "/admin/empresas", label: "Empresas", modulo: "empresas" },
   { href: "/admin/auditoria", label: "Auditoría", modulo: "auditoria" },
+  { href: "/admin/notificaciones", label: "Notificaciones", modulo: "configuracion" },
+  { href: "/admin/integraciones", label: "Integraciones", modulo: "configuracion" },
   { href: "/admin/configuracion", label: "Configuración", modulo: "configuracion" },
+  { href: "/admin/estado-sistema", label: "Estado del sistema", modulo: "configuracion" },
 ];
