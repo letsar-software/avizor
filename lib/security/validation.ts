@@ -11,6 +11,7 @@ import {
   ZONA_MODOS_APLICABILIDAD,
 } from "@/lib/rules/condition-spec";
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
+import { API_KEY_SCOPE_PATTERN, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -128,6 +129,22 @@ export const adminRegionalCreateSchema = z.object({
   fuente_id: optionalText(80),
   fecha_fuente: isoDate.optional(),
   observaciones: optionalText(1000),
+}).strict();
+
+export const adminEmpresaCreateSchema = z.object({
+  nombre: shortText(160), contacto_nombre: optionalText(160), contacto_email: email.optional(),
+}).strict();
+export const adminEmpresaPatchSchema = z.object({
+  nombre: shortText(160).optional(), contacto_nombre: optionalText(160), contacto_email: email.optional(),
+  estado: z.enum(EMPRESA_ESTADOS).optional(),
+}).strict()
+  .refine((value) => Object.keys(value).length > 0, "No hay cambios");
+
+export const adminApiKeyCreateSchema = z.object({
+  nombre: shortText(120),
+  scopes: z.array(z.string().regex(API_KEY_SCOPE_PATTERN)).max(20).default([]),
+  limite_mensual: z.number().int().positive().optional(),
+  expira_en: isoDate.optional(),
 }).strict();
 
 export function parseInput<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
