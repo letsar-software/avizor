@@ -1,3 +1,5 @@
+import type { AdminRole } from "@/lib/admin/auth";
+import type { ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import type {
   PLAGA_ESTADOS_CATALOGO,
   REGIONAL_ESTADOS,
@@ -217,6 +219,22 @@ export interface DashboardMetrics {
 export interface Cultivo {
   id: string; clave: string; nombre: string; activo: boolean;
   feature_flag: string | null; created_at: string; updated_at: string;
+}
+
+export type AdminUserEstado = typeof ADMIN_USER_ESTADOS[number];
+
+// Nunca incluye password_hash — ver lib/usuarios/repository.ts.
+export interface AdminUsuario {
+  id: string; email: string; nombre: string; rol: AdminRole;
+  estado: AdminUserEstado; invitado_por: string | null; invitado_por_nombre?: string | null;
+  ultimo_acceso: string | null; created_at: string; updated_at: string;
+}
+
+export interface AuditoriaEntry {
+  id: string; actor_id: string; actor_tipo: string; accion: string;
+  entidad: string; entidad_id: string | null;
+  valor_anterior: unknown; valor_nuevo: unknown;
+  request_id: string; created_at: string;
 }
 
 export interface ZonaAgronomica {
