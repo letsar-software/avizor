@@ -48,7 +48,7 @@ export class ConsultaService {
     const results = rules.map((rule) => engine.evaluate(rule, climate.serie, evaluatedAt));
     const score = new ScoreEngineV2().evaluate(results);
     let phenology: ContextoFenologico;
-    try { phenology = await (this.dependencies.phenology ?? new CalculatedPhenologyProvider()).estimarEstadio({ fechaSiembra: input.fechaSiembra, grupoMadurez: input.grupoMadurez, cultivar: input.cultivar, latitud: localidad.latitud, longitud: localidad.longitud, fechaRef }); }
+    try { phenology = await (this.dependencies.phenology ?? new CalculatedPhenologyProvider()).estimarEstadio({ fechaSiembra: input.fechaSiembra, grupoMadurez: input.grupoMadurez, cultivar: input.cultivar, latitud: localidad.latitud, longitud: localidad.longitud, fechaRef, cultivo }); }
     catch { phenology = { disponible: false, motivo: "error_proveedor", modifica_reglas: false }; }
     const pestsEnabled = this.dependencies.enablePests ?? featureFlags.enablePlagas;
     let plagas: ConsultaResultadoV2["plagas"];

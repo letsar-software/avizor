@@ -38,6 +38,7 @@ async function main() {
     "db/migrations/012_plagas.sql",
     "db/migrations/013_soja_plagas_rules.sql",
     "db/migrations/014_empresas_api_keys.sql",
+    "db/migrations/015_modelos_fenologicos.sql",
   ];
 
   for (const migration of migrations) {
