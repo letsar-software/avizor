@@ -19,7 +19,7 @@ with sync_playwright() as playwright:
             print({"width": width, "overflow": overflow, "offenders": offenders})
         assert overflow <= 1, (width, overflow)
         Path("screenshots").mkdir(exist_ok=True)
-        page.screenshot(path=f"screenshots/about-{suffix}-responsive.png", full_page=True)
+        page.screenshot(path=f"docs/screenshots/about-{suffix}-responsive.png", full_page=True)
         page.close()
     browser.close()
 

@@ -20,7 +20,7 @@ with sync_playwright() as p:
         assert page.get_by_role("navigation", name="Categorías evaluadas").is_visible()
         assert page.get_by_text("Información", exact=True).last.is_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
-        page.screenshot(path=f"screenshots/result-{route}-mobile.png", full_page=True)
+        page.screenshot(path=f"docs/screenshots/result-{route}-mobile.png", full_page=True)
         page.close()
     browser.close()
 

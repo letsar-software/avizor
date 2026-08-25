@@ -20,7 +20,7 @@ with sync_playwright() as playwright:
         assert privacy.locator("xpath=..").locator("svg").count() == 1
         assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 1
         Path("screenshots").mkdir(exist_ok=True)
-        page.screenshot(path=f"screenshots/contact-{suffix}-centered.png", full_page=True)
+        page.screenshot(path=f"docs/screenshots/contact-{suffix}-centered.png", full_page=True)
         page.close()
 
     page = browser.new_page(viewport={"width": 1000, "height": 800})
@@ -30,7 +30,7 @@ with sync_playwright() as playwright:
     justify_content = notice.evaluate("element => getComputedStyle(element).justifyContent")
     assert align_items == "center", align_items
     assert justify_content == "center", justify_content
-    page.screenshot(path="screenshots/scope-notice-centered.png", full_page=True)
+    page.screenshot(path="docs/screenshots/scope-notice-centered.png", full_page=True)
     browser.close()
 
 print("Contact and scope layout checks passed")

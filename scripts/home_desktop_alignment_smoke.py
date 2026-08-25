@@ -29,7 +29,7 @@ with sync_playwright() as p:
     assert footer_logo.is_visible()
     assert footer_logo.evaluate("el => getComputedStyle(el).mixBlendMode") == "screen"
     assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
-    page.screenshot(path="screenshots/home-desktop-aligned.png", full_page=True)
+    page.screenshot(path="docs/screenshots/home-desktop-aligned.png", full_page=True)
     browser.close()
 
 print("home desktop alignment: ok")
