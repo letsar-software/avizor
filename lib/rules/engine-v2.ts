@@ -1,10 +1,11 @@
-import type { EvaluacionObservada, ReglaAgronomicaV2, ResultadoReglaV2, SerieClimaticaDiaria } from "@/types";
+import type { ContextoEvaluacion, EvaluacionObservada, ReglaAgronomicaV2, ResultadoReglaV2, SerieClimaticaDiaria } from "@/types";
 import { IndicatorEngine, evaluateOperator, formatThreshold } from "@/lib/indicators/engine";
+import { resolverAplicabilidad } from "@/lib/rules/aplicabilidad";
 
 export class RulesEngineV2 {
   constructor(private readonly indicators = new IndicatorEngine()) {}
 
-  evaluate(rule: ReglaAgronomicaV2, series: SerieClimaticaDiaria[], evaluatedAt: string): ResultadoReglaV2 {
+  evaluate(rule: ReglaAgronomicaV2, series: SerieClimaticaDiaria[], evaluatedAt: string, context: ContextoEvaluacion = {}): ResultadoReglaV2 {
     const window = series.slice(-rule.ventana_dias);
     const modo: "estable" | "experimental" = rule.estado === "experimental" ? "experimental" : "estable";
     const base = {
@@ -21,6 +22,22 @@ export class RulesEngineV2 {
       ventana: { desde: window[0]?.fecha ?? "", hasta: window.at(-1)?.fecha ?? "", dias: rule.ventana_dias },
       evaluado_en: evaluatedAt,
     };
+
+    const aplicabilidad = resolverAplicabilidad(rule.definicion.aplicabilidad, { ...context, fechaRef: context.fechaRef ?? evaluatedAt.slice(0, 10) });
+    if (!aplicabilidad.aplica) {
+      return {
+        ...base,
+        estado: aplicabilidad.fenologiaNoEstimable ? "indeterminado" : "no_evaluada",
+        motivo: aplicabilidad.submotivo,
+        observado: [],
+        calidad_dato: { cobertura_min: 0, dias_faltantes: rule.ventana_dias, distancia_punto_km: null },
+      };
+    }
+
+    if (rule.tipo_regla === "prioridad_monitoreo") {
+      // No clasifica por clima: aplicable ⇒ prioridad de monitoreo (plan §2, punto 2).
+      return { ...base, estado: "periodo_relevante_monitoreo", fuente_tecnica: rule.fuente_tecnica, limitaciones_declaradas: rule.limitaciones_declaradas, observado: [], calidad_dato: { cobertura_min: 1, dias_faltantes: 0, distancia_punto_km: null } };
+    }
 
     let bestObserved: EvaluacionObservada[] = [];
     let bestMatches = -1;

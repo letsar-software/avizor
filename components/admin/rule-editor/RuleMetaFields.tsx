@@ -1,6 +1,6 @@
 "use client";
 import type { ReglaAgronomicaV2 } from "@/types";
-import { FIELD_INPUT_CLASS } from "@/components/admin/rule-editor/styles";
+import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
 
 interface RuleMetaFieldsProps {
   estado: ReglaAgronomicaV2["estado"];
