@@ -1,7 +1,7 @@
 "use client";
 import type { AggregatorKey, CondicionDefinicion, SpecOperator, SpecVariable } from "@/types";
 import { SPEC_AGGREGATORS, SPEC_OPERATORS, SPEC_VARIABLES } from "@/lib/rules/condition-spec";
-import { FIELD_INPUT_CLASS } from "@/components/admin/rule-editor/styles";
+import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
 
 interface CondicionEditorProps {
   condicion: CondicionDefinicion;

@@ -1,7 +1,7 @@
 "use client";
 import type { AggregatorKey, CondicionDefinicion, NivelRegla, SpecOperator } from "@/types";
 import CondicionEditor from "@/components/admin/rule-editor/CondicionEditor";
-import { FIELD_INPUT_CLASS } from "@/components/admin/rule-editor/styles";
+import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
 
 interface NivelEditorProps {
   nivel: NivelRegla;

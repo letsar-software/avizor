@@ -1,4 +1,13 @@
-import type { SPEC_AGGREGATORS, SPEC_OPERATORS, SPEC_VARIABLES } from "@/lib/rules/condition-spec";
+import type {
+  PLAGA_ESTADOS_CATALOGO,
+  REGIONAL_ESTADOS,
+  REGIONAL_PRIORIDADES,
+  SPEC_AGGREGATORS,
+  SPEC_OPERATORS,
+  SPEC_VARIABLES,
+  TIPOS_REGLA,
+  ZONA_MODOS_APLICABILIDAD,
+} from "@/lib/rules/condition-spec";
 
 export type Condicion = "favorable" | "moderada" | "desfavorable";
 
@@ -158,7 +167,62 @@ export type SpecOperator = typeof SPEC_OPERATORS[number];
 export type SpecVariable = typeof SPEC_VARIABLES[number];
 export interface CondicionDefinicion { variable: SpecVariable; agregador: AggregatorKey; operador: SpecOperator; valor: number | [number, number]; unidad: string; cobertura_minima?: number; subcondicion?: { operador: SpecOperator; valor: number; unidad: string }; provisorio?: boolean; }
 export interface NivelRegla { orden: number; clave: string; orden_visual: number; etiqueta: string; explicacion?: string; recomendacion?: string; condiciones: CondicionDefinicion[]; }
-export interface ReglaAgronomicaV2 { id: string; clave: string; version: string; cultivo: string; estado: "experimental" | "revisada" | "vigente" | "retirada"; nombre?: string; categoria?: string; evaluabilidad?: "EVALUABLE" | "PARCIALMENTE_EVALUABLE" | "NO_EVALUABLE" | "PENDIENTE_EVIDENCIA"; ventana_dias: number; fuente_tecnica: string | null; limitaciones_declaradas: string | null; validado_por: string | null; validado_en: string | null; condiciones_revision: string | null; decisiones_pendientes: string[]; definicion: { niveles: NivelRegla[]; sin_coincidencia?: { estado: string; motivo?: string } }; }
+
+// Aplicabilidad (plan §3.1): paso previo a la evaluación climática, exclusivo de
+// reglas con tipo_regla !== 'climatica' o que además de clima requieren zona/fenología/período.
+// Vive dentro de definicion (jsonb), no como columnas rígidas: el modo prioridad/exclusión
+// de zona y el resto de las dimensiones son decisión agronómica (PEND-15), no de schema.
+export type TipoRegla = typeof TIPOS_REGLA[number];
+export type ZonaModoAplicabilidad = typeof ZONA_MODOS_APLICABILIDAD[number];
+export interface AplicabilidadZona { modo: ZonaModoAplicabilidad; zonas: string[] }
+export interface AplicabilidadFenologia { desde: string; hasta: string }
+export interface AplicabilidadPeriodo { meses_desde: number; meses_hasta: number }
+export interface AplicabilidadDefinicion { zona?: AplicabilidadZona; fenologia?: AplicabilidadFenologia; periodo?: AplicabilidadPeriodo }
+
+export interface ReglaAgronomicaV2 {
+  id: string; clave: string; version: string; cultivo: string;
+  estado: "experimental" | "revisada" | "vigente" | "retirada";
+  nombre?: string; categoria?: string;
+  evaluabilidad?: "EVALUABLE" | "PARCIALMENTE_EVALUABLE" | "NO_EVALUABLE" | "PENDIENTE_EVIDENCIA";
+  ventana_dias: number; fuente_tecnica: string | null; limitaciones_declaradas: string | null;
+  validado_por: string | null; validado_en: string | null; condiciones_revision: string | null;
+  decisiones_pendientes: string[];
+  tipo_regla?: TipoRegla; grupo_plaga?: string | null; especie?: string | null;
+  nivel_evidencia_climatica?: "alto" | "medio" | "bajo" | "muy_bajo" | null;
+  definicion: { niveles: NivelRegla[]; sin_coincidencia?: { estado: string; motivo?: string }; aplicabilidad?: AplicabilidadDefinicion };
+}
+
+// Contexto que necesita resolverAplicabilidad para evaluar una regla de plaga.
+// zona y fenologiaEstadio quedan opcionales a propósito: el motor tiene que poder
+// evaluar reglas puramente climáticas sin que nadie los provea (ver engine-v2.ts).
+export interface ContextoEvaluacion { zona?: string; fenologiaEstadio?: string; fechaRef?: string }
+export interface ResultadoAplicabilidad { aplica: boolean; submotivo?: string; fenologiaNoEstimable?: boolean }
+
+export type PlagaEstadoCatalogo = typeof PLAGA_ESTADOS_CATALOGO[number];
+export interface CatalogoPlaga {
+  id: string; cultivo: string; grupo_plaga: string; especie: string | null;
+  nombre: string; nombre_cientifico: string | null; tipo_regla: TipoRegla;
+  estado_catalogo: PlagaEstadoCatalogo; version: string;
+  created_at: string; updated_at: string;
+}
+
+export interface ZonaAgronomica {
+  id: string; clave: string; nombre: string;
+  definicion_geografica: Record<string, unknown> | null;
+  activa: boolean; created_at: string; updated_at: string;
+}
+
+export type RegionalPrioridad = typeof REGIONAL_PRIORIDADES[number];
+export type RegionalEstado = typeof REGIONAL_ESTADOS[number];
+export interface PlagaRegional {
+  id: string; plaga_id: string; zona_id: string; zona_clave?: string; zona_nombre?: string;
+  prioridad: RegionalPrioridad; meses_desde: number | null; meses_hasta: number | null;
+  fuente_id: string | null; fecha_fuente: string | null;
+  validado_por: string | null; fecha_validacion: string | null;
+  vigencia_desde: string; vigencia_hasta: string | null;
+  estado: RegionalEstado; observaciones: string | null;
+  created_at: string; updated_at: string;
+}
 export interface EvaluacionObservada { variable: SpecVariable; agregador: AggregatorKey; valor: number; unidad: string; umbral: string; cumple: boolean; cobertura: number; }
 export interface ResultadoReglaV2 { riesgo: string; regla: { clave: string; version: string; estado: ReglaAgronomicaV2["estado"]; modo?: "estable" | "experimental"; nombre?: string; categoria?: string; evaluabilidad?: ReglaAgronomicaV2["evaluabilidad"] }; estado: string; etiqueta?: string; explicacion?: string; recomendacion?: string; fuente_tecnica?: string | null; limitaciones_declaradas?: string | null; orden_visual?: number; ventana: { desde: string; hasta: string; dias: number }; observado: EvaluacionObservada[]; calidad_dato: { cobertura_min: number; dias_faltantes: number; distancia_punto_km: number | null }; motivo?: string; detalle?: Record<string, unknown>; evaluado_en: string; }
 export interface ContextoFenologico { disponible: boolean; detalle?: FenologiaEstimada; motivo?: "proveedor_no_configurado" | "entradas_insuficientes" | "error_proveedor"; estadio_estimado?: string; descripcion?: string; fuente?: string; entradas?: Record<string, string | null>; incertidumbre?: { nota: string }; modifica_reglas: false; }

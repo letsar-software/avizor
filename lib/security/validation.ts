@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { DomainError } from "@/lib/consultas/service";
-import { REGLA_ESTADOS, SPEC_AGGREGATORS, SPEC_OPERATORS, SPEC_VARIABLES } from "@/lib/rules/condition-spec";
+import {
+  PLAGA_ESTADOS_CATALOGO,
+  REGIONAL_PRIORIDADES,
+  REGLA_ESTADOS,
+  SPEC_AGGREGATORS,
+  SPEC_OPERATORS,
+  SPEC_VARIABLES,
+  TIPOS_REGLA,
+  ZONA_MODOS_APLICABILIDAD,
+} from "@/lib/rules/condition-spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -49,9 +58,18 @@ const conditionSchema = z.object({
   if (condition.agregador !== "dias_con_condicion" && condition.subcondicion) context.addIssue({ code: z.ZodIssueCode.custom, message: "subcondición no permitida", path: ["subcondicion"] });
   if (condition.subcondicion?.operador === "between") context.addIssue({ code: z.ZodIssueCode.custom, message: "between no está soportado en subcondición", path: ["subcondicion", "operador"] });
 });
+// Aplicabilidad (plan §3.1): zona/fenología/período viven en definicion, no como columnas
+// rígidas — ver lib/rules/aplicabilidad.ts y types/index.ts (AplicabilidadDefinicion).
+const aplicabilidadSchema = z.object({
+  zona: z.object({ modo: z.enum(ZONA_MODOS_APLICABILIDAD), zonas: z.array(shortText(60)).min(1) }).strict().optional(),
+  fenologia: z.object({ desde: shortText(10), hasta: shortText(10) }).strict().optional(),
+  periodo: z.object({ meses_desde: z.number().int().min(1).max(12), meses_hasta: z.number().int().min(1).max(12) }).strict().optional(),
+}).strict();
+
 export const ruleDefinitionSchema = z.object({
   niveles: z.array(z.object({ orden: z.number().int().min(1), clave: shortText(80), orden_visual: z.number().int().min(1), etiqueta: shortText(240), explicacion: optionalText(1000), recomendacion: optionalText(1000), condiciones: z.array(conditionSchema).min(1).max(20) }).strict()).min(1).max(20),
   sin_coincidencia: z.object({ estado: shortText(80), motivo: optionalText(240) }).strict().optional(),
+  aplicabilidad: aplicabilidadSchema.optional(),
 }).strict();
 
 export const adminRulePatchSchema = z.object({
@@ -65,6 +83,41 @@ export const adminLoginSchema = z.object({ email, password: z.string().min(8).ma
 export const adminCropCreateSchema = z.object({ clave: shortText(40).regex(/^[a-z0-9_]+$/), nombre: shortText(120), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict();
 export const adminCropPatchSchema = z.object({ nombre: shortText(120).optional(), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict()
   .refine((value) => Object.keys(value).length > 0, "No hay cambios");
+
+export const adminZonaCreateSchema = z.object({
+  clave: shortText(60).regex(/^[a-z0-9_]+$/),
+  nombre: shortText(120),
+  definicion_geografica: z.record(z.unknown()).optional(),
+}).strict();
+
+export const adminPlagaCreateSchema = z.object({
+  cultivo: shortText(30),
+  grupo_plaga: shortText(60).regex(/^[a-z0-9_]+$/),
+  especie: optionalText(120),
+  nombre: shortText(160),
+  nombre_cientifico: optionalText(160),
+  tipo_regla: z.enum(TIPOS_REGLA),
+  estado_catalogo: z.enum(PLAGA_ESTADOS_CATALOGO).optional(),
+  version: shortText(20),
+}).strict();
+
+export const adminPlagaPatchSchema = z.object({
+  nombre: shortText(160).optional(),
+  nombre_cientifico: optionalText(160),
+  estado_catalogo: z.enum(PLAGA_ESTADOS_CATALOGO).optional(),
+  tipo_regla: z.enum(TIPOS_REGLA).optional(),
+}).strict()
+  .refine((value) => Object.keys(value).length > 0, "No hay cambios");
+
+export const adminRegionalCreateSchema = z.object({
+  zona_id: uuid,
+  prioridad: z.enum(REGIONAL_PRIORIDADES),
+  meses_desde: z.number().int().min(1).max(12).optional(),
+  meses_hasta: z.number().int().min(1).max(12).optional(),
+  fuente_id: optionalText(80),
+  fecha_fuente: isoDate.optional(),
+  observaciones: optionalText(1000),
+}).strict();
 
 export function parseInput<T extends z.ZodTypeAny>(schema: T, value: unknown): z.output<T> {
   const result = schema.safeParse(value);
