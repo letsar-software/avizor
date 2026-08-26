@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
 import { TIPOS_REGLA } from "@/lib/rules/condition-spec";
+import { Button } from "@/components/ui/button";
 
 export default function PlagaCreateForm() {
   const router = useRouter();
@@ -36,43 +37,47 @@ export default function PlagaCreateForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-3">
-      <label className="text-sm text-gray-700">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-card p-4 sm:grid-cols-3">
+      <label className="text-sm text-foreground">
         Cultivo
         <input required value={form.cultivo} onChange={(event) => setField("cultivo", event.target.value)} className={FIELD_INPUT_CLASS} />
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Grupo de plaga
         <input required value={form.grupo_plaga} onChange={(event) => setField("grupo_plaga", event.target.value)} placeholder="trips" className={FIELD_INPUT_CLASS} />
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Especie (opcional)
         <input value={form.especie} onChange={(event) => setField("especie", event.target.value)} placeholder="caliothrips_phaseoli" className={FIELD_INPUT_CLASS} />
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Nombre
         <input required value={form.nombre} onChange={(event) => setField("nombre", event.target.value)} className={FIELD_INPUT_CLASS} />
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Nombre científico
         <input value={form.nombre_cientifico} onChange={(event) => setField("nombre_cientifico", event.target.value)} className={FIELD_INPUT_CLASS} />
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Tipo de regla
         <select value={form.tipo_regla} onChange={(event) => setField("tipo_regla", event.target.value as typeof form.tipo_regla)} className={FIELD_INPUT_CLASS}>
           {TIPOS_REGLA.map((value) => <option key={value} value={value}>{value}</option>)}
         </select>
       </label>
-      <label className="text-sm text-gray-700">
+      <label className="text-sm text-foreground">
         Versión
         <input required value={form.version} onChange={(event) => setField("version", event.target.value)} className={FIELD_INPUT_CLASS} />
       </label>
       <div className="flex items-end sm:col-span-3">
-        <button type="submit" disabled={saving} className="rounded bg-avizor-green px-4 py-2 text-sm font-medium text-white hover:bg-avizor-green-mid disabled:opacity-60">
+        <Button type="submit" size="lg" disabled={saving}>
           {saving ? "Creando..." : "Agregar plaga al catálogo"}
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-sm text-red-600 sm:col-span-3">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded-md border border-destructive/20 bg-destructive/10 p-2.5 text-sm text-destructive sm:col-span-3">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
