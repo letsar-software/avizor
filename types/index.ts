@@ -11,7 +11,7 @@ import type {
   SPEC_VARIABLES,
   TIPOS_REGLA,
 } from "@/lib/rules/condition-spec";
-import type { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
+import type { GRUPOS_MADUREZ } from "@/lib/phenology/spec";
 
 export type Condicion = "favorable" | "moderada" | "desfavorable";
 
@@ -90,10 +90,9 @@ export interface ClimateMetrics {
 }
 
 export type GrupoMadurez = typeof GRUPOS_MADUREZ[number];
-export type HitoFenologicoCodigo = typeof HITOS_FENOLOGICOS_CODIGOS[number];
 
 export interface HitoFenologico {
-  codigo: HitoFenologicoCodigo;
+  codigo: string;
   nombre: string;
   fecha_estimada: string;
 }
@@ -253,10 +252,11 @@ export interface ZonaAgronomica {
   activa: boolean; created_at: string; updated_at: string;
 }
 
-// Coeficientes administrables del modelo de fenología (plan §3.3). El set de hitos
-// queda fijo (HITOS_FENOLOGICOS_CODIGOS); lo que varía por versión es cuántos días
-// después de la siembra ocurre cada hito, por grupo de madurez, y el margen de error.
-export interface HitoModeloFenologico { codigo: HitoFenologicoCodigo; nombre: string }
+// Coeficientes administrables del modelo de fenología (plan §3.3): el set de hitos
+// en sí, cuántos días después de la siembra ocurre cada uno por grupo de madurez,
+// y el margen de error. offsets_dias[grupo] siempre tiene la misma longitud que
+// hitos, en el mismo orden (ver lib/security/validation.ts).
+export interface HitoModeloFenologico { codigo: string; nombre: string }
 export interface ModeloFenologicoParametros {
   hitos: HitoModeloFenologico[];
   offsets_dias: Record<GrupoMadurez, number[]>;

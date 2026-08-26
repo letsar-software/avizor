@@ -56,7 +56,16 @@ export default function ModeloCreateForm({ basadoEn }: { basadoEn?: ModeloFenolo
         </label>
       </div>
 
-      <ParametrosGrid parametros={editor.parametros} locked={false} onOffsetChange={editor.updateOffset} onMargenChange={editor.updateMargen} />
+      <ParametrosGrid
+        parametros={editor.parametros}
+        locked={false}
+        onOffsetChange={editor.updateOffset}
+        onMargenChange={editor.updateMargen}
+        onAddHito={editor.addHito}
+        onRemoveHito={editor.removeHito}
+        onHitoCodigoChange={editor.updateHitoCodigo}
+        onHitoNombreChange={editor.updateHitoNombre}
+      />
 
       <button type="submit" disabled={saving} className="rounded bg-avizor-green px-4 py-2 text-sm font-medium text-white hover:bg-avizor-green-mid disabled:opacity-60">
         {saving ? "Creando..." : "Crear modelo"}
