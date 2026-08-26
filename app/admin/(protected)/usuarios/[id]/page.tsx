@@ -3,6 +3,7 @@ import { requireAdminPageAccess } from "@/lib/admin/access";
 import { hasAccess } from "@/lib/admin/permissions";
 import { getUsuarioById } from "@/lib/usuarios/repository";
 import UsuarioEditForm from "@/components/admin/usuarios/UsuarioEditForm";
+import ReenviarInvitacionButton from "@/components/admin/usuarios/ReenviarInvitacionButton";
 
 export default async function AdminUsuarioDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requireAdminPageAccess("usuarios", "read");
@@ -21,7 +22,10 @@ export default async function AdminUsuarioDetailPage({ params }: { params: Promi
       </div>
 
       {hasAccess(actor.rol, "usuarios", "write") ? (
-        <UsuarioEditForm usuario={usuario} />
+        <>
+          {usuario.estado === "invitado" && <ReenviarInvitacionButton usuarioId={usuario.id} />}
+          <UsuarioEditForm usuario={usuario} />
+        </>
       ) : (
         <p className="text-sm text-gray-500">No tenés permiso para editar usuarios.</p>
       )}

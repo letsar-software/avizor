@@ -72,7 +72,14 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 - Sin migraciones nuevas: `usuarios_admin`/`sesiones_admin`/`auditoria` ya existían.
 - `lib/admin/user-spec.ts` centraliza rol/estado de usuario. `lib/usuarios/repository.ts` nunca hace `select *`: `password_hash` no puede filtrarse a una respuesta ni a auditoría.
 - `/admin/usuarios` (alta + listado + edición de rol/estado/contraseña), `/admin/auditoria` (solo lectura, filtro por entidad/acción vía GET).
-- **Fuera de esta fase**: no hay invitación por email — el alta deja al usuario activo con la contraseña que carga el administrador.
+
+**Invitación de usuarios (agregado 2026-08-25, rama `feature/invitacion-usuarios`)**
+- Migración `017_invitaciones_admin.sql`: tabla `invitaciones_admin` (`usuario_id`, `token_hash`, `expira_en`, `aceptada_en`). `usuarios_admin.estado='invitado'` y `password_hash` nullable ya estaban en el schema desde la `010`, sin usarse para esto — el alta simplemente ponía al usuario `activo` con una contraseña elegida por el admin.
+- `lib/admin/auth.ts` suma `createAdminInvitation`/`getAdminInvitation`/`acceptAdminInvitation`, mismo patrón de inyección de `queryImpl` que `createAdminSession`/`getAdminSession` (testeables sin Postgres real — `tests/admin-invitaciones.test.ts`, 7 casos). El token vive 7 días, es de un solo uso (`aceptada_en`) y deja de servir si el usuario cambia de estado por fuera del flujo.
+- No hay infraestructura de envío de email en el proyecto (ver "Notificaciones e Integraciones", Fase 7), así que el enlace de invitación se genera y se devuelve **una sola vez** en la respuesta del alta (`POST /api/admin/usuarios`) — mismo patrón ya usado para la clave de una API key nueva (Fase 5). `POST /api/admin/usuarios/[id]/invitaciones` reenvía un enlace nuevo si el anterior venció o se perdió, mientras el usuario siga `invitado`.
+- `POST /api/admin/auth/aceptar-invitacion` (público, sin sesión) + `GET` para previsualizar a quién pertenece el enlace antes de pedir contraseña. Acepta, fija la contraseña, pasa el usuario a `activo` y lo loguea (misma sesión por cookie que el login normal). Rate-limited por IP (`RATE_LIMITS.adminInviteAccept`).
+- `UsuarioForm.tsx` ya no pide contraseña; muestra el enlace una vez vía `InvitationLinkReveal.tsx` (componente compartido con `ReenviarInvitacionButton.tsx`, que aparece en `/admin/usuarios/[id]` mientras el usuario esté `invitado`). Página pública `/admin/invitacion?token=...` con `AceptarInvitacionForm.tsx`.
+- **Verificado**: `tsc`, `eslint`, `next build` y la suite completa de tests limpios. Se probó en el navegador contra la base real de Railway (única environment del proyecto, `production`) que la ruta de validación conecta y responde — el único error observado fue `relation "invitaciones_admin" does not exist`, esperado porque la migración `017` todavía no se corrió ahí. **Pendiente**: aplicar la migración `017` en producción (`npm run db:migrate`) antes de que el flujo funcione de punta a punta.
 
 ## Fase 5 — Empresas y API Keys ([PR #7](https://github.com/letsar-software/avizor/pull/7), mergeado)
 

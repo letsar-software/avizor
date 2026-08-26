@@ -76,14 +76,17 @@ export const adminRulePatchSchema = z.object({
 export const adminLoginSchema = z.object({ email, password: z.string().min(8).max(200) }).strict();
 
 const adminPassword = z.string().min(8).max(200);
+// Sin password: el alta invita, nunca fija una contraseña elegida por el admin
+// (ver lib/admin/auth.ts, createAdminInvitation).
 export const adminUserCreateSchema = z.object({
-  email, nombre: shortText(120), rol: z.enum(ADMIN_ROLES), password: adminPassword,
+  email, nombre: shortText(120), rol: z.enum(ADMIN_ROLES),
 }).strict();
 export const adminUserPatchSchema = z.object({
   nombre: shortText(120).optional(), rol: z.enum(ADMIN_ROLES).optional(),
   estado: z.enum(ADMIN_USER_ESTADOS).optional(), password: adminPassword.optional(),
 }).strict()
   .refine((value) => Object.keys(value).length > 0, "No hay cambios");
+export const adminAcceptInvitationSchema = z.object({ token: shortText(256), password: adminPassword }).strict();
 export const adminCropCreateSchema = z.object({ clave: shortText(40).regex(/^[a-z0-9_]+$/), nombre: shortText(120), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict();
 export const adminCropPatchSchema = z.object({ nombre: shortText(120).optional(), activo: z.boolean().optional(), feature_flag: z.union([shortText(80), z.null()]).optional() }).strict()
   .refine((value) => Object.keys(value).length > 0, "No hay cambios");
