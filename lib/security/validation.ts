@@ -8,7 +8,6 @@ import {
   SPEC_OPERATORS,
   SPEC_VARIABLES,
   TIPOS_REGLA,
-  ZONA_MODOS_APLICABILIDAD,
 } from "@/lib/rules/condition-spec";
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import { API_KEY_SCOPE_PATTERN, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
@@ -62,18 +61,9 @@ const conditionSchema = z.object({
   if (condition.agregador !== "dias_con_condicion" && condition.subcondicion) context.addIssue({ code: z.ZodIssueCode.custom, message: "subcondición no permitida", path: ["subcondicion"] });
   if (condition.subcondicion?.operador === "between") context.addIssue({ code: z.ZodIssueCode.custom, message: "between no está soportado en subcondición", path: ["subcondicion", "operador"] });
 });
-// Aplicabilidad (plan §3.1): zona/fenología/período viven en definicion, no como columnas
-// rígidas — ver lib/rules/aplicabilidad.ts y types/index.ts (AplicabilidadDefinicion).
-const aplicabilidadSchema = z.object({
-  zona: z.object({ modo: z.enum(ZONA_MODOS_APLICABILIDAD), zonas: z.array(shortText(60)).min(1) }).strict().optional(),
-  fenologia: z.object({ desde: shortText(10), hasta: shortText(10) }).strict().optional(),
-  periodo: z.object({ meses_desde: z.number().int().min(1).max(12), meses_hasta: z.number().int().min(1).max(12) }).strict().optional(),
-}).strict();
-
 export const ruleDefinitionSchema = z.object({
   niveles: z.array(z.object({ orden: z.number().int().min(1), clave: shortText(80), orden_visual: z.number().int().min(1), etiqueta: shortText(240), explicacion: optionalText(1000), recomendacion: optionalText(1000), condiciones: z.array(conditionSchema).min(1).max(20) }).strict()).min(1).max(20),
   sin_coincidencia: z.object({ estado: shortText(80), motivo: optionalText(240) }).strict().optional(),
-  aplicabilidad: aplicabilidadSchema.optional(),
 }).strict();
 
 export const adminRulePatchSchema = z.object({

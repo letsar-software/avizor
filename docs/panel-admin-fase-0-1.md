@@ -96,8 +96,18 @@ La fase que más tocaba producción: la fenología vivía hardcodeada en `lib/ph
 - `components/admin/StatCard.tsx` promovido desde `dashboard/` ahora que lo usa una segunda feature.
 - **Deliberadamente no construido**: Notificaciones e Integraciones no tienen CRUD ficticio — no hay infraestructura de envío ni integraciones de terceros en el código, y el plan no especifica qué eventos notificar ni con qué sistemas integrar. Cada página deja un aviso (`NotConfiguredNotice`) con lo que falta definir.
 
-## Hallazgo: dos motores de plagas en paralelo
+## Hallazgo: dos motores de plagas en paralelo (resuelto)
 
-Durante el desarrollo de este plan, un commit ajeno (`bd66ed7 feat(plagas): integrar reglas agronómicas y resultados frontend`, ya en `main`) agregó `lib/pests/` (`engine.ts`, `repository.ts`, `zone-resolver.ts`) y la tabla `reglas_plagas` (migración `013_soja_plagas_rules.sql`), con su propia resolución de zona-desde-localidad. `lib/consultas/service.ts` usa **ambos** motores: `RulesEngineV2` (clima/enfermedades, `reglas_agronomicas`) y `PestRulesEngine` (plagas, `reglas_plagas`).
+Durante el desarrollo de este plan, un commit ajeno (`bd66ed7 feat(plagas): integrar reglas agronómicas y resultados frontend`, ya en `main`) agregó `lib/pests/` (`engine.ts`, `repository.ts`, `zone-resolver.ts`) y la tabla `reglas_plagas` (migración `013_soja_plagas_rules.sql`), con su propia resolución de zona-desde-localidad. `lib/consultas/service.ts` usaba **ambos** motores: `RulesEngineV2` (clima/enfermedades, `reglas_agronomicas`) y `PestRulesEngine` (plagas, `reglas_plagas`).
 
-Esto deja al motor de aplicabilidad de la Fase 2 (`lib/rules/aplicabilidad.ts`, pensado para vivir dentro de `reglas_agronomicas`) sin conectar al flujo real de plagas. No se tocó nada de `lib/pests/` en este trabajo — queda como algo a decidir: unificar los dos motores, o aceptar que `reglas_agronomicas.tipo_regla/grupo_plaga/especie` y `lib/rules/aplicabilidad.ts` quedan como capacidad no usada. El catálogo administrable de plagas (`/admin/plagas`, `/admin/zonas`) sigue vigente porque `lib/pests/` sí lee `catalogo_plagas`/`plagas_regionales`/`zonas_agronomicas`.
+Esto dejaba al motor de aplicabilidad de la Fase 2 (`lib/rules/aplicabilidad.ts`, pensado para vivir dentro de `reglas_agronomicas`) sin conectar al flujo real de plagas.
+
+**Decisión (2026-08-25):** se elige `lib/pests/` (motor de `bd66ed7`) como el motor de plagas que va — es el que efectivamente corre en producción y el único con datos reales sembrados (migración `013`, reglas P-01 a P-05). Se retira la capacidad no usada de la Fase 2:
+
+- Se eliminó `lib/rules/aplicabilidad.ts` y su test (`tests/aplicabilidad.test.ts`).
+- `lib/rules/engine-v2.ts` deja de recibir un `context` de aplicabilidad y de resolver `tipo_regla`; vuelve a ser puramente el motor de clima/enfermedades sobre `reglas_agronomicas` (sin cambio de comportamiento: ninguna fila real llegaba a usar esa rama, `repository-v2.ts` ni siquiera seleccionaba esas columnas).
+- Se sacaron de `types/index.ts` los tipos `ZonaModoAplicabilidad`/`AplicabilidadDefinicion`/`ContextoEvaluacion`/`ResultadoAplicabilidad` y los campos `tipo_regla`/`grupo_plaga`/`especie`/`nivel_evidencia_climatica`/`aplicabilidad` de `ReglaAgronomicaV2` (el `TipoRegla`/`TIPOS_REGLA` de `catalogo_plagas` se mantiene, es de otro modelo).
+- Se sacó `aplicabilidadSchema` de `lib/security/validation.ts` y `ZONA_MODOS_APLICABILIDAD` de `lib/rules/condition-spec.ts`.
+- Migración `016_retira_columnas_plagas_reglas_agronomicas.sql`: dropea `tipo_regla`/`grupo_plaga`/`especie`/`nivel_evidencia_climatica` (y su índice) de `reglas_agronomicas`. Sin pérdida de datos: ninguna fila real usó nunca esas columnas.
+
+El catálogo administrable de plagas (`/admin/plagas`, `/admin/plagas/[id]`, `/admin/zonas`) sigue vigente sin cambios, porque `lib/pests/` sí lee `catalogo_plagas`/`plagas_regionales`/`zonas_agronomicas` (migración `012`).
