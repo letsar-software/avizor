@@ -9,10 +9,10 @@ export default function AdminSidebar({ rol }: { rol: AdminRole }) {
   const items = ADMIN_NAV.filter((item) => hasAccess(rol, item.modulo, "read"));
 
   return (
-    <aside className="w-60 shrink-0 border-r border-gray-200 bg-white">
+    <aside className="w-60 shrink-0 border-r border-sidebar-border bg-sidebar">
       <div className="px-5 py-6">
-        <span className="text-lg font-semibold text-avizor-navy">Avizor</span>
-        <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">Admin</span>
+        <span className="text-lg font-semibold text-sidebar-foreground">Avizor</span>
+        <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">Admin</span>
       </div>
       <nav className="flex flex-col gap-1 px-3">
         {items.map((item) => {
@@ -21,7 +21,7 @@ export default function AdminSidebar({ rol }: { rol: AdminRole }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded px-3 py-2 text-sm ${active ? "bg-avizor-green-light font-medium text-avizor-green" : "text-gray-600 hover:bg-gray-50"}`}
+              className={`rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-sidebar-accent font-medium text-sidebar-primary" : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}
             >
               {item.label}
             </Link>

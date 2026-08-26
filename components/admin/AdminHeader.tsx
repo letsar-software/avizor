@@ -1,6 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import type { AdminActor } from "@/lib/admin/auth";
+import { Button } from "@/components/ui/button";
 
 export default function AdminHeader({ actor }: { actor: AdminActor }) {
   const router = useRouter();
@@ -12,13 +14,14 @@ export default function AdminHeader({ actor }: { actor: AdminActor }) {
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-      <div className="text-sm text-gray-500">
-        Hola, <span className="font-medium text-avizor-navy">{actor.nombre}</span> · {actor.rol}
+    <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
+      <div className="text-sm text-muted-foreground">
+        Hola, <span className="font-medium text-foreground">{actor.nombre}</span> · {actor.rol}
       </div>
-      <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-avizor-navy">
+      <Button onClick={handleLogout} variant="ghost" size="sm">
+        <LogOut />
         Cerrar sesión
-      </button>
+      </Button>
     </header>
   );
 }

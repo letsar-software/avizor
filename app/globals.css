@@ -1,15 +1,58 @@
+@import "tw-animate-css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #F4F6F3;
+    --foreground: #0D2B45;
+    --card: #FFFFFF;
+    --card-foreground: #0D2B45;
+    --popover: #FFFFFF;
+    --popover-foreground: #0D2B45;
+    --primary: #087B4B;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F4F6F3;
+    --secondary-foreground: #0D2B45;
+    --muted: #F8FBF9;
+    --muted-foreground: #526477;
+    --accent: #E8F5E9;
+    --accent-foreground: #087B4B;
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+    --border: #DCE4DF;
+    --input: #DCE4DF;
+    --ring: #087B4B;
+    --chart-1: #087B4B;
+    --chart-2: #4CAF50;
+    --chart-3: #0D2B45;
+    --chart-4: #328BD0;
+    --chart-5: #EF793A;
+    --radius: 0.5rem;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #0D2B45;
+    --sidebar-primary: #087B4B;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #E8F5E9;
+    --sidebar-accent-foreground: #087B4B;
+    --sidebar-border: #E5EBE7;
+    --sidebar-ring: #087B4B;
+  }
   body {
-    background-color: #F4F6F3;
-    color: #1a1a1a;
     font-family: Inter, Aptos, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    @apply bg-background text-foreground;
+  }
+  * {
+    @apply border-border outline-ring;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
   }
 }
-
 
 @layer utilities {
   .font-extrabold {
