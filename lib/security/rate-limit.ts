@@ -8,6 +8,7 @@ export const RATE_LIMITS = {
   emailSave: { scope: "email_save", limit: 3, windowSeconds: 3600 },
   enterpriseBurst: { scope: "enterprise_burst", limit: 30, windowSeconds: 60 },
   adminLogin: { scope: "admin_login", limit: 8, windowSeconds: 900 },
+  adminInviteAccept: { scope: "admin_invite_accept", limit: 10, windowSeconds: 900 },
 } as const;
 
 export type RateLimitDefinition = { scope: string; limit: number; windowSeconds: number };

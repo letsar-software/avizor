@@ -27,12 +27,15 @@ export async function getUsuarioByEmail(email: string) {
   return result.rows[0] ?? null;
 }
 
-export async function createUsuario(input: { email: string; nombre: string; rol: AdminUsuario["rol"]; password: string; invitadoPor: string | null }) {
+// Nace 'invitado' y sin password_hash: el admin ya no elige la contraseña de otro
+// usuario (ver lib/admin/auth.ts, createAdminInvitation). El caller de la ruta es
+// quien genera y devuelve la invitación después de este insert.
+export async function createUsuario(input: { email: string; nombre: string; rol: AdminUsuario["rol"]; invitadoPor: string | null }) {
   const result = await query<AdminUsuario>(
-    `insert into usuarios_admin(email,nombre,rol,password_hash,estado,invitado_por)
-     values($1,$2,$3,$4,'activo',$5)
+    `insert into usuarios_admin(email,nombre,rol,estado,invitado_por)
+     values($1,$2,$3,'invitado',$4)
      returning id, email, nombre, rol, estado, invitado_por, null as invitado_por_nombre, ultimo_acceso::text, created_at::text, updated_at::text`,
-    [input.email, input.nombre, input.rol, hashPassword(input.password), input.invitadoPor],
+    [input.email, input.nombre, input.rol, input.invitadoPor],
   );
   return result.rows[0];
 }
