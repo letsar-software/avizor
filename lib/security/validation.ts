@@ -11,7 +11,7 @@ import {
 } from "@/lib/rules/condition-spec";
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import { API_KEY_SCOPES, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
-import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
+import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_MAX, HITOS_FENOLOGICOS_MIN, HITO_FENOLOGICO_CODIGO_PATTERN } from "@/lib/phenology/spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -142,17 +142,25 @@ export const adminApiKeyCreateSchema = z.object({
   expira_en: isoDate.optional(),
 }).strict();
 
-// Fenología (plan §3.3): el set de hitos es fijo (HITOS_FENOLOGICOS_CODIGOS, en orden);
-// lo administrable son los offsets en días por grupo de madurez y el margen de error.
-const hitoModeloSchema = z.object({ codigo: z.enum(HITOS_FENOLOGICOS_CODIGOS), nombre: shortText(80) }).strict();
-const offsetsDiasSchema = z.record(z.string(), z.array(z.number().int().min(0).max(400)).length(HITOS_FENOLOGICOS_CODIGOS.length))
-  .refine((value) => GRUPOS_MADUREZ.length === Object.keys(value).length && GRUPOS_MADUREZ.every((grupo) => grupo in value), "offsets_dias debe tener exactamente los grupos de madurez válidos");
+// Fenología (plan §3.3): el set de hitos es dato administrable (docs/panel-admin-pendientes.md,
+// punto 6) — lo único fijo es el formato de cada código y una cantidad razonable de hitos
+// por modelo. offsets_dias[grupo] debe tener exactamente un valor por hito, en el mismo
+// orden, para cada grupo de madurez válido — eso se valida cruzado en el superRefine.
+const hitoModeloSchema = z.object({ codigo: shortText(10).regex(HITO_FENOLOGICO_CODIGO_PATTERN), nombre: shortText(80) }).strict();
 export const parametrosFenologicosSchema = z.object({
-  hitos: z.array(hitoModeloSchema).length(HITOS_FENOLOGICOS_CODIGOS.length)
-    .refine((hitos) => hitos.every((hito, index) => hito.codigo === HITOS_FENOLOGICOS_CODIGOS[index]), "los hitos deben venir en el orden E, R1, R3, R5, R7"),
-  offsets_dias: offsetsDiasSchema,
+  hitos: z.array(hitoModeloSchema).min(HITOS_FENOLOGICOS_MIN).max(HITOS_FENOLOGICOS_MAX)
+    .refine((hitos) => new Set(hitos.map((hito) => hito.codigo.toUpperCase())).size === hitos.length, "los códigos de hito no pueden repetirse"),
+  offsets_dias: z.record(z.string(), z.array(z.number().int().min(0).max(400))),
   margen_dias: z.number().int().min(0).max(60),
-}).strict();
+}).strict().superRefine((value, ctx) => {
+  const gruposEsperados = GRUPOS_MADUREZ.length === Object.keys(value.offsets_dias).length && GRUPOS_MADUREZ.every((grupo) => grupo in value.offsets_dias);
+  if (!gruposEsperados) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "offsets_dias debe tener exactamente los grupos de madurez válidos", path: ["offsets_dias"] });
+  for (const grupo of GRUPOS_MADUREZ) {
+    if (value.offsets_dias[grupo]?.length !== value.hitos.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `offsets_dias.${grupo} debe tener un valor por cada hito (${value.hitos.length})`, path: ["offsets_dias", grupo] });
+    }
+  }
+});
 
 export const adminModeloFenologicoCreateSchema = z.object({
   cultivo: shortText(30), version: shortText(20), proveedor: optionalText(60),

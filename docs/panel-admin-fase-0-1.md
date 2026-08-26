@@ -95,7 +95,7 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 - `lib/security/api-keys.ts`: `authenticateApiKey(request, requiredScope, usage)` ahora recibe el scope que exige el endpoint que llama, lo verifica contra `key.scopes` (ya lo trae en el mismo `select ... for update` que usaba para el límite mensual) y devuelve `403 SCOPE_NO_AUTORIZADO` si falta — antes cualquier key con cualquier scope (o ninguno) podía pegarle a cualquier endpoint. El chequeo corre antes que el de cuota mensual.
 - Migración `018`: agrega el mismo enum como `check` a nivel de base (`scopes <@ array['consultas:crear']`), mismo patrón que el resto de los enums del proyecto (`estado`, `rol`, `tipo_regla`) — se valida en la app y en la base. Sin riesgo de romper datos existentes: `api_keys` está vacía en producción.
 - `ApiKeyForm.tsx`: el input de texto libre "separados por coma" pasa a ser un grupo de checkboxes con los valores de `API_KEY_SCOPES` — no se puede tipear un scope inválido desde el panel.
-- **Pendiente de producción**: falta correr la migración `018` en Railway (`npm run db:migrate`).
+- **Verificado en producción (2026-08-26)**: migración `018` aplicada en Railway, PR [#15](https://github.com/letsar-software/avizor/pull/15) mergeado.
 
 ## Fase 6 — Fenología parametrizable ([PR #8](https://github.com/letsar-software/avizor/pull/8), mergeado)
 
@@ -107,6 +107,15 @@ La fase que más tocaba producción: la fenología vivía hardcodeada en `lib/ph
 - `/admin/fenologia`, `/admin/fenologia/nuevo` (precargado con el modelo vigente), `/admin/fenologia/[id]`.
 - **Verificación extra**: además de 5 tests nuevos (`tests/phenologia.test.ts`), se corrió `ConsultaService.ejecutar()` completo contra Railway confirmando que el resultado es idéntico al cálculo hardcodeado original.
 - **Fuera de esta fase**: el set de hitos (E/R1/R3/R5/R7) queda fijo, no administrable.
+
+**Hitos administrables (agregado 2026-08-26, rama `feature/fenologia-hitos-configurables`)**
+- Confirmado que `PhenologyProvider.estimate()` ya era data-driven respecto de los hitos (`this.parametros.hitos.map(...)`, `offsets_dias` indexado posicionalmente) — la rigidez estaba solo en `lib/phenology/spec.ts` (`HITOS_FENOLOGICOS_CODIGOS`, un enum cerrado de 5 valores), en `lib/security/validation.ts` (longitud y orden fijos) y en la UI/página pública, no en el motor de cómputo.
+- `lib/phenology/spec.ts`: reemplaza el enum cerrado por `HITO_FENOLOGICO_CODIGO_PATTERN` (mismo formato de estadio V/R que ya usa `lib/pests/engine.ts`) y límites `HITOS_FENOLOGICOS_MIN`/`MAX` (1 a 12).
+- `lib/security/validation.ts`: `parametrosFenologicosSchema` valida una cantidad variable de hitos (con códigos únicos y formato válido) y cruza, vía `superRefine`, que `offsets_dias[grupo]` tenga exactamente un valor por hito en cada grupo de madurez — antes exigía longitud y orden fijos (`.length(5)`, `E,R1,R3,R5,R7`).
+- `components/admin/fenologia/useModeloParametrosEditor.ts` suma `addHito`/`removeHito`/`updateHitoCodigo`/`updateHitoNombre`, manteniendo `offsets_dias` sincronizado en los cuatro grupos de madurez a la vez (agregar o quitar un hito nunca deja un grupo desalineado). `ParametrosGrid.tsx` muestra inputs de código/nombre editables por columna y los controles de agregar/quitar.
+- `/resultado/fenologia`: la línea de tiempo tenía `sm:grid-cols-5` hardcodeado en Tailwind (no se puede interpolar una clase dinámica); pasa a `gridTemplateColumns` inline calculado por `data.hitos.length`.
+- **Verificado en producción (2026-08-26)**: se creó un modelo real con 6 hitos (E, R1, R3, R5, R7, R8) desde `/admin/fenologia/nuevo` contra Railway, se confirmó que `offsets_dias` quedó guardado correctamente para los 4 grupos de madurez, y se borró después. Se verificó también `/resultado/fenologia` con datos de 3 hitos (`VE`, `V6`, `R2`) confirmando que la grilla se adapta (`grid-template-columns: repeat(3, ...)`).
+- Suma 5 tests: `PhenologyProvider` con un set de hitos distinto (3 hitos, códigos `VE`/`V6`/`R2`) y 4 casos de `parametrosFenologicosSchema` (cantidad variable, `offsets_dias` desalineado, códigos repetidos, formato inválido).
 
 ## Fase 7 — Estado del sistema y Configuración ([PR #9](https://github.com/letsar-software/avizor/pull/9), mergeado)
 
