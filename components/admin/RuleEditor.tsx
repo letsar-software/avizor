@@ -19,10 +19,26 @@ export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; r
   const [validadoPor, setValidadoPor] = useState(regla.validado_por ?? "");
   const [validadoEn, setValidadoEn] = useState(regla.validado_en ? regla.validado_en.slice(0, 16) : "");
   const [saving, setSaving] = useState(false);
+  const [forking, setForking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const editor = useRuleDefinitionEditor(regla.definicion.niveles);
+
+  async function handleFork() {
+    setForking(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/reglas/${regla.id}/versiones`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error?.message || "No pudimos crear la nueva versión.");
+      router.push(`/admin/reglas/${data.data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No pudimos crear la nueva versión.");
+      setForking(false);
+    }
+  }
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -60,9 +76,12 @@ export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; r
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {locked && (
-        <p className="rounded bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Esta regla está vigente: la definición no se puede editar in place. Para cambiar umbrales hay que crear una nueva versión.
-        </p>
+        <div className="flex items-center justify-between gap-4 rounded bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <p>Esta regla está vigente: la definición no se puede editar in place. Para cambiar umbrales hay que crear una nueva versión.</p>
+          <button type="button" onClick={handleFork} disabled={forking} className="shrink-0 rounded border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-60">
+            {forking ? "Creando..." : "Crear nueva versión"}
+          </button>
+        </div>
       )}
       {error && <p className="rounded bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
       {message && <p className="rounded bg-avizor-green-light px-4 py-3 text-sm text-avizor-green">{message}</p>}

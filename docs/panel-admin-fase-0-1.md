@@ -44,8 +44,12 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 - `/admin/reglas/[id]` + `components/admin/RuleEditor.tsx` — editor con formulario tipado (dropdowns de variable/agregador/operador, sin JSON crudo), que se bloquea automáticamente si la regla es `vigente`.
 - `/admin/laboratorio` + `components/admin/RuleLab.tsx` — corre una simulación real (localidad + cultivo) contra el `ConsultaService` existente y muestra estado general, reglas evaluadas y motivo.
 
+**Fork de reglas vigentes (agregado 2026-08-25, rama `feature/fork-reglas-vigentes`)**
+- `POST /api/admin/reglas/[id]/versiones` — crea una fila nueva en `estado='experimental'` a partir de cualquier regla existente, vía `insert ... select` que copia todas las columnas de origen (incluidas las legacy de v1, que siguen `not null`) salvo `version`/`estado`/`validado_por`/`validado_en`, que se resetean. Requiere el mismo permiso que el `PATCH` (`reglas`, `write`); loguea `auditoria` con `accion='crear_version'`, igual que el patrón ya usado en las migraciones 009/013.
+- `lib/rules/versioning.ts` — `nextVersion()`, función pura que bumpea el minor (`"2.0" → "2.1"`), con fallback si la versión no matchea `major.minor`. Testeada en `tests/versioning.test.ts`. La ruta reintenta el bump si la versión calculada ya existe (fork repetido de la misma regla).
+- `RuleEditor.tsx` suma el botón "Crear nueva versión" junto al aviso de regla bloqueada; al crear, redirige a `/admin/reglas/[nuevoId]` para seguir editando ahí.
+
 **Fuera de esta fase**
-- El flujo de "fork" para crear una nueva versión a partir de una regla vigente: el editor la bloquea pero todavía no ofrece el botón de "crear nueva versión".
 - No se pudo probar el flujo con datos reales (login, listar, guardar) porque no hay `DATABASE_URL` en este entorno de desarrollo. Se verificó con `tsc`, `eslint`, `next build` limpios, y en el browser que las rutas nuevas respetan el guard sin sesión.
 
 **Refactor SOLID posterior**: `lib/rules/condition-spec.ts` se agregó como fuente única de los enums de variable/agregador/operador/estado de regla (antes duplicados entre `validation.ts`, `types/index.ts` y el editor). `RuleEditor.tsx` se partió en un hook de estado (`useRuleDefinitionEditor`) + componentes de presentación puros (`RuleMetaFields`, `NivelEditor`, `CondicionEditor`).
