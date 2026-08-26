@@ -139,3 +139,13 @@ Esto dejaba al motor de aplicabilidad de la Fase 2 (`lib/rules/aplicabilidad.ts`
 - Migración `016_retira_columnas_plagas_reglas_agronomicas.sql`: dropea `tipo_regla`/`grupo_plaga`/`especie`/`nivel_evidencia_climatica` (y su índice) de `reglas_agronomicas`. Sin pérdida de datos: ninguna fila real usó nunca esas columnas.
 
 El catálogo administrable de plagas (`/admin/plagas`, `/admin/plagas/[id]`, `/admin/zonas`) sigue vigente sin cambios, porque `lib/pests/` sí lee `catalogo_plagas`/`plagas_regionales`/`zonas_agronomicas` (migración `012`).
+
+## Bug: `resolveAgronomicZone` referenciaba columnas inexistentes (resuelto, 2026-08-26)
+
+`lib/pests/zone-resolver.ts` filtraba `where z.estado in ('revisada','vigente')` y ordenaba `by z.version desc` sobre `zonas_agronomicas` — esa tabla (migración `012`) nunca tuvo columnas `estado` ni `version`, solo `activa boolean`. La query fallaba con `column z.estado does not exist` (Postgres 42703) apenas se invocaba.
+
+El bug nunca se manifestó para usuarios reales porque `resolveAgronomicZone` solo se llama cuando `ENABLE_PLAGAS=true` (`lib/consultas/service.ts`), y esa variable no está seteada en Railway producción (confirmado vía `get-service-config` del MCP de Railway) — toda la sección de plagas del flujo público está apagada hoy por el flag, no por este bug, pero lo hubiera roto con un 500 en cuanto alguien lo prendiera.
+
+- Fix: `z.activa = true` en vez de `z.estado in (...)`, `order by z.clave` (determinístico) en vez de `z.version desc`.
+- `tests/pests-zone-resolver.test.ts` (nuevo): parsea las columnas reales del `create table zonas_agronomicas` de la migración y valida que la query no referencie ninguna otra — confirmado que sin el fix este test falla con el mismo error, y con el fix pasa.
+- Verificado además corriendo ambas versiones de la query (la rota y la corregida) directo contra Postgres de producción: la vieja reproduce `column z.estado does not exist` exacto, la nueva devuelve 0 filas sin error (esperado: las 7 zonas siguen con `definicion_geografica: null`, PEND-10 sigue sin resolver).
