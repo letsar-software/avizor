@@ -1,10 +1,12 @@
-import type { AsociacionRegionalPlaga, ContextoFenologico, EvaluacionPlaga, IndicadorPlaga, ReglaPlaga, SerieClimaticaDiaria, SpecOperator } from "@/types";
-
-const RAIN_DAY_MM = 1;
+import type { AsociacionRegionalPlaga, ContextoFenologico, EvaluacionPlaga, IndicadorPlaga, ReglaPlaga, SerieClimaticaDiaria } from "@/types";
+import { IndicatorEngine, evaluateOperator } from "@/lib/indicators/engine";
+import { resolverIndicadorPlaga } from "@/lib/pests/indicator-spec";
 
 type Metric = { value: number | null; coverage: number };
 
 export class PestRulesEngine {
+  constructor(private readonly indicators = new IndicatorEngine()) {}
+
   evaluate(input: { rule: ReglaPlaga; region: AsociacionRegionalPlaga; series: SerieClimaticaDiaria[]; phenology: ContextoFenologico; fechaRef: string; evaluatedAt: string }): EvaluacionPlaga {
     const { rule, region, phenology, fechaRef, evaluatedAt } = input;
     const inUsualPeriod = monthApplies(Number(fechaRef.slice(5, 7)), region.meses_desde, region.meses_hasta);
@@ -37,52 +39,28 @@ export class PestRulesEngine {
     if (rule.tipo_regla === "prioridad_monitoreo") return { ...base, estado: "periodo_relevante_monitoreo", calidad_dato: "alta" };
     if (!rule.configuracion.niveles?.length) return { ...base, estado: "indeterminado", motivo: "configuracion_incompleta", calidad_dato: "baja" };
 
-    const calculated = Object.fromEntries(rule.variables_requeridas.map((key) => [key, calculate(key, input.series, rule.configuracion)])) as Record<IndicadorPlaga, Metric>;
+    const calculated = Object.fromEntries(rule.variables_requeridas.map((key) => [key, this.calcular(key, input.series, rule.configuracion)])) as Record<IndicadorPlaga, Metric>;
     const indicadores = Object.fromEntries(Object.entries(calculated).filter(([, metric]) => metric.value !== null).map(([key, metric]) => [key, metric.value])) as Partial<Record<IndicadorPlaga, number>>;
     const cobertura = Object.fromEntries(Object.entries(calculated).map(([key, metric]) => [key, metric.coverage])) as Partial<Record<IndicadorPlaga, number>>;
     const quality = qualityFromCoverage(Object.values(calculated).map((item) => item.coverage));
     if (Object.values(calculated).some((item) => item.value === null || item.coverage < 1)) return { ...base, indicadores, cobertura, estado: "indeterminado", motivo: "datos_insuficientes", calidad_dato: quality };
 
     for (const level of [...rule.configuracion.niveles].sort((a, b) => a.orden - b.orden)) {
-      const matches = level.condiciones.map((condition) => compare(calculated[condition.indicador].value!, condition.operador, condition.valor));
+      const matches = level.condiciones.map((condition) => evaluateOperator(calculated[condition.indicador].value!, condition.operador, condition.valor));
       if (level.combinador === "all" ? matches.every(Boolean) : matches.some(Boolean)) return { ...base, indicadores, cobertura, estado: level.estado, calidad_dato: quality };
     }
     return { ...base, indicadores, cobertura, estado: "indeterminado", motivo: "sin_nivel_coincidente", calidad_dato: quality };
   }
+
+  private calcular(key: IndicadorPlaga, series: SerieClimaticaDiaria[], config: ReglaPlaga["configuracion"]): Metric {
+    const resolved = resolverIndicadorPlaga(key, config);
+    if (!resolved) return { value: null, coverage: 0 };
+    const result = this.indicators.calculate(resolved.spec, series, resolved.ventanaDias);
+    return { value: result.valor, coverage: result.cobertura };
+  }
 }
 
-function calculate(key: IndicadorPlaga, series: SerieClimaticaDiaria[], config: ReglaPlaga["configuracion"]): Metric {
-  const days = key.includes("10d") || key === "dias_consecutivos_sin_lluvia" ? 10 : 7;
-  const window = series.slice(-days);
-  const precipitation = window.map((day) => day.precipitacion);
-  const mean = window.map((day) => day.temperaturaMedia);
-  const maximum = window.map((day) => day.temperaturaMaxima);
-  if (window.length !== days) return { value: null, coverage: window.length / days };
-  if (key.startsWith("precip_") || key.startsWith("dias_con_lluvia") || key === "dias_consecutivos_sin_lluvia") {
-    const values = complete(precipitation);
-    if (!values) return { value: null, coverage: validCount(precipitation) / days };
-    if (key.startsWith("precip_")) return metric(sum(values), 1);
-    if (key.startsWith("dias_con_lluvia")) return metric(values.filter((value) => value >= RAIN_DAY_MM).length, 1);
-    let max = 0; let current = 0;
-    for (const value of values) { current = value < RAIN_DAY_MM ? current + 1 : 0; max = Math.max(max, current); }
-    return metric(max, 1);
-  }
-  const source = key === "temp_media_7d" || key === "temp_media_10d" ? mean : maximum;
-  const values = complete(source);
-  if (!values) return { value: null, coverage: validCount(source) / days };
-  if (key === "dias_calidos_10d") {
-    if (config.umbral_termico === undefined) return { value: null, coverage: 1 };
-    return metric(values.filter((value) => value >= config.umbral_termico!).length, 1);
-  }
-  return metric(sum(values) / values.length, 1);
-}
-
-function complete(values: Array<number | null>) { return values.every((value): value is number => typeof value === "number" && Number.isFinite(value)) ? values : null; }
-function validCount(values: Array<number | null>) { return values.filter((value) => typeof value === "number" && Number.isFinite(value)).length; }
-function sum(values: number[]) { return values.reduce((total, value) => total + value, 0); }
-function metric(value: number, coverage: number): Metric { return { value: Number(value.toFixed(2)), coverage }; }
 function qualityFromCoverage(values: number[]): "alta" | "media" | "baja" { const min = values.length ? Math.min(...values) : 0; return min === 1 ? "alta" : min >= 0.8 ? "media" : "baja"; }
-function compare(value: number, operator: SpecOperator, target: number) { if (operator === "gt") return value > target; if (operator === "gte") return value >= target; if (operator === "lt") return value < target; if (operator === "lte") return value <= target; return value === target; }
 function monthApplies(month: number, from: number | null, to: number | null) { if (from === null || to === null) return true; return from <= to ? month >= from && month <= to : month >= from || month <= to; }
 function phenologyApplies(stage: string, from: string | null, to: string | null) { const rank = phenologyRank(stage); const start = from ? phenologyRank(from) : -Infinity; const end = to ? phenologyRank(to) : Infinity; return rank !== null && start !== null && end !== null && rank >= start && rank <= end; }
 function phenologyRank(stage: string): number | null { const match = /^(VE|VC|V|R)(\d+)?/i.exec(stage.trim()); if (!match) return null; const prefix = match[1].toUpperCase(); const number = Number(match[2] ?? 0); if (prefix === "VE") return 0; if (prefix === "VC") return 1; if (prefix === "V") return 2 + number; return 100 + number; }
