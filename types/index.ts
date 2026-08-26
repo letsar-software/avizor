@@ -1,6 +1,6 @@
 import type { AdminRole } from "@/lib/admin/auth";
 import type { ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
-import type { EMPRESA_ESTADOS } from "@/lib/empresas/spec";
+import type { API_KEY_SCOPES, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 import type {
   PLAGA_ESTADOS_CATALOGO,
   REGIONAL_ESTADOS,
@@ -216,9 +216,11 @@ export interface Empresa {
   estado: EmpresaEstado; created_at: string; updated_at: string;
 }
 
+export type ApiKeyScope = typeof API_KEY_SCOPES[number];
+
 // Nunca incluye key_hash — ver lib/empresas/api-keys-repository.ts.
 export interface ApiKeyAdmin {
-  id: string; nombre: string; empresa_id: string | null; scopes: string[];
+  id: string; nombre: string; empresa_id: string | null; scopes: ApiKeyScope[];
   activa: boolean; revocada_at: string | null; expira_at: string | null;
   limite_mensual: number | null; created_at: string;
 }

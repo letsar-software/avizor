@@ -10,7 +10,7 @@ import { enforceEnterpriseBurstLimit } from "@/lib/security/rate-limit";
 export async function POST(request: Request) {
   const id = requestId(request); const started = performance.now(); let keyId: string | null = null; let status = 201;
   try {
-    keyId = await authenticateApiKey(request, { requestId: id, endpoint: "POST /api/v1/consultas" });
+    keyId = await authenticateApiKey(request, "consultas:crear", { requestId: id, endpoint: "POST /api/v1/consultas" });
     await enforceEnterpriseBurstLimit(keyId);
     const body = parseInput(consultaV2Schema, await readJsonBody(request)) as ConsultaInput;
     const result = await new ConsultaService().ejecutar({ ...body, canal: "api_empresa" }, id);

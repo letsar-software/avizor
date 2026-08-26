@@ -20,8 +20,18 @@ test("la cuota empresarial se reserva bajo bloqueo antes de ejecutar la consulta
   const route = await source("app/api/v1/consultas/route.ts");
   assert.match(auth, /for update of k/i);
   assert.match(auth, /insert into api_uso/);
-  assert.match(route, /authenticateApiKey\(request,\s*\{/);
+  assert.match(route, /authenticateApiKey\(request,\s*"consultas:crear",\s*\{/);
   assert.match(route, /update api_uso set status/);
+});
+
+test("una API key sin el scope requerido no llega a consumir cuota", async () => {
+  const auth = await source("lib/security/api-keys.ts");
+  const scopeCheck = /if \(!key\.scopes\.includes\(requiredScope\)\) throw new DomainError\("SCOPE_NO_AUTORIZADO"/;
+  const limitCheck = /if \(key\.limite_mensual/;
+  assert.match(auth, scopeCheck);
+  const scopeIndex = auth.search(scopeCheck);
+  const limitIndex = auth.search(limitCheck);
+  assert.ok(scopeIndex > 0 && scopeIndex < limitIndex, "el chequeo de scope debe ocurrir antes que el de límite mensual");
 });
 
 test("la conexión PostgreSQL verifica certificados por defecto", async () => {

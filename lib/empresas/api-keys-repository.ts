@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { query } from "@/lib/db/postgres";
 import { hashApiKey } from "@/lib/security/api-keys";
-import type { ApiKeyAdmin, ApiKeyConUso, ApiKeyCreada } from "@/types";
+import type { ApiKeyAdmin, ApiKeyConUso, ApiKeyCreada, ApiKeyScope } from "@/types";
 
 // Todas las consultas listan columnas explícitas: key_hash no debe poder
 // filtrarse a una respuesta de API, igual que password_hash en usuarios_admin.
@@ -17,7 +17,7 @@ export async function getApiKeysPorEmpresa(empresaId: string): Promise<ApiKeyCon
   return result.rows;
 }
 
-export async function createApiKey(input: { empresaId: string; nombre: string; scopes: string[]; limiteMensual?: number | null; expiraEn?: string | null }): Promise<ApiKeyCreada> {
+export async function createApiKey(input: { empresaId: string; nombre: string; scopes: ApiKeyScope[]; limiteMensual?: number | null; expiraEn?: string | null }): Promise<ApiKeyCreada> {
   const key = randomBytes(32).toString("hex");
   const result = await query<ApiKeyAdmin>(
     `insert into api_keys(nombre,key_hash,empresa_id,scopes,limite_mensual,expira_at)
