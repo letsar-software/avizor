@@ -49,8 +49,14 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 - `lib/rules/versioning.ts` — `nextVersion()`, función pura que bumpea el minor (`"2.0" → "2.1"`), con fallback si la versión no matchea `major.minor`. Testeada en `tests/versioning.test.ts`. La ruta reintenta el bump si la versión calculada ya existe (fork repetido de la misma regla).
 - `RuleEditor.tsx` suma el botón "Crear nueva versión" junto al aviso de regla bloqueada; al crear, redirige a `/admin/reglas/[nuevoId]` para seguir editando ahí.
 
-**Fuera de esta fase**
+**Fuera de esta fase (en su momento)**
 - No se pudo probar el flujo con datos reales (login, listar, guardar) porque no hay `DATABASE_URL` en este entorno de desarrollo. Se verificó con `tsc`, `eslint`, `next build` limpios, y en el browser que las rutas nuevas respetan el guard sin sesión.
+
+**Verificado con datos reales (2026-08-26, rama `chore/verificar-reglas-laboratorio-produccion`)** — ya con acceso a Railway, se corrió el flujo completo contra producción sin tocar ninguna regla real:
+- Login con un admin descartable → `GET /api/admin/reglas` (13 reglas reales) → fork de una regla `experimental` real (`antracnosis` 2.0 → 2.1, sin tocar la original) → editar la definición del fork → **RN-004** confirmado: `PATCH` de `definicion` sobre una regla `vigente` real (`baja_precipitacion`) rechaza con `409 REGLA_VIGENTE_INMUTABLE` sin escribir nada → **RN-013** confirmado: promover el fork a `vigente` sin `validado_por`/`validado_en` rechaza con `422 VALIDACION_REQUERIDA` → promoción exitosa del fork a `revisada` (estado seguro, sin riesgo de duplicar una `vigente` para la misma clave) con validación completa → Laboratorio (`POST /api/admin/simulaciones`) corrió una simulación real end-to-end contra Rosario, Santa Fe, devolviendo las 13 reglas evaluadas.
+- Verificado en el panel visualmente: `/admin/reglas` lista el fork junto a las reglas reales; `/admin/reglas/[id]` muestra el editor desbloqueado para el fork (`revisada`) y bloqueado + botón "Crear nueva versión" para la `vigente` real.
+- Limpieza: se borraron el fork, la consulta de prueba del Laboratorio y el usuario admin descartable (con sus sesiones/auditoría) al terminar. Se confirmó que `baja_precipitacion` (la regla vigente real usada para el test de RN-004) nunca cambió su `updated_at` — la escritura nunca llegó a ocurrir, tal como exige RN-004.
+- Sin hallazgos: todo el flujo de Reglas + Laboratorio funciona como está diseñado.
 
 **Refactor SOLID posterior**: `lib/rules/condition-spec.ts` se agregó como fuente única de los enums de variable/agregador/operador/estado de regla (antes duplicados entre `validation.ts`, `types/index.ts` y el editor). `RuleEditor.tsx` se partió en un hook de estado (`useRuleDefinitionEditor`) + componentes de presentación puros (`RuleMetaFields`, `NivelEditor`, `CondicionEditor`).
 
