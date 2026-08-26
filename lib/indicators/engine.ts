@@ -34,6 +34,13 @@ export interface IndicadorCalculado {
   coberturaRequerida: number;
 }
 
+// Lo mínimo que necesita calculate() para agregar una serie: variable + agregador
+// (y subcondición si aplica). CondicionDefinicion cumple esta forma y le suma
+// operador/valor/unidad para poder evaluarse después — separarla permite que un
+// caller que solo necesita el valor agregado (ej. lib/pests/indicator-spec.ts) no
+// tenga que inventar un operador/valor que no va a usar.
+export type AgregacionInput = Pick<CondicionDefinicion, "variable" | "agregador" | "cobertura_minima" | "subcondicion">;
+
 function compare(value: number, operator: CondicionDefinicion["operador"], target: number | [number, number]) {
   if (operator === "between") return Array.isArray(target) && value >= target[0] && value <= target[1];
   const scalar = Number(target);
@@ -45,7 +52,7 @@ function compare(value: number, operator: CondicionDefinicion["operador"], targe
 }
 
 export class IndicatorEngine {
-  calculate(condition: CondicionDefinicion, series: SerieClimaticaDiaria[], windowDays: number): IndicadorCalculado {
+  calculate(condition: AgregacionInput, series: SerieClimaticaDiaria[], windowDays: number): IndicadorCalculado {
     const window = series.slice(-windowDays);
     const values = window
       .map(VALUE_BY_VARIABLE[condition.variable])
