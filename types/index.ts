@@ -10,7 +10,6 @@ import type {
   SPEC_OPERATORS,
   SPEC_VARIABLES,
   TIPOS_REGLA,
-  ZONA_MODOS_APLICABILIDAD,
 } from "@/lib/rules/condition-spec";
 import type { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
 
@@ -174,16 +173,10 @@ export type SpecVariable = typeof SPEC_VARIABLES[number];
 export interface CondicionDefinicion { variable: SpecVariable; agregador: AggregatorKey; operador: SpecOperator; valor: number | [number, number]; unidad: string; cobertura_minima?: number; subcondicion?: { operador: SpecOperator; valor: number; unidad: string }; provisorio?: boolean; }
 export interface NivelRegla { orden: number; clave: string; orden_visual: number; etiqueta: string; explicacion?: string; recomendacion?: string; condiciones: CondicionDefinicion[]; }
 
-// Aplicabilidad (plan §3.1): paso previo a la evaluación climática, exclusivo de
-// reglas con tipo_regla !== 'climatica' o que además de clima requieren zona/fenología/período.
-// Vive dentro de definicion (jsonb), no como columnas rígidas: el modo prioridad/exclusión
-// de zona y el resto de las dimensiones son decisión agronómica (PEND-15), no de schema.
+// tipo_regla es del catálogo administrable de plagas (catalogo_plagas), no de
+// reglas_agronomicas: el motor de plagas que corre en producción es lib/pests/engine.ts
+// sobre reglas_plagas, no engine-v2.ts (ver docs/panel-admin-fase-0-1.md, "Hallazgo").
 export type TipoRegla = typeof TIPOS_REGLA[number];
-export type ZonaModoAplicabilidad = typeof ZONA_MODOS_APLICABILIDAD[number];
-export interface AplicabilidadZona { modo: ZonaModoAplicabilidad; zonas: string[] }
-export interface AplicabilidadFenologia { desde: string; hasta: string }
-export interface AplicabilidadPeriodo { meses_desde: number; meses_hasta: number }
-export interface AplicabilidadDefinicion { zona?: AplicabilidadZona; fenologia?: AplicabilidadFenologia; periodo?: AplicabilidadPeriodo }
 
 export interface ReglaAgronomicaV2 {
   id: string; clave: string; version: string; cultivo: string;
@@ -193,16 +186,8 @@ export interface ReglaAgronomicaV2 {
   ventana_dias: number; fuente_tecnica: string | null; limitaciones_declaradas: string | null;
   validado_por: string | null; validado_en: string | null; condiciones_revision: string | null;
   decisiones_pendientes: string[];
-  tipo_regla?: TipoRegla; grupo_plaga?: string | null; especie?: string | null;
-  nivel_evidencia_climatica?: "alto" | "medio" | "bajo" | "muy_bajo" | null;
-  definicion: { niveles: NivelRegla[]; sin_coincidencia?: { estado: string; motivo?: string }; aplicabilidad?: AplicabilidadDefinicion };
+  definicion: { niveles: NivelRegla[]; sin_coincidencia?: { estado: string; motivo?: string } };
 }
-
-// Contexto que necesita resolverAplicabilidad para evaluar una regla de plaga.
-// zona y fenologiaEstadio quedan opcionales a propósito: el motor tiene que poder
-// evaluar reglas puramente climáticas sin que nadie los provea (ver engine-v2.ts).
-export interface ContextoEvaluacion { zona?: string; fenologiaEstadio?: string; fechaRef?: string }
-export interface ResultadoAplicabilidad { aplica: boolean; submotivo?: string; fenologiaNoEstimable?: boolean }
 
 export type PlagaEstadoCatalogo = typeof PLAGA_ESTADOS_CATALOGO[number];
 export interface CatalogoPlaga {

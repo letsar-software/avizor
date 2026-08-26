@@ -17,10 +17,9 @@ export const SPEC_OPERATORS = ["gt", "gte", "lt", "lte", "eq", "between"] as con
 
 export const REGLA_ESTADOS = ["experimental", "revisada", "vigente", "retirada"] as const;
 
-// Plagas (plan de arquitectura, sección 3.1/3.2). Mismas reglas de fuente única:
+// Plagas (catálogo administrable, catalogo_plagas). Mismas reglas de fuente única:
 // lib/security/validation.ts y el catálogo del panel admin derivan de acá.
 export const TIPOS_REGLA = ["climatica", "prioridad_monitoreo"] as const;
-export const ZONA_MODOS_APLICABILIDAD = ["prioridad", "exclusion"] as const;
 export const PLAGA_ESTADOS_CATALOGO = ["activa", "catalogada", "retirada"] as const;
 export const REGIONAL_PRIORIDADES = ["principal", "variable"] as const;
 export const REGIONAL_ESTADOS = ["borrador", "revisada", "vigente", "retirada"] as const;
