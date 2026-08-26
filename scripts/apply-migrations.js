@@ -41,6 +41,7 @@ async function main() {
     "db/migrations/015_modelos_fenologicos.sql",
     "db/migrations/016_retira_columnas_plagas_reglas_agronomicas.sql",
     "db/migrations/017_invitaciones_admin.sql",
+    "db/migrations/018_api_key_scopes_check.sql",
   ];
 
   for (const migration of migrations) {

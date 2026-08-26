@@ -10,7 +10,7 @@ import {
   TIPOS_REGLA,
 } from "@/lib/rules/condition-spec";
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
-import { API_KEY_SCOPE_PATTERN, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
+import { API_KEY_SCOPES, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_CODIGOS } from "@/lib/phenology/spec";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
@@ -137,7 +137,7 @@ export const adminEmpresaPatchSchema = z.object({
 
 export const adminApiKeyCreateSchema = z.object({
   nombre: shortText(120),
-  scopes: z.array(z.string().regex(API_KEY_SCOPE_PATTERN)).max(20).default([]),
+  scopes: z.array(z.enum(API_KEY_SCOPES)).max(API_KEY_SCOPES.length).default([]),
   limite_mensual: z.number().int().positive().optional(),
   expira_en: isoDate.optional(),
 }).strict();

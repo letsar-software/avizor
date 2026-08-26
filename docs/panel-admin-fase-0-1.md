@@ -89,6 +89,14 @@ Objetivo del plan: UI completa sobre los endpoints que ya existían (`/api/admin
 - **Bug encontrado y corregido en el mismo pase**: `window.confirm()` para revocar una key no funcionaba en el entorno de pruebas (diálogos nativos deshabilitados). Se reemplazó por confirmación en dos pasos dentro de la UI.
 - **Fuera de esta fase**: los scopes son texto libre, no hay taxonomía cerrada ni enforcement en `/api/v1` todavía.
 
+**Taxonomía cerrada de scopes (agregado 2026-08-26, rama `feature/api-key-scopes`)**
+- `lib/empresas/spec.ts`: `API_KEY_SCOPES` pasa de un patrón de texto libre a un enum cerrado — hoy un solo valor, `consultas:crear`, uno por cada endpoint real de `/api/v1` (que hoy es uno solo, `POST /api/v1/consultas`). Sumar un endpoint nuevo es agregar un valor acá.
+- `lib/security/validation.ts`: `adminApiKeyCreateSchema.scopes` valida contra ese enum (`z.enum(API_KEY_SCOPES)`) en vez de una regex.
+- `lib/security/api-keys.ts`: `authenticateApiKey(request, requiredScope, usage)` ahora recibe el scope que exige el endpoint que llama, lo verifica contra `key.scopes` (ya lo trae en el mismo `select ... for update` que usaba para el límite mensual) y devuelve `403 SCOPE_NO_AUTORIZADO` si falta — antes cualquier key con cualquier scope (o ninguno) podía pegarle a cualquier endpoint. El chequeo corre antes que el de cuota mensual.
+- Migración `018`: agrega el mismo enum como `check` a nivel de base (`scopes <@ array['consultas:crear']`), mismo patrón que el resto de los enums del proyecto (`estado`, `rol`, `tipo_regla`) — se valida en la app y en la base. Sin riesgo de romper datos existentes: `api_keys` está vacía en producción.
+- `ApiKeyForm.tsx`: el input de texto libre "separados por coma" pasa a ser un grupo de checkboxes con los valores de `API_KEY_SCOPES` — no se puede tipear un scope inválido desde el panel.
+- **Pendiente de producción**: falta correr la migración `018` en Railway (`npm run db:migrate`).
+
 ## Fase 6 — Fenología parametrizable ([PR #8](https://github.com/letsar-software/avizor/pull/8), mergeado)
 
 La fase que más tocaba producción: la fenología vivía hardcodeada en `lib/phenology/provider.ts` y pasa a ser dato administrable.
