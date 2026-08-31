@@ -1,4 +1,5 @@
 import type { ResultadoReglaV2 } from "@/types";
+import { representativeRuleForDefinition } from "@/lib/results/presentation";
 
 export interface ResumenConsulta {
   descripcion: string;
@@ -8,7 +9,8 @@ export interface ResumenConsulta {
 const ACTIVE_STATES = new Set(["favorables", "condiciones_detectadas"]);
 
 export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenConsulta {
-  const stableResults = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
+  const stableRules = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
+  const stableResults = collapsePresentationCategories(stableRules);
   const active = stableResults.filter((result) => ACTIVE_STATES.has(result.estado));
   const moderate = stableResults.filter((result) => result.estado === "moderadas");
   const indeterminate = stableResults.filter((result) => result.estado === "indeterminado");
@@ -24,7 +26,7 @@ export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenCo
       ? "Las condiciones ambientales analizadas indican que conviene prestar atención a un factor del cultivo."
       : "Las condiciones ambientales analizadas indican que conviene prestar atención a varios factores del cultivo.";
 
-  const details = categoryDetails(stableResults);
+  const details = categoryDetails(stableRules);
   const uncertainty = indeterminate.length === 1
     ? "Una de las categorías no pudo evaluarse con suficiente información y conviene revisar su detalle."
     : indeterminate.length > 1
@@ -43,7 +45,7 @@ function categoryDetails(results: ResultadoReglaV2[]) {
   const byRisk = new Map(results.map((result) => [result.riesgo, result]));
   const details: string[] = [];
   const frost = byRisk.get("temperatura_bajo_umbral");
-  const foliar = byRisk.get("enfermedades_foliares");
+  const foliar = representativeRuleForDefinition({ reglas: results }, "enfermedades_foliares");
   const drought = byRisk.get("baja_precipitacion");
   const excess = byRisk.get("precipitacion_elevada");
 
@@ -91,4 +93,9 @@ function focusFor(risk: string) {
   if (risk === "baja_precipitacion") return "disponibilidad hídrica";
   if (risk === "precipitacion_elevada") return "acumulación de precipitaciones";
   return "la categoría señalada";
+}
+
+function collapsePresentationCategories(results: ResultadoReglaV2[]) {
+  const risks = ["temperatura_bajo_umbral", "enfermedades_foliares", "baja_precipitacion", "precipitacion_elevada"];
+  return risks.map((risk) => representativeRuleForDefinition({ reglas: results }, risk)).filter((rule): rule is ResultadoReglaV2 => Boolean(rule));
 }

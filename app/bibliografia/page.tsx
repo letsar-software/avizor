@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, FileText, Info } from "lucide-react";
+import { ExternalLink, FileText } from "lucide-react";
+import { InfoMessage } from "@/components/ui/InfoMessage";
 
 type Source = {
   title: string;
@@ -124,8 +125,8 @@ export default function Bibliography() {
       </article>)}
     </section>
 
-    <p className="mt-5 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs leading-5 text-[#6b5524]">
-      <Info className="h-5 w-5 shrink-0"/>Las reglas se revisan y actualizan periódicamente en base a nueva evidencia técnica y validación con especialistas.
-    </p>
+    <div className="mt-5">
+      <InfoMessage variant="warning">Las reglas se revisan y actualizan periódicamente en base a nueva evidencia técnica y validación con especialistas.</InfoMessage>
+    </div>
   </main>;
 }

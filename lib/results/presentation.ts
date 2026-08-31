@@ -9,14 +9,60 @@ export const categoryDefinitions = [
 
 export function ruleForSlug(result: ResultadoConsultaV2Publica, slug: string) {
   const definition = categoryDefinitions.find((item) => item.slug === slug.replaceAll("-", "_"));
-  return { definition: definition ?? categoryDefinitions[1], rule: result.reglas.find((item) => item.riesgo === (definition ?? categoryDefinitions[1]).risk) };
+  const selected = definition ?? categoryDefinitions[1];
+  const rules = rulesForDefinition(result, selected.risk);
+  return { definition: selected, rule: representativeRule(rules), rules };
 }
 
-export function statusLabel(rule?: ResultadoReglaV2) {
+export function rulesForDefinition(result: Pick<ResultadoConsultaV2Publica, "reglas">, risk: string) {
+  const exact = result.reglas.filter((item) => item.riesgo === risk);
+  if (exact.length || risk !== "enfermedades_foliares") return exact;
+  const environmentalRisks = new Set(["temperatura_bajo_umbral", "baja_precipitacion", "precipitacion_elevada"]);
+  const diseases = result.reglas.filter((item) => !environmentalRisks.has(item.riesgo));
+  const stable = diseases.filter((item) => item.regla.estado !== "experimental" && item.regla.modo !== "experimental");
+  return stable.length ? stable : diseases;
+}
+
+export function representativeRuleForDefinition(result: Pick<ResultadoConsultaV2Publica, "reglas">, risk: string) {
+  return representativeRule(rulesForDefinition(result, risk));
+}
+
+function representativeRule(rules: ResultadoReglaV2[]) {
+  const rank = (rule: ResultadoReglaV2) => {
+    if (rule.estado === "favorables" || rule.estado === "condiciones_detectadas") return 4;
+    if (rule.estado === "moderadas") return 3;
+    if (rule.estado === "indeterminado") return 2;
+    if (rule.estado === "sin_condiciones" || rule.estado === "desfavorables") return 1;
+    return 0;
+  };
+  return [...rules].sort((left, right) => rank(right) - rank(left))[0];
+}
+
+export function statusLabel(rule?: ResultadoReglaV2, categoryName?: string) {
   if (!rule) return "No evaluada";
-  if (rule.estado === "sin_condiciones") return "Condiciones desfavorables";
-  if (rule.estado === "indeterminado") return "No fue posible determinarla";
-  return rule.etiqueta ?? rule.estado.replaceAll("_", " ");
+  const category = categoryName?.toLowerCase();
+  if (rule.estado === "sin_condiciones") return category ? `Sin condiciones asociadas a ${category}` : "Sin condiciones asociadas al fenómeno evaluado";
+  if (rule.estado === "indeterminado") return "No fue posible evaluar esta categoría con los datos disponibles";
+  if (rule.estado === "favorables" || rule.estado === "condiciones_detectadas") {
+    if (category === "heladas") return "Temperaturas bajo el umbral para heladas";
+    if (category === "enfermedades foliares") return "Condiciones que pueden favorecer enfermedades foliares";
+    if (category === "estrés hídrico") return "Precipitación acumulada baja";
+    if (category === "exceso hídrico") return "Precipitación acumulada elevada";
+  }
+  if (rule.estado === "moderadas") {
+    if (category === "enfermedades foliares") return "Condiciones moderadas para enfermedades foliares";
+    if (category === "heladas") return "Condiciones moderadas asociadas a heladas";
+    if (category === "estrés hídrico") return "Disponibilidad hídrica para monitorear";
+    if (category === "exceso hídrico") return "Acumulación de agua para monitorear";
+  }
+  return deduplicateLabel(rule.etiqueta) ?? rule.estado.replaceAll("_", " ");
+}
+
+function deduplicateLabel(value?: string) {
+  if (!value?.trim()) return undefined;
+  const parts = value.split(/\s*[-–—]\s*/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 2 && parts[0].localeCompare(parts[1], "es", { sensitivity: "base" }) === 0) return parts[0];
+  return value.trim();
 }
 
 export function aggregateClimate(series: SerieClimaticaDiaria[]) {

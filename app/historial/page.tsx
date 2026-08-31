@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Cloud, Download, Filter, History, Leaf, Plus, Sprout } from "lucide-react";
 import { PageIntro, PublicPage } from "@/components/PublicPage";
+import { SEVERITY_TONES } from "@/components/results/shared";
 
 type Entry={localidad?:string;cultivo?:string;createdAt?:string;estado?:string;categoria?:string;resumen?:string;share_token?:string;result?:unknown};
-const color=(state:string)=>state.includes("favorables")?"text-[#087b4b]":state.includes("parcial")?"text-orange-600":state.includes("desfavorables")?"text-red-600":"text-[#526477]";
+const color=(state:string)=>state==="Atención recomendada"?SEVERITY_TONES.attention.text:state==="Monitoreo preventivo sugerido"?SEVERITY_TONES.monitor.text:state==="Sin alertas activas"?SEVERITY_TONES.calm.text:SEVERITY_TONES.neutral.text;
 export default function HistoryPage(){const[entries,setEntries]=useState<Entry[]>([]);useEffect(()=>{try{const stored=JSON.parse(localStorage.getItem("avizor_historial")||"[]");setEntries(stored)}catch{setEntries([])}},[]);return <PublicPage><PageIntro title="Historial de consultas" description="Revisá tus consultas anteriores y el estado de las condiciones ambientales." action={{label:"Nueva consulta",href:"/consultar"}} />
   <div className="mt-5 hidden items-end gap-3 rounded-xl border bg-white p-4 lg:flex"><label className="text-xs">Localidad<select className="mt-2 block h-10 rounded-lg border px-3"><option>Todas</option></select></label><label className="text-xs">Categoría<select className="mt-2 block h-10 rounded-lg border px-3"><option>Todas</option></select></label><label className="text-xs">Estado<select className="mt-2 block h-10 rounded-lg border px-3"><option>Todos</option></select></label><label className="text-xs">Período<select className="mt-2 block h-10 rounded-lg border px-3"><option>Últimos 30 días</option></select></label><button className="ml-auto flex h-10 items-center gap-2 rounded-lg border px-4 text-xs"><Download className="h-4 w-4" />Exportar</button></div>
   <div className="mt-5 flex items-center justify-between lg:hidden"><h2 className="text-2xl font-bold">Historial</h2><button className="flex h-10 items-center gap-2 rounded-lg border px-3 text-xs"><Filter className="h-4 w-4" />Filtros</button></div>
