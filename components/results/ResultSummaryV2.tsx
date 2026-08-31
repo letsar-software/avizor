@@ -10,6 +10,7 @@ import { PestResults, PestSummaryCard } from "@/components/results/PestResults";
 
 const icons={heladas:Snowflake,enfermedades_foliares:Leaf,estres_hidrico:Droplets,exceso_hidrico:CloudRain};
 const colors={green:"text-[#087b4b] bg-green-50",orange:"text-orange-600 bg-orange-50",red:"text-red-600 bg-red-50",indigo:"text-indigo-700 bg-indigo-50"};
+const phenologyImages:Record<string,string>={E:"/phenology/soja-e.svg",R1:"/phenology/soja-r1.svg",R3:"/phenology/soja-r3.svg",R5:"/phenology/soja-r5.svg",R7:"/phenology/soja-r7.svg"};
 
 export default function ResultSummaryV2(){
  const[result,setResult]=useState<ResultadoConsultaV2Publica|null>(null);const[loaded,setLoaded]=useState(false);
@@ -25,10 +26,15 @@ export default function ResultSummaryV2(){
   <PestResults result={result} compact/>
   <PrecisionSection result={result} onUpdate={setResult}/>
   <div className="mt-3 grid gap-3 lg:grid-cols-[.9fr_1.15fr_1fr]"><Metrics data={metrics}/><ClimateChart series={result.clima.serie}/><RuleComparison result={result}/></div>
-  {result.contexto_fenologico.disponible?<section className="mt-3 rounded-xl border border-green-200 bg-green-50 p-5"><h2 className="font-bold">Contexto fenológico estimado</h2><p className="mt-2 text-sm">{result.contexto_fenologico.estadio_estimado} · {result.contexto_fenologico.descripcion}</p></section>:null}
+  {result.contexto_fenologico.disponible?<PhenologyContext context={result.contexto_fenologico}/>:null}
   <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Support Icon={BookOpen} title="Fuente y evidencia" lines={Array.from(new Set(result.reglas.map(r=>r.fuente_tecnica).filter(Boolean) as string[]))}/><Support Icon={Eye} title="Qué observar" lines={result.reglas.map(r=>r.recomendacion).filter(Boolean) as string[]}/><Support Icon={TriangleAlert} title="Limitaciones" lines={Array.from(new Set(result.reglas.map(r=>r.limitaciones_declaradas).filter(Boolean) as string[]))}/><Support Icon={ShieldCheck} title="Calidad de los datos" lines={[`Fuente: ${result.proveedor_climatico}`,`Cobertura: ${Math.round(result.clima.cobertura*100)} %`,`Período: ${result.clima.serie.length} días`,`Adapter: ${result.clima.adapter_version}`]}/></div>
   <p className="mt-3 flex items-center gap-2 rounded-lg border bg-[#f8faf9] p-3 text-[11px] text-[#526477]"><Info className="h-4 w-4 text-blue-600"/>Este resultado describe condiciones ambientales y no el estado sanitario del lote.</p>
  </main>;
+}
+
+function PhenologyContext({context}:{context:ResultadoConsultaV2Publica["contexto_fenologico"]}){
+ if(!context.disponible)return null;const stage=context.estadio_estimado??"E";const image=phenologyImages[stage]??phenologyImages.E;
+ return <section className="mt-3 flex items-center gap-5 rounded-xl border border-green-200 bg-green-50 p-5"><img src={image} alt={`Ilustración del estadio ${stage}`} className="h-24 w-24 shrink-0 object-contain sm:h-28 sm:w-28"/><div className="min-w-0"><h2 className="font-bold">Contexto fenológico estimado</h2><p className="mt-2 text-base font-bold">{stage} · {context.descripcion}</p><Link href="/resultado/fenologia" className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#087b4b] px-4 text-xs font-bold text-white">Ver fenología completa</Link></div></section>;
 }
 
 function ConsultationSummary({result}:{result:ResultadoConsultaV2Publica}){const summary=result.resumen_consulta??buildConsultationSummary(result.reglas);return <div className="mt-5 border-t pt-5 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0"><h2 className="text-sm font-bold text-[#087b4b]">Resumen de tu consulta</h2><p className="mt-2 text-xs leading-5 text-[#263a4d]">{summary.descripcion}</p><p className="mt-4 flex gap-2 rounded-lg bg-[#f4faf6] p-3 text-xs font-bold leading-5 text-[#087b4b]"><Leaf className="mt-0.5 h-4 w-4 shrink-0"/>{summary.destaque}</p></div>}

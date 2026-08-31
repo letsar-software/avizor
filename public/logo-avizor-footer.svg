@@ -1,0 +1,14 @@
+<svg width="220" height="58" viewBox="0 0 220 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#A7E38F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M29 5a23 23 0 0 1 17 39" opacity=".75"/>
+    <path d="M13 41A23 23 0 0 1 29 5" opacity=".75"/>
+    <path d="M29 12a16 16 0 0 1 11 27"/>
+    <path d="M18 35a16 16 0 0 1 11-23"/>
+    <circle cx="29" cy="28" r="5" fill="#A7E38F" stroke="none"/>
+    <path d="M27 32 14 46"/>
+    <path d="M12 50c11 1 20-3 24-12-12-2-22 2-24 12Z" fill="#A7E38F" fill-opacity=".16"/>
+    <path d="M15 48c6-4 12-6 18-7"/>
+  </g>
+  <text x="59" y="30" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="750" letter-spacing=".5">AVIZOR</text>
+  <text x="60" y="44" fill="#B9E8CA" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="8.5" font-weight="600" letter-spacing=".25">La señal antes del problema.</text>
+</svg>
