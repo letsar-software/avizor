@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { BookOpen, Home, Info, Mail, MapPin, MessageCircle, Sprout, UserRound } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
 const navigation = [["Inicio", "/"], ["Metodología", "/metodologia"], ["Sobre Avizor", "/sobre-avizor"], ["Contacto", "/contacto"]];
 const information = [["Bibliografía", "/bibliografia"], ["Privacidad", "/privacidad"], ["Alcance y limitaciones", "/alcance-limitaciones"], ["Estado del sistema", "/estado-sistema"]];
@@ -14,7 +14,7 @@ export default function Footer() {
   return <footer>
     <div className="bg-[#064d35] text-white">
       <div className="mx-auto hidden max-w-[1440px] px-8 py-9 md:grid md:grid-cols-[1.1fr_.7fr_.8fr_1fr] md:gap-8 lg:px-14">
-        <div className="self-start pr-8"><Link href="/" aria-label="Avizor, inicio" className="inline-flex"><Image src="/logo-avizor-footer.svg" alt="Avizor, la señal antes del problema" width={220} height={58} className="h-auto w-[170px]" /></Link><p className="mt-4 max-w-[220px] border-l border-[#79bd94]/60 pl-3 text-[11px] leading-5 text-white/65">Información agrícola clara para decidir dónde poner la atención.</p></div>
+        <div className="self-start pr-8"><Link href="/" aria-label="Avizor, inicio" className="inline-flex"><BrandLogo inverse compact /></Link><p className="mt-4 max-w-[220px] border-l border-[#79bd94]/60 pl-3 text-[11px] leading-5 text-white/65">Información agrícola clara para decidir dónde poner la atención.</p></div>
         <DesktopLinks title="Navegación" links={navigation} /><DesktopLinks title="Información" links={information} /><Contact />
       </div>
       <div className="px-7 py-9 md:hidden">

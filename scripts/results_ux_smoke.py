@@ -44,6 +44,9 @@ result = {
     "duracion_ms": 100, "clima": {"serie": series, "rango_temporal": {"desde": dates[0], "hasta": dates[-1]},
         "cobertura": 1, "variables_disponibles": ["precipitacion"], "variables_faltantes": [], "adapter_version": "v1"}
 }
+result["reglas"][1]["limitaciones_declaradas"] = "No observa mojado foliar."
+result["reglas"][2]["limitaciones_declaradas"] = "Regla experimental en validación."
+result["reglas"][3]["limitaciones_declaradas"] = "Limitación técnica sin clasificación explícita."
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
@@ -55,9 +58,28 @@ with sync_playwright() as p:
         for text in ("Estado general", "Resumen por", "Evidencia clim", "Contexto fenol", "Limitaciones"):
             assert page.get_by_text(text, exact=False).first.is_visible(), f"{name}: {text}"
         assert not page.get_by_text("Favorable - Favorable", exact=True).count(), f"{name}: duplicated label"
+        for accordion_id in ("result-observe", "result-limitations", "result-sources", "result-quality"):
+            assert page.locator(f"button[aria-controls='{accordion_id}-panel']").get_attribute("aria-expanded") == "false", f"{name}: {accordion_id} should start closed"
+        assert page.get_by_text("1 fuente utilizada", exact=True).is_visible(), f"{name}: source count"
+        page.locator("button[aria-controls='result-limitations-panel']").click()
+        assert page.get_by_text("Evaluación parcial", exact=True).is_visible(), f"{name}: limitation groups"
+        assert page.get_by_text("1 observación", exact=True).count() == 4, f"{name}: dynamic group counts"
+        original = "Evaluación parcial: no se dispone de humedad de suelo."
+        assert not page.get_by_text(original, exact=True).is_visible(), f"{name}: details should start closed"
+        page.locator("#result-limitations-panel details summary").first.click()
+        assert page.get_by_text(original, exact=True).is_visible(), f"{name}: literal limitation detail"
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), f"{name}: horizontal overflow"
         page.screenshot(path=f"docs/screenshots/results-ux-{name}.png", full_page=True)
         page.close()
+    empty = json.loads(json.dumps(result))
+    for item in empty["reglas"]:
+        item["recomendacion"] = ""
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    page.goto(base)
+    page.evaluate("value => sessionStorage.setItem('avizor_resultado', value)", json.dumps(empty))
+    page.goto(f"{base}/resultado", wait_until="networkidle")
+    assert page.locator("button[aria-controls='result-observe-panel']").count() == 0, "empty recommendations should not render"
+    page.close()
     browser.close()
 
 print("results UX desktop/mobile smoke: ok")
