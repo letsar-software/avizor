@@ -1,4 +1,4 @@
-import type { LocalidadNormalizada, SerieClimaticaDiaria } from "@/types";
+import type { LocalidadNormalizada, PrevisionClimaticaDiaria, SerieClimaticaDiaria } from "@/types";
 
 export interface ClimateSeriesRequest { localidad: LocalidadNormalizada; fechaRef: string; dias: number; }
 export interface ClimateSeriesResult {
@@ -15,5 +15,7 @@ export interface ClimateSeriesResult {
   errores: string[];
   adapterVersion: string;
   serie: SerieClimaticaDiaria[];
+  /** Pronóstico futuro informativo; nunca se usa para evaluar reglas. */
+  prevision: PrevisionClimaticaDiaria[];
 }
 export interface ClimateSeriesProvider { obtenerSerie(input: ClimateSeriesRequest): Promise<ClimateSeriesResult>; }

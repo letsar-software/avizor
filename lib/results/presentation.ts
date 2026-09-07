@@ -1,8 +1,8 @@
 import type { ResultadoConsultaV2Publica, ResultadoReglaV2, SerieClimaticaDiaria } from "@/types";
 
 export const categoryDefinitions = [
-  { slug: "heladas", risk: "temperatura_bajo_umbral", name: "Heladas", tone: "green" },
   { slug: "enfermedades_foliares", risk: "enfermedades_foliares", name: "Enfermedades foliares", tone: "orange" },
+  { slug: "heladas", risk: "temperatura_bajo_umbral", name: "Heladas", tone: "green" },
   { slug: "estres_hidrico", risk: "baja_precipitacion", name: "Estrés hídrico", tone: "red" },
   { slug: "exceso_hidrico", risk: "precipitacion_elevada", name: "Exceso hídrico", tone: "indigo" },
 ] as const;

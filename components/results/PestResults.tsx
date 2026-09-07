@@ -1,9 +1,9 @@
 import React from "react";
-import { Bug, CheckCircle2, CircleHelp, Eye, MapPin, Sprout, TriangleAlert } from "lucide-react";
+import { ArrowRight, Bug, CheckCircle2, CircleHelp, Eye, MapPin, Sprout, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import Accordion from "@/components/Accordion";
 import type { EvaluacionPlaga, ResultadoConsultaV2Publica } from "@/types";
-import { SEVERITY_TONES, severityOfPest } from "@/components/results/shared";
+import { CategoryIconChip, SEVERITY_TONES, severityOfPest } from "@/components/results/shared";
 
 const pestNames: Record<string, string> = { trips: "Trips", aranuela: "Arañuela", orugas_defoliadoras: "Orugas defoliadoras", bolillera_spodoptera: "Bolillera / Spodoptera", chinches: "Chinches" };
 const stateLabels: Record<EvaluacionPlaga["estado"], string> = { favorabilidad_alta: "Favorabilidad ambiental alta", favorabilidad_moderada: "Favorabilidad ambiental moderada", sin_condiciones_destacadas: "Sin condiciones destacadas", periodo_relevante_monitoreo: "Período relevante para monitoreo", indeterminado: "No fue posible completar la evaluación", no_evaluada: "No evaluada" };
@@ -42,11 +42,28 @@ export function contextualPestStateLabel(evaluation: EvaluacionPlaga): string {
 const SEVERITY_RANK: Record<ReturnType<typeof severityOfPest>, number> = { attention: 3, monitor: 2, calm: 1, neutral: 0 };
 function worstSeverity(evaluations: EvaluacionPlaga[]) { return evaluations.map((item) => severityOfPest(item.estado)).sort((a, b) => SEVERITY_RANK[b] - SEVERITY_RANK[a])[0] ?? "neutral"; }
 
+/** Resumen de presentación; conserva los estados individuales y no afecta el score. */
+export function pestSummary(evaluations: EvaluacionPlaga[]) {
+  const severity = worstSeverity(evaluations);
+  if (severity === "attention") return { severity, label: "Hay condiciones de plagas para revisar" };
+  if (severity === "monitor") return { severity, label: "Condiciones de plagas para monitorear" };
+  if (severity === "calm") return { severity, label: "Sin condiciones destacadas" };
+  return { severity, label: "Información limitada para evaluar plagas" };
+}
+
+export function pestSummaryForResult(result: ResultadoConsultaV2Publica) {
+  const evaluations = visiblePestEvaluations(result);
+  if (evaluations.length) return pestSummary(evaluations);
+  return {
+    severity: "neutral" as const,
+    label: result.plagas ? "No fue posible completar la evaluación de plagas" : "La evaluación de plagas no está disponible",
+  };
+}
+
 export function PestSummaryCard({ result }: { result: ResultadoConsultaV2Publica }) {
-  const evaluations = visiblePestEvaluations(result); if (!evaluations.length) return null;
-  const summary = evaluations.length === 1 ? contextualPestStateLabel(evaluations[0]) : `${evaluations.length} evaluaciones disponibles`;
-  const tone = SEVERITY_TONES[worstSeverity(evaluations)];
-  return <Link href="/resultado/plagas" className="flex min-h-[76px] items-center gap-3 rounded-xl border bg-white p-4"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone.chipBg} ${tone.chipText}`}><Bug className="h-5 w-5" aria-hidden="true"/></span><span className="min-w-0 flex-1"><strong className="text-sm">Plagas</strong><span className={`mt-1 block text-sm font-semibold ${tone.text}`}>{summary}</span></span><span aria-hidden="true" className="text-lg text-[#526477]">›</span></Link>;
+  const summary = pestSummaryForResult(result);
+  const tone = SEVERITY_TONES[summary.severity];
+  return <Link href="/resultado/plagas" className="flex min-h-[118px] flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center sm:min-h-[92px] sm:flex-row sm:p-4 sm:text-left"><CategoryIconChip Icon={Bug} severity={summary.severity}/><span className="min-w-0 flex-1"><strong className="text-sm">Plagas</strong><span className={`mt-1 block text-xs font-semibold sm:text-sm ${tone.text}`}>{summary.label}</span></span><ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true"/></Link>;
 }
 
 export function PestResults({ result, compact = false }: { result: ResultadoConsultaV2Publica; compact?: boolean }) {

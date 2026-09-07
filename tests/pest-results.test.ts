@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PestResults, PestSummaryCard, visiblePestEvaluations } from "../components/results/PestResults";
+import { PestResults, PestSummaryCard, pestSummary, pestSummaryForResult, visiblePestEvaluations } from "../components/results/PestResults";
 import type { EvaluacionPlaga, ResultadoConsultaV2Publica } from "../types";
 
 const baseEvaluation: EvaluacionPlaga = {
@@ -15,7 +15,12 @@ const baseEvaluation: EvaluacionPlaga = {
 function result(evaluations?: EvaluacionPlaga[]): ResultadoConsultaV2Publica { return { estado_general: "Sin alertas activas", reglas: [], plagas: evaluations ? { evaluaciones: evaluations, disponibilidad: "disponible" } : undefined } as unknown as ResultadoConsultaV2Publica; }
 function markup(evaluations?: EvaluacionPlaga[]) { return renderToStaticMarkup(React.createElement(PestResults, { result: result(evaluations) })); }
 
-test("flag OFF o consulta histórica sin plagas no renderiza categoría ni altera el estado general", () => { const historical = result(); assert.equal(visiblePestEvaluations(historical).length, 0); assert.equal(renderToStaticMarkup(React.createElement(PestSummaryCard, { result: historical })), ""); assert.equal(historical.estado_general, "Sin alertas activas"); });
+test("Plagas siempre aparece aunque la evaluación no esté disponible", () => { const historical = result(); const html = renderToStaticMarkup(React.createElement(PestSummaryCard, { result: historical })); assert.equal(visiblePestEvaluations(historical).length, 0); assert.match(html, />Plagas</); assert.match(html, /La evaluación de plagas no está disponible/); assert.match(html, /href="\/resultado\/plagas"/); assert.equal(historical.estado_general, "Sin alertas activas"); });
+test("la categoría distingue evaluación incompleta de ausencia de señales", () => { assert.deepEqual(pestSummaryForResult(result([])), { severity: "neutral", label: "No fue posible completar la evaluación de plagas" }); assert.deepEqual(pestSummaryForResult(result([{ ...baseEvaluation, estado: "sin_condiciones_destacadas" }])), { severity: "calm", label: "Sin condiciones destacadas" }); assert.deepEqual(pestSummaryForResult(result([{ ...baseEvaluation, estado: "indeterminado" }])), { severity: "neutral", label: "Información limitada para evaluar plagas" }); });
+
+test("la tarjeta de Plagas usa el patrón de categoría y enlaza al detalle completo", () => { const html = renderToStaticMarkup(React.createElement(PestSummaryCard, { result: result([baseEvaluation]) })); assert.match(html, /min-h-\[118px\]/); assert.match(html, /href="\/resultado\/plagas"/); assert.match(html, />Plagas</); assert.match(html, /Hay condiciones de plagas para revisar/); });
+test("el resumen agregado conserva la severidad de las evaluaciones reales", () => { assert.deepEqual(pestSummary([{ ...baseEvaluation, estado: "sin_condiciones_destacadas" }]), { severity: "calm", label: "Sin condiciones destacadas" }); assert.deepEqual(pestSummary([{ ...baseEvaluation, estado: "favorabilidad_moderada" }]), { severity: "monitor", label: "Condiciones de plagas para monitorear" }); assert.deepEqual(pestSummary([{ ...baseEvaluation, estado: "favorabilidad_alta" }]), { severity: "attention", label: "Hay condiciones de plagas para revisar" }); });
+
 test("el resumen conserva la sección de plagas sin inventar evaluaciones cuando no está disponible", () => { const html = renderToStaticMarkup(React.createElement(PestResults, { result: result(), compact: true })); assert.match(html, /Plagas monitoreadas/); assert.match(html, /no está disponible para esta consulta/); assert.doesNotMatch(html, /Sin plagas|No hay plagas/); });
 test("P-01 alta muestra Trips, favorabilidad y aclaración recibida sin cambiar score", () => { const value = result([baseEvaluation]); const html = markup(value.plagas!.evaluaciones); assert.match(html, /Trips/); assert.match(html, /Favorabilidad ambiental alta/); assert.match(html, /No indica presencia/); assert.equal(value.estado_general, "Sin alertas activas"); });
 test("P-01 moderada usa la etiqueta de presentación correspondiente", () => assert.match(markup([{ ...baseEvaluation, estado: "favorabilidad_moderada" }]), /Favorabilidad ambiental moderada/));

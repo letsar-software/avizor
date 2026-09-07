@@ -1,3 +1,4 @@
+import React from "react";
 import type { LucideIcon } from "lucide-react";
 import { CloudRain, Droplets, Leaf, Snowflake } from "lucide-react";
 import type { EstadoEvaluacionPlaga, ResultadoReglaV2 } from "@/types";

@@ -55,3 +55,19 @@ test("reutiliza cache para coordenadas y periodo iguales", async (t) => {
   assert.equal(fetchMock.mock.callCount(), 1);
   assert.strictEqual(second, first);
 });
+
+test("normaliza cinco días futuros sin incorporarlos a la serie histórica", async (t) => {
+  const forecastTimes = ["2026-08-21T00:00", "2026-08-21T12:00", "2026-08-22T00:00", "2026-08-22T12:00", "2026-08-23T00:00", "2026-08-23T12:00", "2026-08-24T00:00", "2026-08-24T12:00", "2026-08-25T00:00", "2026-08-25T12:00"];
+  t.mock.method(globalThis, "fetch", async () => response({ time: [...times, ...forecastTimes], temperature_2m: [10, 20, 12, 22, 8, 18, 9, 19, 10, 20, 11, 21, 12, 22], relative_humidity_2m: [80, 60, 70, 50, 70, 50, 71, 51, 72, 52, 73, 53, 74, 54], precipitation: [1, 2, 0, 4, 0, 2, 0, 3, 0, 0, 1, 1, 0, 0], wind_speed_10m: [5, 15, 10, 20, 8, 12, 9, 13, 10, 14, 11, 15, 12, 16], weather_code: [0, 0, 0, 0, 1, 3, 61, 61, 95, 95, 45, 45, 71, 71] }));
+  const result = await new OpenMeteoAdapter().obtenerSerie(request);
+  assert.equal(result.serie.length, 2);
+  assert.equal(result.prevision.length, 5);
+  assert.deepEqual(result.prevision[0], { fecha: "2026-08-21", codigoMeteorologico: 3, temperaturaMinima: 8, temperaturaMaxima: 18, precipitacion: 2, humedadRelativa: 60, vientoMedio: 10 });
+});
+
+test("datos futuros ausentes no bloquean la serie histórica", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => response(required));
+  const result = await new OpenMeteoAdapter().obtenerSerie(request);
+  assert.equal(result.serie.length, 2);
+  assert.deepEqual(result.prevision, []);
+});

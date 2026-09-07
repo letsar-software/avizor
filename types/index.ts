@@ -166,6 +166,16 @@ export interface SerieClimaticaDiaria {
   temperaturaSuelo: { profundidad0cm: number | null; profundidad6cm: number | null; profundidad18cm: number | null; profundidad54cm: number | null; };
   radiacionSolar: number | null;
 }
+/** Información futura complementaria. No participa de la evaluación agronómica. */
+export interface PrevisionClimaticaDiaria {
+  fecha: string;
+  codigoMeteorologico: number | null;
+  temperaturaMinima: number | null;
+  temperaturaMaxima: number | null;
+  precipitacion: number | null;
+  humedadRelativa: number | null;
+  vientoMedio: number | null;
+}
 export type AggregatorKey = typeof SPEC_AGGREGATORS[number];
 export type SpecOperator = typeof SPEC_OPERATORS[number];
 export type SpecVariable = typeof SPEC_VARIABLES[number];
@@ -285,7 +295,7 @@ export interface PlagaRegional {
 export interface EvaluacionObservada { variable: SpecVariable; agregador: AggregatorKey; valor: number; unidad: string; umbral: string; cumple: boolean; cobertura: number; }
 export interface ResultadoReglaV2 { riesgo: string; regla: { clave: string; version: string; estado: ReglaAgronomicaV2["estado"]; modo?: "estable" | "experimental"; nombre?: string; categoria?: string; evaluabilidad?: ReglaAgronomicaV2["evaluabilidad"] }; estado: string; etiqueta?: string; explicacion?: string; recomendacion?: string; fuente_tecnica?: string | null; limitaciones_declaradas?: string | null; orden_visual?: number; ventana: { desde: string; hasta: string; dias: number }; observado: EvaluacionObservada[]; calidad_dato: { cobertura_min: number; dias_faltantes: number; distancia_punto_km: number | null }; motivo?: string; detalle?: Record<string, unknown>; evaluado_en: string; }
 export interface ContextoFenologico { disponible: boolean; detalle?: FenologiaEstimada; motivo?: "proveedor_no_configurado" | "entradas_insuficientes" | "error_proveedor"; estadio_estimado?: string; descripcion?: string; fuente?: string; entradas?: Record<string, string | null>; incertidumbre?: { nota: string }; modifica_reglas: false; }
-export interface ResultadoConsultaV2Publica { id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string; resumen_consulta?: { descripcion: string; destaque: string }; localidad: LocalidadNormalizada | null; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string; reglas: ResultadoReglaV2[]; plagas?: { evaluaciones: EvaluacionPlaga[]; disponibilidad: "disponible" | "zona_no_resuelta" }; contexto_fenologico: ContextoFenologico; duracion_ms: number; clima: { serie: SerieClimaticaDiaria[]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes?: string[]; dias_solicitados?: number; dias_disponibles?: number; obtenido_en?: string; adapter_version: string }; }
+export interface ResultadoConsultaV2Publica { id: string | null; request_id: string; share_token: string; estado_general: EstadoGeneral; explicacion: string; resumen_consulta?: { descripcion: string; destaque: string }; localidad: LocalidadNormalizada | null; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string; reglas: ResultadoReglaV2[]; plagas?: { evaluaciones: EvaluacionPlaga[]; disponibilidad: "disponible" | "zona_no_resuelta" }; contexto_fenologico: ContextoFenologico; duracion_ms: number; clima: { serie: SerieClimaticaDiaria[]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes?: string[]; dias_solicitados?: number; dias_disponibles?: number; obtenido_en?: string; adapter_version: string }; prevision?: PrevisionClimaticaDiaria[]; }
 
 export type TipoReglaPlaga = "climatica" | "prioridad_monitoreo";
 export type EstadoEvaluacionPlaga = "favorabilidad_alta" | "favorabilidad_moderada" | "periodo_relevante_monitoreo" | "sin_condiciones_destacadas" | "indeterminado" | "no_evaluada";
