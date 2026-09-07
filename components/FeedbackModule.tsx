@@ -47,6 +47,9 @@ export default function FeedbackModule() {
           placeholder="Tu sugerencia..."
           className="w-full h-20 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-avizor-green resize-none"
         />
+        <p className="mt-2 text-xs leading-5 text-gray-500">
+          No incluyas datos personales o información sensible en este campo.
+        </p>
       </div>
       {(seleccion || sugerencia.trim()) && (
         <button

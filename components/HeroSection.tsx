@@ -20,9 +20,14 @@ export default function HeroSection() {
 
   function sessionId() {
     const current = localStorage.getItem("avizor_session_id");
-    if (current) return current;
+    if (current) {
+      try {
+        const stored = JSON.parse(current) as { id?: string; createdAt?: string };
+        if (stored.id && stored.createdAt && Date.now() - new Date(stored.createdAt).getTime() < 365 * 24 * 60 * 60 * 1000) return stored.id;
+      } catch { /* Legacy identifiers have no reliable creation date and are rotated. */ }
+    }
     const id = crypto.randomUUID();
-    localStorage.setItem("avizor_session_id", id);
+    localStorage.setItem("avizor_session_id", JSON.stringify({ id, createdAt: new Date().toISOString() }));
     return id;
   }
 
@@ -35,11 +40,9 @@ export default function HeroSection() {
       const payload = await response.json();
       if (!response.ok) { setError(payload.error?.message || "No pudimos completar la consulta."); return; }
       const data = payload.data;
-      const query = { localidad, cultivo, fechaSiembra: fechaSiembra || undefined, grupoMadurez: precision ? grupoMadurez : undefined, cultivar: cultivar || undefined, createdAt: new Date().toISOString(), estado: data.estado_general, categoria: data.reglas?.[0]?.riesgo, resumen: data.explicacion, share_token: data.share_token, result: data };
       sessionStorage.setItem("avizor_resultado", JSON.stringify(data));
-      sessionStorage.setItem("avizor_consulta", JSON.stringify(query));
-      const history = JSON.parse(localStorage.getItem("avizor_historial") || "[]");
-      localStorage.setItem("avizor_historial", JSON.stringify([query, ...history].slice(0, 20)));
+      sessionStorage.setItem("avizor_consulta", JSON.stringify({ localidad, cultivo, fechaSiembra: fechaSiembra || undefined, grupoMadurez: precision ? grupoMadurez : undefined, cultivar: cultivar || undefined }));
+      localStorage.removeItem("avizor_historial");
       router.push("/resultado");
     } catch { setError("No pudimos obtener los datos climáticos. Intentá nuevamente en unos minutos."); }
     finally { setLoading(false); }

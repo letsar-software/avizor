@@ -13,6 +13,7 @@ import { DomainError } from "@/lib/consultas/service";
 import { readJsonBody } from "@/lib/http/json-body";
 import { consultaLegacySchema,parseInput } from "@/lib/security/validation";
 import { enforcePublicConsultationLimit } from "@/lib/security/rate-limit";
+import { logSafeError } from "@/lib/logging/safe";
 
 const USER_MESSAGES: Record<ConsultaErrorCode, string> = {
   CLIMA_NO_DISPONIBLE: "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.",
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
 
     persistenceResults.forEach((persistenceResult) => {
       if (persistenceResult.status === "rejected") {
-        console.error("No se pudo guardar informacion de consulta", persistenceResult.reason);
+        logSafeError({ operation: "consulta.persistence", error_code: "PERSISTENCIA_FALLIDA", status: 500 });
       }
     });
 

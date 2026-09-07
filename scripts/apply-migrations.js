@@ -42,6 +42,8 @@ async function main() {
     "db/migrations/016_retira_columnas_plagas_reglas_agronomicas.sql",
     "db/migrations/017_invitaciones_admin.sql",
     "db/migrations/018_api_key_scopes_check.sql",
+    "db/migrations/019_privacy_retention.sql",
+    "db/migrations/020_novedades_suscripcion_baja.sql",
   ];
 
   for (const migration of migrations) {
@@ -57,7 +59,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error(error.message);
+    console.error("migration_failed");
     process.exitCode = 1;
   })
   .finally(() => pool.end());

@@ -1,5 +1,6 @@
 import type { ClimateData, ConsultaRequest, ResultadoConsulta, ReglaAgronomica } from "@/types";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
+import { logSafeError, logSafeInfo } from "@/lib/logging/safe";
 
 interface ConsultaLogInput {
   request: ConsultaRequest;
@@ -30,15 +31,7 @@ export async function logConsulta(input: ConsultaLogInput) {
   };
 
   if (!hasDatabaseConfig()) {
-    console.info("consulta_log", {
-      persistido: false,
-      localidad: payload.localidad,
-      cultivo: payload.cultivo,
-      tiene_sesion: Boolean(payload.session_id),
-      cantidad_reglas: payload.reglas_evaluadas.length,
-      tiene_resultado: Boolean(payload.resultado),
-      error: payload.error,
-    });
+    logSafeInfo({ operation: "consulta_log.persistence_unavailable" });
     return;
   }
 
@@ -81,8 +74,8 @@ export async function logConsulta(input: ConsultaLogInput) {
         payload.modelo_fenologico_version,
       ],
     );
-  } catch (error) {
-    console.error("No se pudo guardar consulta_log", error);
+  } catch {
+    logSafeError({ operation: "consulta_log.persistence", error_code: "PERSISTENCIA_FALLIDA", status: 500 });
   }
 }
 

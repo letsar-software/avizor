@@ -6,7 +6,7 @@ const { createPgPool } = require("./lib/database-pool");
 
 const [, , email, nombre, rol, password] = process.argv;
 if (!email || !nombre || !rol || !password) {
-  console.error("Uso: node scripts/create-admin-user.js <email> <nombre> <rol> <password>");
+  console.error("Faltan argumentos requeridos para crear el usuario administrador.");
   process.exit(1);
 }
 if (!["administrador", "agronomo", "soporte"].includes(rol)) {
@@ -35,12 +35,12 @@ async function main() {
      returning id,email,rol`,
     [email.trim().toLowerCase(), nombre, rol, passwordHash],
   );
-  console.log("usuario_admin listo", result.rows[0]);
+  console.log("usuario_admin listo", { id: result.rows[0].id, rol: result.rows[0].rol });
 }
 
 main()
   .catch((error) => {
-    console.error(error.message);
+  console.error("admin_user_creation_failed");
     process.exitCode = 1;
   })
   .finally(() => pool.end());

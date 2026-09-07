@@ -1,5 +1,6 @@
 import type { ClimateData, ConsultaRequest, ResultadoConsulta, ReglaAgronomica } from "@/types";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
+import { logSafeInfo } from "@/lib/logging/safe";
 
 interface CreateConsultaInput {
   request: ConsultaRequest;
@@ -39,12 +40,7 @@ async function getConsultaIdByShareToken(shareToken?: string) {
 
 export async function createConsulta(input: CreateConsultaInput) {
   if (!hasDatabaseConfig()) {
-    console.info("consulta", {
-      persistido: false,
-      localidad_normalizada: input.climateData.localidad,
-      cultivo: input.request.cultivo,
-      estado_general: input.result.estado_general,
-    });
+    logSafeInfo({ operation: "consulta.persistence_unavailable" });
     return null;
   }
 
@@ -108,7 +104,7 @@ export async function saveInteresado(input: SaveInteresadoInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("interesado", { persistido: false, tiene_consulta: Boolean(input.share_token), tiene_sesion: Boolean(input.session_id) });
+    logSafeInfo({ operation: "interesado.persistence_unavailable" });
     return null;
   }
 
@@ -132,7 +128,7 @@ export async function saveObservacion(input: SaveObservacionInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("observacion", { persistido: false, cantidad_opciones: opciones.length, tiene_detalle: Boolean(detalle), tiene_consulta: Boolean(input.share_token) });
+    logSafeInfo({ operation: "observacion.persistence_unavailable" });
     return null;
   }
 
@@ -156,7 +152,7 @@ export async function saveFeedback(input: SaveFeedbackInput) {
   }
 
   if (!hasDatabaseConfig()) {
-    console.info("feedback", { persistido: false, utilidad: input.utilidad ?? null, cantidad_observaciones: observaciones.length, tiene_sugerencia: Boolean(sugerencia), tiene_consulta: Boolean(input.share_token) });
+    logSafeInfo({ operation: "feedback.persistence_unavailable" });
     return null;
   }
 

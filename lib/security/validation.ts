@@ -34,7 +34,7 @@ export const consultaLegacySchema = z.object({
 
 export const interesadoSchema = z.object({
   email, consentimiento: z.literal(true), consentimiento_version: shortText(40), consentimiento_fecha: z.string().datetime({ offset: true }),
-  nombre_lote: optionalText(120), share_token: uuid.optional(), session_id: optionalText(128), localidad: optionalText(120), cultivo: optionalText(30),
+  share_token: uuid.optional(), session_id: optionalText(128), localidad: optionalText(120), cultivo: optionalText(30),
 }).strict();
 
 export const guardarSchema = z.object({ email }).strict();
