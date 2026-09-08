@@ -1,3 +1,9 @@
+# Operaciones PostgreSQL
+
+Para aplicar `db/migrations` de cero contra una instancia vacía: `npm run db:migrate:clean`.
+
+Ese comando corre `scripts/test-clean-migrations.js`. Levanta el contenedor descartable `avizor-pg-migrate-test` (Postgres 16, puerto `54329`, usuario/clave/base `avizor`), aplica `scripts/apply-migrations.js` contra esa URL y valida el esquema. No lee el `DATABASE_URL` de Railway ni del `.env` local. El detalle está en el README, sección «Probar migraciones en PostgreSQL limpio».
+
 # Operaciones PostgreSQL de seguridad
 
 `railway_least_privilege_roles.sql` es un runbook manual, no una migración automática.
