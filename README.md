@@ -248,7 +248,21 @@ La respuesta puede incluir `fenologia` además del resultado climático y agron�
 
 ## Base de datos
 
-Las migraciones se encuentran en `db/migrations` y se aplican con `npm run db:migrate` (`scripts/apply-migrations.js`), siempre en el orden fijo del script. No hace falta ningún paso manual entre archivos.
+Las migraciones se encuentran en `db/migrations` y se aplican con `npm run db:migrate` (`scripts/apply-migrations.js`). Este comando usa el `DATABASE_URL` configurado: verificar el ambiente antes de ejecutarlo.
+
+El ejecutor consulta `public.schema_migrations` antes de aplicar cada archivo. Los archivos registrados se omiten (`skipped`); cada archivo pendiente se ejecuta y registra (`applied`) en una misma transacción. Si falla el SQL o el registro, se revierte esa migración, el proceso termina con error y el próximo intento continúa con las pendientes. Las migraciones que ya finalizaron conservan sus registros y fechas.
+
+Se conserva el orden fijo del script, con dos excepciones: `021_schema_migrations.sql` inicializa el historial cuando falta la tabla, y `003` se ejecuta anticipadamente si ya existe `reglas_agronomicas` y aún no está registrada. Esta deduplicación mantiene la compatibilidad con bases antiguas y no se repite durante el recorrido.
+
+En una base existente sin historial, las migraciones se aplican una vez para registrar su ejecución. `applied_at` corresponde a ese momento, no a una fecha histórica reconstruida. Después, dos corridas consecutivas no vuelven a ejecutar archivos registrados. No editar ni renombrar migraciones registradas: agregar un archivo nuevo a la lista del ejecutor. Las migraciones deben permitir una transacción por archivo, sin `BEGIN`/`COMMIT` propios ni operaciones que requieran ejecutarse fuera de una transacción. Ejecutar un solo proceso de migración por base a la vez.
+
+Para consultar el historial desde un cliente SQL conectado a la base elegida:
+
+```sql
+select filename, applied_at
+from public.schema_migrations
+order by applied_at, filename;
+```
 
 ### Probar migraciones en PostgreSQL limpio
 
@@ -262,7 +276,12 @@ Ese comando corre `scripts/test-clean-migrations.js`. El script:
 
 1. Levanta un Postgres 16 descartable y espera a que acepte conexiones en el host.
 2. Aplica las migraciones con `scripts/apply-migrations.js`, forzando `DATABASE_URL` y `DATABASE_SSL=false`.
-3. Comprueba el esquema final: las 23 tablas esperadas, la extensión `pgcrypto`, la ausencia de las columnas de plagas retiradas en `016` y el constraint `api_keys_scopes_check`.
+3. Comprueba el historial de las 21 migraciones y repite `npm run db:migrate`: ninguna se vuelve a aplicar y las fechas se mantienen.
+4. Simula una base sin historial con un duplicado heredado, verifica la ejecución anticipada de `003` y la adopción del historial.
+5. Inyecta fallos de SQL y de registro en copias temporales de las migraciones, comprueba rollback y reintento sin reaplicar archivos exitosos. No modifica los SQL del repositorio.
+6. Comprueba el esquema final: las 24 tablas esperadas (incluida `schema_migrations`), la extensión `pgcrypto`, la ausencia de las columnas de plagas retiradas en `016` y el constraint `api_keys_scopes_check`.
+
+Este comando recrea únicamente el contenedor local `avizor-pg-migrate-test` y borra sus datos de prueba. No utiliza la base de Railway ni el `DATABASE_URL` del `.env`.
 
 Si cierra bien imprime `schema_ok`. El contenedor queda activo para inspeccionarlo. Para tirarlo:
 

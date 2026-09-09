@@ -19,6 +19,7 @@ const EXPECTED_TABLES = [
   "reglas_agronomicas",
   "reglas_plagas",
   "reglas_plagas_fuentes",
+  "schema_migrations",
   "sesiones_admin",
   "usuarios_admin",
   "zonas_agronomicas",
