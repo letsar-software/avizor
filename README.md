@@ -248,7 +248,43 @@ La respuesta puede incluir `fenologia` además del resultado climático y agron�
 
 ## Base de datos
 
-Las migraciones se encuentran en `db/migrations`.
+Las migraciones se encuentran en `db/migrations` y se aplican con `npm run db:migrate` (`scripts/apply-migrations.js`), siempre en el orden fijo del script. No hace falta ningún paso manual entre archivos.
+
+### Probar migraciones en PostgreSQL limpio
+
+No uses el `DATABASE_URL` de Railway ni el del `.env` local. Requiere Docker.
+
+```bash
+npm run db:migrate:clean
+```
+
+Ese comando corre `scripts/test-clean-migrations.js`. El script:
+
+1. Levanta un Postgres 16 descartable y espera a que acepte conexiones en el host.
+2. Aplica las migraciones con `scripts/apply-migrations.js`, forzando `DATABASE_URL` y `DATABASE_SSL=false`.
+3. Comprueba el esquema final: las 23 tablas esperadas, la extensión `pgcrypto`, la ausencia de las columnas de plagas retiradas en `016` y el constraint `api_keys_scopes_check`.
+
+Si cierra bien imprime `schema_ok`. El contenedor queda activo para inspeccionarlo. Para tirarlo:
+
+```bash
+docker rm -f avizor-pg-migrate-test
+```
+
+El comando exacto que usa para crear la base es:
+
+```bash
+docker rm -f avizor-pg-migrate-test
+docker run --name avizor-pg-migrate-test \
+  -e POSTGRES_USER=avizor \
+  -e POSTGRES_PASSWORD=avizor \
+  -e POSTGRES_DB=avizor \
+  -p 54329:5432 \
+  -d postgres:16
+```
+
+Corrida de referencia (2026-09-08, base vacía, sin intervención manual): `001` a `020` aplicaron sin error, `active_soja_rules 13`, `schema_ok` con 23 tablas y `pgcrypto`. BE-001 hablaba de 18 archivos (`001`–`018`); el script actual también aplica `019` y `020`, y esa cadena completa es la que se prueba.
+
+La lógica está partida en tres módulos: `scripts/lib/disposable-postgres.js` administra el contenedor, `scripts/lib/clean-schema.js` define el esquema esperado y `scripts/lib/run-command.js` ejecuta los comandos.
 
 `006_fenologia_consultas.sql` agrega a consultas y logs:
 
