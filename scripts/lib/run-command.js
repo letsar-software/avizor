@@ -15,6 +15,7 @@ function runCommand(command, args, options = {}) {
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
     encoding: "utf8",
     env: options.env || process.env,
+    cwd: options.cwd,
   });
 
   if (result.error) {
