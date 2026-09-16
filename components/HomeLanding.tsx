@@ -41,7 +41,7 @@ export default function HomeLanding() {
 
     <section className="mx-auto max-w-[1440px] px-5 py-9 sm:px-8 lg:px-14">
       <h2 className="text-[22px] font-bold">¿Para qué te sirve Avizor?</h2>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{benefits.map(({ Icon, title, description }) => <article key={title} className="rounded-xl border border-[#dfe6e2] bg-white p-5 shadow-[0_3px_10px_rgba(8,26,49,.03)]"><Icon className="h-7 w-7 text-[#2886c2]"/><h3 className="mt-4 text-sm font-bold leading-5">{title}</h3><p className="mt-2 text-sm leading-5 text-[#4c5e6d]">{description}</p></article>)}</div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{benefits.map(({ Icon, title, description }) => <article key={title} className="rounded-xl border border-[#dfe6e2] bg-white p-4 shadow-[0_3px_10px_rgba(8,26,49,.03)] sm:p-5"><div className="flex items-center gap-2 sm:block"><Icon className="h-5 w-5 shrink-0 text-[#2886c2] sm:h-7 sm:w-7"/><h3 className="text-sm font-bold leading-5 sm:mt-4">{title}</h3></div><p className="mt-2 text-sm leading-5 text-[#4c5e6d]">{description}</p></article>)}</div>
     </section>
 
     <section className="bg-white sm:border-y sm:bg-[#fafcfb]">

@@ -41,7 +41,8 @@ export default function Header() {
         <Link href="/consultar" className="ml-auto hidden min-h-10 items-center justify-self-end rounded-lg bg-[#087b4b] px-5 text-xs font-bold text-white shadow-sm lg:inline-flex">Realizar consulta</Link>
         <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Cerrar menú" : "Abrir menú"} className="ml-auto flex h-12 w-12 items-center justify-center text-[#087b4b] lg:hidden">{open ? <X className="h-8 w-8" strokeWidth={2.2} /> : <Menu className="h-8 w-8" strokeWidth={2.2} />}</button>
       </div>
-      <nav id="mobile-menu" aria-hidden={!open} className={`fixed inset-x-0 bottom-0 top-20 z-[60] overflow-y-auto overscroll-contain border-t border-[#e3e9e5] bg-white shadow-[0_14px_28px_rgba(8,26,49,.12)] sm:top-[72px] lg:hidden ${open ? "block" : "hidden"}`} aria-label="Menú móvil">
+    </header>
+    <nav id="mobile-menu" aria-hidden={!open} className={`fixed inset-x-0 bottom-0 top-20 z-[60] overflow-y-auto overscroll-contain border-t border-[#e3e9e5] bg-white shadow-[0_14px_28px_rgba(8,26,49,.12)] sm:top-[72px] lg:hidden ${open ? "block" : "hidden"}`} aria-label="Menú móvil">
         <div className="px-5">
           {MOBILE_NAV.map(item => <Link key={item.href} href={item.href} onClick={closeMobileMenu} className={`flex min-h-14 items-center justify-between border-b border-[#e5ebe7] text-base font-bold ${pathname === item.href ? "text-[#087b4b]" : "text-[#081a31]"}`}><span>{item.label}</span><ChevronRight className="h-5 w-5" /></Link>)}
           <button type="button" onClick={() => setResourcesOpen((value) => !value)} aria-expanded={resourcesOpen} aria-controls="mobile-resources-menu" className="flex min-h-14 w-full items-center justify-between border-b border-[#e5ebe7] text-base font-bold text-[#081a31]"><span>Recursos</span><ChevronDown aria-hidden="true" className={`h-5 w-5 transition-transform ${resourcesOpen ? "rotate-180" : ""}`} /></button>
@@ -50,7 +51,6 @@ export default function Header() {
           <Link href="/consultar" onClick={closeMobileMenu} className="my-5 flex min-h-12 items-center justify-center rounded-lg bg-[#087b4b] text-sm font-bold text-white">Realizar consulta</Link>
         </div>
       </nav>
-    </header>
     <div className="h-20 sm:h-[72px]" aria-hidden="true" />
   </>;
 }
