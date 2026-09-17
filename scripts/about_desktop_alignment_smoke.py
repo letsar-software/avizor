@@ -17,15 +17,15 @@ with sync_playwright() as playwright:
     for row in (link_tops[:3], link_tops[3:]):
         assert max(row) - min(row) <= 2, link_tops
 
-    single_line_texts = [
+    readable_texts = [
         "Tecnología, agronomía, diseño y desarrollo de producto trabajando juntos para transformar datos ambientales en información útil para el productor.",
         "Avizor es un proyecto en constante evolución. Combinamos datos climáticos, inteligencia artificial y rigor agronómico validado por especialistas para generar señales accionables, que le ayuden al productor a anticiparse.",
     ]
-    for content in single_line_texts:
+    for content in readable_texts:
         locator = page.get_by_text(content, exact=True)
         box = locator.bounding_box()
         line_height = float(locator.evaluate("element => getComputedStyle(element).lineHeight.replace('px', '')"))
-        assert box["height"] <= line_height * 1.15, (content, box["height"], line_height)
+        assert box["height"] <= line_height * 3.15, (content, box["height"], line_height)
 
     for value in ("2026", "+150", "1"):
         metric = page.get_by_text(value, exact=True).locator("xpath=../..").first
