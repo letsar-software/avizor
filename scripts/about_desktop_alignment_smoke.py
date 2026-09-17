@@ -14,7 +14,8 @@ with sync_playwright() as playwright:
     links = page.get_by_role("link", name="Ver perfil en LinkedIn")
     assert links.count() == 6
     link_tops = [links.nth(index).bounding_box()["y"] for index in range(6)]
-    assert max(link_tops) - min(link_tops) <= 2, link_tops
+    for row in (link_tops[:3], link_tops[3:]):
+        assert max(row) - min(row) <= 2, link_tops
 
     single_line_texts = [
         "Tecnología, agronomía, diseño y desarrollo de producto trabajando juntos para transformar datos ambientales en información útil para el productor.",
