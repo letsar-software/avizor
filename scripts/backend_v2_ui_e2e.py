@@ -11,6 +11,10 @@ def run(viewport, suffix):
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(viewport=viewport)
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
+        def log_consultation_response(response):
+            if "/api/public/consultas" in response.url:
+                print(f"consulta_api_status={response.status}", flush=True)
+        page.on("response", log_consultation_response)
         page.goto(f"{BASE}/consultar", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_load_state("networkidle")
         page.locator("#place").fill("Tandil, Buenos Aires")
