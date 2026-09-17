@@ -14,6 +14,10 @@ def run(viewport, suffix):
         def log_consultation_response(response):
             if "/api/public/consultas" in response.url:
                 print(f"consulta_api_status={response.status}", flush=True)
+                try:
+                    print(f"consulta_api_body={response.text()}", flush=True)
+                except Exception as error:
+                    print(f"consulta_api_body_error={error}", flush=True)
         page.on("response", log_consultation_response)
         page.goto(f"{BASE}/consultar", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_load_state("networkidle")
