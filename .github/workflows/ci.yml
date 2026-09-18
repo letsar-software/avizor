@@ -23,17 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      DATABASE_URL: postgres://avizor:avizor@127.0.0.1:5432/avizor
-      DATABASE_SSL: "false"
       ENABLE_MAIZ: "false"
       ENABLE_ALERTAS: "false"
       ENABLE_OBSERVACIONES: "true"
       ENABLE_MODO_EXPERIMENTAL: "false"
       ENABLE_PLAGAS: "false"
-      AVIZOR_INTERNAL_TOKEN: ci-internal-token
-      AVIZOR_INTERNAL_ACTOR_ID: ci
-      RATE_LIMIT_HASH_SECRET: ci-rate-limit-secret
-      CLIMATE_CACHE_TTL_SECONDS: "10800"
       AVIZOR_BASE_URL: http://127.0.0.1:3000
       PORT: "3000"
     services:
@@ -89,9 +83,19 @@ jobs:
           playwright install chromium --with-deps
 
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgres://avizor:avizor@127.0.0.1:5432/avizor
+          DATABASE_SSL: "false"
         run: npm run db:migrate
 
       - name: Start application
+        env:
+          DATABASE_URL: postgres://avizor:avizor@127.0.0.1:5432/avizor
+          DATABASE_SSL: "false"
+          AVIZOR_INTERNAL_TOKEN: ci-internal-token
+          AVIZOR_INTERNAL_ACTOR_ID: ci
+          RATE_LIMIT_HASH_SECRET: ci-rate-limit-secret
+          CLIMATE_CACHE_TTL_SECONDS: "10800"
         run: |
           nohup npx next dev -p 3000 > /tmp/avizor-dev.log 2>&1 &
           echo $! > /tmp/avizor-dev.pid
