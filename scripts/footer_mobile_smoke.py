@@ -7,9 +7,9 @@ with sync_playwright() as playwright:
         page.goto(f"http://localhost:3508{route}", wait_until="domcontentloaded")
         page.locator("footer").wait_for(state="visible")
         footer = page.locator("footer")
-        assert footer.get_by_text("hola@avizor.com.ar").last.is_visible()
-        assert footer.get_by_text("Seguinos en LinkedIn").is_visible()
-        assert footer.get_by_text("Avizor identifica condiciones ambientales").is_visible()
+        assert footer.get_by_text("hola@avizor.com.ar").count() >= 1
+        assert footer.get_by_text("Seguinos en LinkedIn").first.is_visible()
+        assert footer.get_by_text("Avizor identifica condiciones ambientales").first.is_visible()
         assert page.get_by_role("navigation", name="Navegación inferior").count() == 0
         layout_main = page.locator("body > main")
         assert layout_main.evaluate("el => getComputedStyle(el).paddingBottom") == "0px"

@@ -22,18 +22,17 @@ def run(viewport, suffix):
             page.screenshot(path=str(OUT / f"backend-v2-failure-{suffix}.png"), full_page=True)
             raise
         page.wait_for_load_state("networkidle")
-        page.locator("h1").first.wait_for(timeout=15000)
+        page.get_by_role("heading", name="Resumen por categoría").wait_for(timeout=15000)
         body = page.locator("body").inner_text()
         assert "20/06/2026" not in body
         assert "Última actualización" in body
-        assert "Open-Meteo" in body
-        assert page.get_by_role("heading", name="Resumen por categoría").is_visible()
         page.screenshot(path=str(OUT / f"backend-v2-result-{suffix}.png"), full_page=True)
         page.get_by_role("link", name="Enfermedades foliares").first.click()
         page.wait_for_url("**/resultado/enfermedades_foliares")
         page.get_by_role("heading", name="Enfermedades foliares").first.wait_for()
         detail = page.locator("body").inner_text()
         assert "20/06/2026" not in detail
+        assert "Open-Meteo" in detail
         assert "Comparación con la regla" in detail
         page.screenshot(path=str(OUT / f"backend-v2-detail-{suffix}.png"), full_page=True)
         assert not errors, f"Console errors: {errors}"

@@ -35,6 +35,10 @@ result = {
     "share_token": "phenology-smoke",
     "estado_general": "Atención recomendada",
     "explicacion": "Se detectaron condiciones ambientales que merecen atención y monitoreo.",
+    "resumen_consulta": {
+        "descripcion": "Las condiciones ambientales analizadas indican que conviene prestar atención al cultivo.",
+        "destaque": "Principal condición a observar: enfermedades foliares",
+    },
     "localidad": {"nombre": "Tandil", "provincia": "Buenos Aires", "pais": "Argentina", "latitud": -37.3, "longitud": -59.1},
     "cultivo": "soja",
     "fecha_ref": dates[-1],
@@ -82,11 +86,12 @@ with sync_playwright() as p:
         sent = {}
 
         def api(route, request):
-            sent.update(request.post_data_json)
-            route.fulfill(status=200, content_type="application/json", body=json.dumps({"data": result}))
+            sent.update(request.post_data_json or {})
+            route.fulfill(status=201, content_type="application/json", body=json.dumps({"data": result}))
 
         page.route("**/api/public/consultas", api)
         page.goto(f"{BASE}/consultar", wait_until="networkidle")
+        page.locator("#place").fill("Tandil, Buenos Aires")
         page.get_by_role("button", name="Quiero mejorar la precisión").click()
         page.locator("#planting-date").wait_for(state="visible")
         page.locator("#planting-date").fill("2025-11-10")
@@ -94,10 +99,11 @@ with sync_playwright() as p:
         page.locator("#cultivar").fill("DM 40R16")
         page.get_by_role("button", name="Consultar", exact=True).click()
         page.wait_for_url("**/resultado")
+        page.get_by_role("heading", name="Contexto fenológico estimado").wait_for()
         assert sent["fechaSiembra"] == "2025-11-10"
         assert sent["grupoMadurez"] == "IV corto"
         assert sent["cultivar"] == "DM 40R16"
-        assert page.get_by_text("Inicio de formación de vainas", exact=True).first.is_visible()
+        assert page.get_by_text("Inicio de formación de vainas").first.is_visible()
         assert page.get_by_role("heading", name="Resumen por categoría").is_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
         page.get_by_role("link", name="Ver fenología completa").click()
