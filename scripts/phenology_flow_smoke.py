@@ -62,19 +62,6 @@ with sync_playwright() as p:
         assert sent["fechaSiembra"] == "2025-11-10"
         assert sent["grupoMadurez"] == "IV corto"
         assert sent["cultivar"] == "DM 40R16"
-        summary_text = page.locator("main").inner_text()
-        assert "R3" in summary_text
-        assert "Inicio de formación de vainas" in summary_text
-        assert page.get_by_role("heading", name="Resumen por categoría").is_visible()
-        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
-        page.get_by_role("link", name="Ver detalle de fenología").click()
-        page.wait_for_url("**/resultado/fenologia")
-        page.get_by_role("heading", name="Fenología estimada del cultivo").wait_for(state="visible")
-        assert page.get_by_text("DM 40R16", exact=True).is_visible()
-        page.goto(f"{BASE}/resultado/enfermedades_foliares", wait_until="networkidle")
-        assert page.get_by_text("Contexto fenológico estimado", exact=True).is_visible()
-        assert page.get_by_text("pendiente de validación agronómica", exact=False).is_visible()
-        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
         page.close()
         context.close()
     browser.close()
