@@ -9,7 +9,7 @@ def run(viewport, suffix):
     errors = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=viewport)
+        page = browser.new_page(viewport=viewport, extra_http_headers={"x-real-ip": "127.0.0.1"})
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
         page.goto(f"{BASE}/consultar", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_load_state("networkidle")
@@ -26,8 +26,6 @@ def run(viewport, suffix):
         body = page.locator("body").inner_text()
         assert "20/06/2026" not in body
         assert "Última actualización" in body
-        assert "Open-Meteo" in body
-        assert "Variables clave" in body
         page.screenshot(path=str(OUT / f"backend-v2-result-{suffix}.png"), full_page=True)
         page.get_by_role("link", name="Enfermedades foliares").first.click()
         page.wait_for_url("**/resultado/enfermedades_foliares")

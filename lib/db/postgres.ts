@@ -17,13 +17,22 @@ export function hasDatabaseConfig() {
 }
 
 export function validateDatabaseSecurityConfig(env: NodeJS.ProcessEnv = process.env) {
-  if (env.NODE_ENV !== "production") return;
+  if (env.NODE_ENV !== "production" || isEphemeralCiDatabase(env)) return;
   if (env.DATABASE_SSL_REJECT_UNAUTHORIZED === "false") {
     throw new Error("Configuración insegura: DATABASE_SSL_REJECT_UNAUTHORIZED=false no está permitida en producción.");
   }
   const sslEnabled = env.DATABASE_SSL === "true" || env.DATABASE_URL?.includes("sslmode=require");
   if (!sslEnabled) {
     throw new Error("Configuración insegura: TLS PostgreSQL es obligatorio en producción.");
+  }
+}
+
+function isEphemeralCiDatabase(env: NodeJS.ProcessEnv) {
+  if (env.CI !== "true" || !env.DATABASE_URL) return false;
+  try {
+    return ["localhost", "127.0.0.1", "::1"].includes(new URL(env.DATABASE_URL).hostname);
+  } catch {
+    return false;
   }
 }
 
@@ -58,4 +67,3 @@ export function getPool() {
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, values: unknown[] = []) {
   return getPool().query<T>(text, values);
 }
-

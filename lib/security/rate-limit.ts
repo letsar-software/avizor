@@ -47,7 +47,7 @@ export async function enforceRateLimit(limit: RateLimitDefinition, identity: str
 export async function consumeRateLimit(limit: RateLimitDefinition, identityHash: string, queryImpl: Query) {
   const result = await queryImpl<{ request_count: number; retry_after: number }>(
     `insert into rate_limit_buckets(scope,identity_hash,window_start,request_count,expires_at)
-     values($1,$2,to_timestamp(floor(extract(epoch from now())/$3)*$3),1,to_timestamp(floor(extract(epoch from now())/$3)*$3)+make_interval(secs=>$3))
+     values($1,$2,to_timestamp(floor(extract(epoch from now())/$3)*$3),1,to_timestamp(floor(extract(epoch from now())/$3)*$3)+($3 * interval '1 second'))
      on conflict(scope,identity_hash,window_start) do update
        set request_count=rate_limit_buckets.request_count+1
        where rate_limit_buckets.request_count < $4

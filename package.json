@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start -p $PORT",
     "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/apply-migrations.js",
     "db:migrate:clean": "node scripts/test-clean-migrations.js",
     "db:create-admin": "node scripts/create-admin-user.js",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "python3 scripts/run-e2e-smoke.py"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

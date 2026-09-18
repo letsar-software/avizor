@@ -10,9 +10,9 @@ with sync_playwright() as playwright:
         assert page.get_by_role("navigation", name="Navegación principal móvil").count() == 0
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), route
         if route == "/privacidad":
-            first = page.get_by_role("button", name="1. Qué datos recopilamos")
+            first = page.get_by_role("button", name="1. Qué datos utilizamos")
             assert first.get_attribute("aria-expanded") == "true"
-            second = page.get_by_role("button", name="2. Qué NO recopilamos")
+            second = page.get_by_role("button", name="2. Qué no solicitamos")
             second.click()
             assert second.get_attribute("aria-expanded") == "true"
         page.close()

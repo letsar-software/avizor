@@ -10,7 +10,7 @@ with sync_playwright() as playwright:
     assert page.get_by_role("heading", name="El proyecto").is_visible()
     assert page.get_by_text("+150", exact=True).is_visible()
     footer = page.locator("footer")
-    assert footer.get_by_role("link", name="Bibliografía").is_visible()
+    assert footer.get_by_text("Seguinos en LinkedIn").is_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
     browser.close()
     print("about mobile smoke: OK")

@@ -125,6 +125,8 @@ test("producción falla cerrada si se desactiva la verificación TLS", () => {
   assert.throws(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", DATABASE_SSL_REJECT_UNAUTHORIZED: "false" }), /no está permitida/);
   assert.throws(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", DATABASE_SSL: "false", DATABASE_SSL_REJECT_UNAUTHORIZED: "true" }), /TLS PostgreSQL es obligatorio/);
   assert.throws(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", DATABASE_SSL_REJECT_UNAUTHORIZED: "true" }), /TLS PostgreSQL es obligatorio/);
+  assert.doesNotThrow(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", CI: "true", DATABASE_URL: "postgresql://avizor:avizor@localhost:5432/avizor", DATABASE_SSL: "false" }));
+  assert.throws(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", CI: "true", DATABASE_URL: "postgresql://avizor:avizor@db.example.com:5432/avizor", DATABASE_SSL: "false" }), /TLS PostgreSQL es obligatorio/);
   assert.doesNotThrow(() => validateDatabaseSecurityConfig({ NODE_ENV: "development", DATABASE_SSL_REJECT_UNAUTHORIZED: "false" }));
   assert.doesNotThrow(() => validateDatabaseSecurityConfig({ NODE_ENV: "production", DATABASE_SSL: "true", DATABASE_SSL_REJECT_UNAUTHORIZED: "true" }));
 });

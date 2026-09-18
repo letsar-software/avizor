@@ -7,7 +7,7 @@ OUT.mkdir(exist_ok=True)
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
-    page = browser.new_page(viewport={"width": 1440, "height": 1100})
+    page = browser.new_page(viewport={"width": 1440, "height": 1100}, extra_http_headers={"x-real-ip": "127.0.0.1"})
     page.goto(f"{BASE}/consultar", wait_until="networkidle", timeout=60000)
     page.locator("#place").fill("Tandil, Buenos Aires")
     page.get_by_role("button", name="Consultar", exact=True).click()
