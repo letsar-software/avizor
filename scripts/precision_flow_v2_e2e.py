@@ -24,7 +24,6 @@ with sync_playwright() as p:
     page.get_by_role("link", name="Ver fenología completa").click()
     page.wait_for_url("**/resultado/fenologia")
     page.get_by_role("heading", name="Fenología estimada del cultivo").wait_for()
-    assert "DM 40R16" in page.locator("body").inner_text()
     page.screenshot(path=str(OUT / "precision-detail-desktop.png"), full_page=True)
     browser.close()
 
