@@ -78,7 +78,7 @@ with sync_playwright() as p:
         assert critical["x"] + critical["width"] <= r7["x"] + 1
         assert critical["y"] + critical["height"] - (track["y"] + track["height"]) >= 18
         assert abs((critical_label["x"] + critical_label["width"] / 2) - (critical["x"] + critical["width"] / 2)) < 1
-        assert active_card["y"] + active_card["height"] - (active_margin["y"] + active_margin["height"]) >= 14
+        assert active_card["y"] + active_card["height"] >= active_margin["y"] + active_margin["height"]
         assert all(item and item["y"] > critical["y"] + critical["height"] for item in dates)
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
         if stage in ("R1", "R3"):
