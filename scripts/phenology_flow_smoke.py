@@ -29,6 +29,7 @@ result = {
         {"nombre":"exceso_hidrico","condicion":"favorable","causas":[],"recomendacion":"","regla_version":"v1"},
     ],
     "clima_resumen":{"dias_datos":14,"humedad_media_14d":88.1,"lluvia_5d_mm":20,"lluvia_7d_mm":30,"lluvia_14d_mm":39.9,"temp_media_14d":9.2,"viento_medio_14d_kmh":18,"dias_lluvia_14d":4,"temp_min_14d":6.2},
+    "contexto_fenologico":{"disponible":True,"estadio_estimado":"R3","descripcion":"R3 — Inicio de formación de vainas","fecha_estimada":"2026-01-18","confianza":"media"},
     "fenologia":fenologia,
 }
 
