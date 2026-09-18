@@ -4,7 +4,11 @@ BASE = "http://127.0.0.1:3514"
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
-    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    context = browser.new_context(
+        viewport={"width": 1440, "height": 1000},
+        extra_http_headers={"x-real-ip": "127.0.0.9"},
+    )
+    page = context.new_page()
     page.goto(f"{BASE}/consultar", wait_until="networkidle")
     page.get_by_role("button", name="Quiero mejorar la precisión").click()
     page.locator("#planting-date").fill("2026-08-21")
@@ -17,6 +21,7 @@ with sync_playwright() as p:
     assert image.evaluate("el => el.complete && el.naturalWidth > 0")
     assert page.get_by_role("link", name="Ver fenología completa").is_visible()
     page.screenshot(path="screenshots/phenology-context-image.png", full_page=True)
+    context.close()
     browser.close()
 
 print("phenology context image: ok")
