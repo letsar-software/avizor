@@ -39,7 +39,9 @@ export class ConsultaService {
     catch { throw new DomainError("DATOS_CLIMATICOS_NO_DISPONIBLES", "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.", 503); }
     if (!localidad) throw new DomainError("LOCALIDAD_NO_ENCONTRADA", "No encontramos esa localidad. Probá con el nombre completo.", 404);
     const fechaRef = normalizeDate(input.fechaRef);
-    const rules = await (this.dependencies.loadRules ?? getReglasVigentes)(cultivo);
+    let rules: ReglaAgronomicaV2[];
+    try { rules = await (this.dependencies.loadRules ?? getReglasVigentes)(cultivo); }
+    catch (error) { console.error("consulta.rules.failure", error instanceof Error ? error.message : String(error)); throw error; }
     if (!rules.length) throw new DomainError("REGLA_NO_ENCONTRADA", "No hay reglas vigentes para evaluar esta consulta.", 503);
     let climate;
     try { climate = await (this.dependencies.climate ?? new OpenMeteoAdapter()).obtenerSerie({ localidad, fechaRef, dias: 14 }); }
@@ -60,7 +62,9 @@ export class ConsultaService {
       plagas = zone ? { evaluaciones: await this.evaluatePests(cultivo, zone, climate.serie, phenology, fechaRef, evaluatedAt), disponibilidad: "disponible" } : { evaluaciones: [], disponibilidad: "zona_no_resuelta" };
     }
     const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, ...(plagas ? { plagas } : {}), contexto_fenologico: phenology, calidad_analisis: calidadAnalisis, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, variables_faltantes: climate.variablesFaltantes, dias_solicitados: climate.diasSolicitados, dias_disponibles: climate.diasDisponibles, obtenido_en: climate.obtenidoEn, adapter_version: climate.adapterVersion }, ...(climate.prevision.length ? { prevision: climate.prevision } : {}), duracion_ms: Math.round(performance.now() - started) };
-    result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result });
+    try {
+      result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result });
+    } catch (error) { console.error("consulta.persist.failure", error instanceof Error ? error.message : String(error)); throw error; }
     return result;
   }
 
