@@ -5,7 +5,7 @@ BASE = "http://127.0.0.1:3516"
 with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page(viewport={"width": 1146, "height": 900})
-    page.goto(BASE, wait_until="domcontentloaded")
+    page.goto(BASE, wait_until="networkidle")
     page.locator("footer").wait_for(state="visible")
 
     nav = page.get_by_role("navigation", name="Navegación principal")
@@ -28,11 +28,11 @@ with sync_playwright() as p:
     assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
     page.screenshot(path="docs/screenshots/home-desktop-aligned.png", full_page=True)
 
-    page.goto(f"{BASE}/consultar", wait_until="domcontentloaded")
+    page.goto(f"{BASE}/consultar", wait_until="networkidle")
     page.get_by_role("button", name="Quiero mejorar la precisión").wait_for(state="visible")
     page.get_by_role("button", name="Quiero mejorar la precisión").click()
     date_input = page.locator("#planting-date")
-    assert date_input.is_visible()
+    date_input.wait_for(state="visible")
     assert date_input.get_attribute("type") == "date"
     assert "modern-date-input" in (date_input.get_attribute("class") or "")
     assert page.locator("#planting-date + span svg").is_visible()
