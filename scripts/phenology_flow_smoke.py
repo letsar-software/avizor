@@ -44,7 +44,7 @@ with sync_playwright() as p:
         def api(route, request):
             sent.update(request.post_data_json)
             route.fulfill(status=200, content_type="application/json", body=__import__("json").dumps(result))
-        page.route("**/api/consulta", api)
+        page.route("**/api/public/consultas*", api)
         page.goto(f"{BASE}/consultar", wait_until="networkidle")
         precision_button = page.get_by_role("button", name="Quiero mejorar la precisión")
         page.wait_for_function("el => Object.keys(el).some(k => k.startsWith('__reactProps'))", arg=precision_button.element_handle())
@@ -55,9 +55,9 @@ with sync_playwright() as p:
         page.locator("#cultivar").fill("DM 40R16")
         page.get_by_role("button", name="Consultar", exact=True).click()
         page.wait_for_url("**/resultado")
-        assert sent["fecha_siembra"] == "2025-11-10"
-        assert sent["grupo_madurez"] == "IV corto"
-        assert sent["cultivar_id"] == "DM 40R16"
+        assert sent["fechaSiembra"] == "2025-11-10"
+        assert sent["grupoMadurez"] == "IV corto"
+        assert sent["cultivar"] == "DM 40R16"
         assert page.get_by_text("R3 — Inicio de formación de vainas", exact=True).is_visible()
         assert page.get_by_role("heading", name="Resumen por categoría").is_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
