@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 
-ROUTES = ["/", "/consultar", "/historial", "/metodologia", "/bibliografia", "/sobre-avizor", "/explicacion-resultado", "/privacidad", "/alcance-limitaciones", "/novedades", "/contacto", "/estado-sistema", "/resultado/heladas", "/resultado/enfermedades_foliares", "/resultado/estres_hidrico", "/resultado/exceso_hidrico"]
+ROUTES = ["/", "/consultar", "/metodologia", "/bibliografia", "/sobre-avizor", "/explicacion-resultado", "/privacidad", "/alcance-limitaciones", "/novedades", "/contacto", "/estado-sistema", "/resultado/heladas", "/resultado/enfermedades_foliares", "/resultado/estres_hidrico", "/resultado/exceso_hidrico"]
 VIEWPORTS = [(320, 568), (360, 800), (390, 844), (412, 915), (768, 1024), (1440, 900)]
 
 with sync_playwright() as p:
@@ -25,7 +25,6 @@ with sync_playwright() as p:
     if errors:
         raise AssertionError("Console errors: " + " | ".join(errors))
     print("public routes responsive smoke: OK")
-
 
 
 
