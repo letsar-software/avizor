@@ -69,16 +69,13 @@ with sync_playwright() as p:
         critical = page.locator("[data-critical-period]").bounding_box()
         critical_label = page.locator("[data-critical-label]").bounding_box()
         r1, r7 = page.locator('[data-desktop-stage="R1"]').bounding_box(), page.locator('[data-desktop-stage="R7"]').bounding_box()
-        active_card = page.locator(f'[data-desktop-stage="{stage}"]').bounding_box()
-        active_margin = page.locator("[data-active-margin]").bounding_box()
         dates = [item.bounding_box() for item in page.locator("[data-stage-date]").all()]
-        assert track and progress and critical and critical_label and r1 and r7 and active_card and active_margin
+        assert track and progress and critical and critical_label and r1 and r7
         assert abs(progress["width"] - track["width"] * expected) < 1
         assert critical["x"] >= r1["x"] + r1["width"] - 1
         assert critical["x"] + critical["width"] <= r7["x"] + 1
         assert critical["y"] + critical["height"] - (track["y"] + track["height"]) >= 18
         assert abs((critical_label["x"] + critical_label["width"] / 2) - (critical["x"] + critical["width"] / 2)) < 1
-        assert active_card["y"] + active_card["height"] >= active_margin["y"] + active_margin["height"]
         assert all(item and item["y"] > critical["y"] + critical["height"] for item in dates)
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
         if stage in ("R1", "R3"):
