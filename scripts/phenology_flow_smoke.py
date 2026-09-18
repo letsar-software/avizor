@@ -22,6 +22,9 @@ fenologia = {
 }
 result = {
     "estado_general":"Atención recomendada","confianza":"Alta","dias_datos":14,"share_token":"test",
+    "explicacion":"Condiciones actuales para monitorear.","generado_en":"2026-01-01T00:00:00Z","fecha_ref":"2026-01-01",
+    "localidad":{"nombre":"Tandil","provincia":"Buenos Aires"},"cultivo":"soja","reglas":[],
+    "clima":{"serie":[],"cobertura":{"dias_disponibles":14,"dias_esperados":14}},"prevision":[],
     "categorias":[
         {"nombre":"heladas","condicion":"desfavorable","causas":[],"recomendacion":"","regla_version":"v1"},
         {"nombre":"enfermedades_foliares","condicion":"moderada","causas":[],"recomendacion":"Monitorear el lote.","regla_version":"v1"},
