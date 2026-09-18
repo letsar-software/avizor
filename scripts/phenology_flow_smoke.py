@@ -35,7 +35,11 @@ result = {
 with sync_playwright() as p:
     browser = p.chromium.launch()
     for viewport in ({"width":390,"height":844},{"width":1440,"height":900}):
-        page = browser.new_page(viewport=viewport)
+        context = browser.new_context(
+            viewport=viewport,
+            extra_http_headers={"x-real-ip": "127.0.0.10"},
+        )
+        page = context.new_page()
         sent = {}
         def api(route, request):
             sent.update(request.post_data_json)
@@ -66,6 +70,7 @@ with sync_playwright() as p:
         assert page.get_by_text("pendiente de validación agronómica", exact=False).is_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
         page.close()
+        context.close()
     browser.close()
 
 print("phenology flow desktop/mobile: ok")
