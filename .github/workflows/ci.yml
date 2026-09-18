@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ci:
+    name: lint, types, build, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: postgres://avizor:avizor@127.0.0.1:5432/avizor
+      DATABASE_SSL: "false"
+      ENABLE_MAIZ: "false"
+      ENABLE_ALERTAS: "false"
+      ENABLE_OBSERVACIONES: "true"
+      ENABLE_MODO_EXPERIMENTAL: "false"
+      ENABLE_PLAGAS: "false"
+      AVIZOR_INTERNAL_TOKEN: ci-internal-token
+      AVIZOR_INTERNAL_ACTOR_ID: ci
+      RATE_LIMIT_HASH_SECRET: ci-rate-limit-secret
+      CLIMATE_CACHE_TTL_SECONDS: "10800"
+      AVIZOR_BASE_URL: http://127.0.0.1:3000
+      PORT: "3000"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: avizor
+          POSTGRES_PASSWORD: avizor
+          POSTGRES_DB: avizor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U avizor -d avizor"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements-smoke.txt
+
+      - name: Install Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements-smoke.txt
+          playwright install chromium --with-deps
+
+      - name: Apply database migrations
+        run: npm run db:migrate
+
+      - name: Start application
+        run: |
+          nohup npx next dev -p 3000 > /tmp/avizor-dev.log 2>&1 &
+          echo $! > /tmp/avizor-dev.pid
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:3000 >/dev/null; then
+              echo "Application is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application failed to start"
+          cat /tmp/avizor-dev.log
+          exit 1
+
+      - name: Smoke tests
+        run: npm run test:smoke
+
+      - name: Upload smoke artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: |
+            screenshots/
+            docs/screenshots/
+            /tmp/avizor-dev.log
+          if-no-files-found: ignore

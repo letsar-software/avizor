@@ -27,7 +27,7 @@ def run(viewport, suffix):
         assert "20/06/2026" not in body
         assert "Última actualización" in body
         assert "Open-Meteo" in body
-        assert "Variables clave" in body
+        assert page.get_by_role("heading", name="Resumen por categoría").is_visible()
         page.screenshot(path=str(OUT / f"backend-v2-result-{suffix}.png"), full_page=True)
         page.get_by_role("link", name="Enfermedades foliares").first.click()
         page.wait_for_url("**/resultado/enfermedades_foliares")

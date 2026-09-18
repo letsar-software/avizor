@@ -11,7 +11,7 @@ with sync_playwright() as p:
     page.locator("#maturity-group").select_option(label="IV corto")
     page.get_by_role("button", name="Consultar", exact=True).click()
     page.wait_for_url("**/resultado", timeout=60000)
-    image = page.get_by_alt_text("Ilustración del estadio E")
+    image = page.locator('img[alt^="Ilustración del estadio"]')
     image.scroll_into_view_if_needed()
     image.wait_for(state="visible")
     assert image.evaluate("el => el.complete && el.naturalWidth > 0")
