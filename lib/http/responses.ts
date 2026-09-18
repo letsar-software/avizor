@@ -6,10 +6,7 @@ export function requestId(request: Request) { return request.headers.get("x-requ
 export function success(data: unknown, id: string, meta: Record<string, unknown> = {}, status = 200) { return NextResponse.json({ data, meta, request_id: id }, { status, headers: { "x-request-id": id } }); }
 export function failure(error: unknown, id: string) {
   const domain = error instanceof DomainError ? error : new DomainError("ERROR_INTERNO", "No pudimos completar la solicitud.", 500);
-  if (!(error instanceof DomainError)) {
-    logSafeError({ operation: "http.response.failure", request_id: id, error_code: "ERROR_INTERNO", status: 500 });
-    console.error("http.response.failure.detail", error instanceof Error ? error.message : String(error));
-  }
+  if (!(error instanceof DomainError)) logSafeError({ operation: "http.response.failure", request_id: id, error_code: "ERROR_INTERNO", status: 500 });
   const headers: Record<string, string> = { "x-request-id": id };
   if (domain.status === 429 && typeof domain.details.retry_after === "number") headers["Retry-After"] = String(domain.details.retry_after);
   return NextResponse.json({ error: { code: domain.code, message: domain.message, details: domain.details }, request_id: id }, { status: domain.status, headers });
