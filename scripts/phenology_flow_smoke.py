@@ -44,7 +44,7 @@ with sync_playwright() as p:
         sent = {}
         def api(route, request):
             sent.update(request.post_data_json)
-            route.fulfill(status=200, content_type="application/json", body=__import__("json").dumps(result))
+            route.fulfill(status=200, content_type="application/json", body=__import__("json").dumps({"data": result}))
         page.route("**/api/public/consultas*", api)
         page.goto(f"{BASE}/consultar", wait_until="networkidle")
         precision_button = page.get_by_role("button", name="Quiero mejorar la precisión")
