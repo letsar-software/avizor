@@ -13,6 +13,8 @@ test("el CI de pull requests valida calidad, tipos, build, tests y smoketests en
   assert.match(workflow, /npm ci/);
   assert.match(workflow, /python -m playwright install --with-deps chromium/);
   assert.match(workflow, /npm run db:migrate/);
+  assert.match(workflow, /RATE_LIMIT_TRUSTED_PROXY: railway/);
+  assert.match(workflow, /RATE_LIMIT_HASH_SECRET: ci-only-rate-limit-secret/);
 
   const commands = ["npm run lint", "npm run typecheck", "npm run build", "npm test", "npm run test:e2e"];
   let previousIndex = -1;

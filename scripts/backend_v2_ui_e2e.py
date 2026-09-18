@@ -9,16 +9,8 @@ def run(viewport, suffix):
     errors = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport=viewport)
+        page = browser.new_page(viewport=viewport, extra_http_headers={"x-real-ip": "127.0.0.1"})
         page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
-        def log_consultation_response(response):
-            if "/api/public/consultas" in response.url:
-                print(f"consulta_api_status={response.status}", flush=True)
-                try:
-                    print(f"consulta_api_body={response.text()}", flush=True)
-                except Exception as error:
-                    print(f"consulta_api_body_error={error}", flush=True)
-        page.on("response", log_consultation_response)
         page.goto(f"{BASE}/consultar", wait_until="domcontentloaded", timeout=60000)
         page.wait_for_load_state("networkidle")
         page.locator("#place").fill("Tandil, Buenos Aires")

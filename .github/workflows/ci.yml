@@ -28,6 +28,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://avizor:avizor@localhost:5432/avizor
       DATABASE_SSL: "false"
+      RATE_LIMIT_TRUSTED_PROXY: railway
+      RATE_LIMIT_HASH_SECRET: ci-only-rate-limit-secret
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
