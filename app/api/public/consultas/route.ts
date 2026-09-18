@@ -9,7 +9,8 @@ export async function POST(request: Request) {
   const id = requestId(request);
   try {
     console.log("consulta.public.rate_limit.start");
-    await enforcePublicConsultationLimit(request);
+    try { await enforcePublicConsultationLimit(request); }
+    catch (error) { console.error("consulta.public.rate_limit.failure", error instanceof Error ? error.message : String(error)); throw error; }
     console.log("consulta.public.rate_limit.ok");
     const body = parseInput(consultaV2Schema, await readJsonBody(request)) as ConsultaInput;
     const result = await new ConsultaService().ejecutar({ ...body, localidad: body.localidad, cultivo: body.cultivo, canal: "web" }, id);
