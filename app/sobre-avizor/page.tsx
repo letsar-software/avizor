@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { BarChart3, CalendarDays, Code2, Cpu, Database, Leaf, Lightbulb, MapPin, MousePointer2, Pencil, Search, Server, Settings, ShieldCheck, Sprout, UserRoundCheck } from "lucide-react";
 import { ScopeDisclaimer } from "@/components/PublicPage";
 
@@ -10,7 +10,7 @@ const principles = [
 const people = [
   { name: "Andrea Alvarez Zunino", role: "Co-fundadora · Frontend Developer · Producto & Desarrollo de Negocio", text: "Dirección del producto, desarrollo frontend, calidad y coordinación general de Avizor.", icon: Code2, linkedin: "https://www.linkedin.com/in/andrea-alvarez-zunino" },
   { name: "Ezequiel Romeo", role: "Co-fundador · Full Stack & AI Engineer", text: "Desarrollo de la plataforma, arquitectura e integración de soluciones de inteligencia artificial.", icon: Server, linkedin: "https://www.linkedin.com/in/ezequiel-romeo/" },
-  { name: "Natali Lázaro", role: "Ingeniera Agrónoma", text: "Validación de criterios agronómicos y conocimiento técnico aplicado al motor de señales.", icon: Search, linkedin: "https://www.linkedin.com/in/natali-lazzaro-16702738/" },
+  { name: "Natali Lazzaro", role: "Ingeniera Agrónoma", text: "Validación de criterios agronómicos y conocimiento técnico aplicado al motor de señales.", icon: Search, linkedin: "https://www.linkedin.com/in/natali-lazzaro-16702738/" },
   { name: "Laura Alvarez Zunino", role: "UX/UI Designer", text: "Investigación, experiencia de usuario y diseño de las interfaces de Avizor para que la información sea clara, intuitiva y útil.", icon: MousePointer2, linkedin: "https://www.linkedin.com/in/lauraalvarezzunino/" },
   { name: "Román Meclazke", role: "Backend & AI Engineer", text: "Backend, arquitectura e implementación de agentes y soluciones de inteligencia artificial.", icon: Settings, linkedin: "https://www.linkedin.com/in/roman-meclazcke/" },
   { name: "Santiago Pereira", role: "Frontend Developer · Producto & Desarrollo de Negocio", text: "Desarrollo de la experiencia pública y acompañamiento en producto, vinculación y generación de nuevas oportunidades.", icon: BarChart3, linkedin: "https://www.linkedin.com/in/santiago-pereira-994229244/" },
