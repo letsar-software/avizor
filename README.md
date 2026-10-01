@@ -2,29 +2,32 @@
 
 > La señal antes del problema.
 
-Avizor es una plataforma de monitoreo agrícola para productores y asesores agronómicos de Argentina. Convierte información climática reciente en señales simples que ayudan a observar condiciones que pueden favorecer enfermedades foliares, heladas, estrés hídrico o exceso hídrico.
+Avizor es una plataforma de monitoreo agrícola para productores y asesores de Argentina. Traduce datos climáticos recientes y reglas agronómicas en señales claras para orientar el monitoreo del lote de soja.
 
-Avizor no predice ni diagnostica. La información es orientativa y debe complementarse con observación a campo y asesoramiento profesional.
+No predice ni diagnostica. Los resultados son orientativos: deben complementarse con observación a campo y asesoramiento profesional.
 
-## Estado actual
+## Estado del proyecto
 
-- Sitio público responsive para escritorio y mobile.
-- Consulta rápida por localidad y cultivo.
-- Consulta opcional enriquecida con fecha de siembra, grupo de madurez y cultivar.
-- Resumen general posterior a la consulta.
-- Detalle independiente para cada categoría.
-- Estimación fenológica separada del motor de reglas.
-- Historial local sin inicio de sesión.
-- API interna, Open-Meteo y persistencia PostgreSQL.
-- Metodología, bibliografía, privacidad, alcance, contacto y estado del sistema.
+La aplicación cuenta con una experiencia pública responsive, backend de consultas, persistencia en PostgreSQL y un panel administrativo con control por roles. El MVP público está enfocado en soja; maíz, alertas automáticas y otras extensiones permanecen desactivadas mediante feature flags.
 
-## Principios del producto
+Hoy incluye:
 
-- Claro y simple.
-- Prudente y no alarmista.
-- Basado en evidencia.
-- Orientativo, no diagnóstico.
-- Transparente sobre datos, reglas y limitaciones.
+- Consulta por localidad y cultivo, con datos opcionales de siembra, grupo de madurez y cultivar.
+- Señales para enfermedades foliares, heladas, estrés hídrico y exceso hídrico.
+- Resultado en dos niveles: resumen general y detalle por categoría, con variables, evidencia, comparaciones y recomendaciones prudentes.
+- Calidad/cobertura del análisis, pronóstico climático y contexto fenológico estimado.
+- Plagas habilitables por `ENABLE_PLAGAS`, con reglas y catálogo administrables.
+- Historial local, guardado de consultas, observaciones, feedback y suscripción a novedades con consentimiento.
+- Páginas públicas de metodología, bibliografía, explicación del resultado, alcance, privacidad, contacto, novedades y estado del sistema.
+- Panel administrativo para reglas, simulaciones, plagas, zonas, cultivos, fenología, usuarios, empresas/API keys, auditoría y configuración.
+- Retención de datos, logging seguro, rate limiting y migraciones versionadas.
+
+## Principios de producto
+
+- Claro, prudente y basado en evidencia.
+- Sin mensajes alarmistas ni absolutos.
+- Transparente respecto de fuentes, cobertura y limitaciones.
+- Las condiciones ambientales se informan como señales de monitoreo, no como diagnósticos.
 
 | Evitar | Usar |
 | --- | --- |
@@ -32,361 +35,155 @@ Avizor no predice ni diagnostica. La información es orientativa y debe compleme
 | “Riesgo alto de enfermedad” | “Condiciones favorables para enfermedades foliares” |
 | “El cultivo está en R3” | “Estado fenológico estimado: R3” |
 
-## Evolución entre versiones
+## Rutas principales
 
-### 1. Primera versión pública
-
-El producto comenzó con Inicio, Consulta, Metodología y Sobre Avizor. La pantalla inicial explicaba qué hacía Avizor, cómo funcionaba y qué señal entregaba.
-
-Se definieron cuatro categorías:
-
-- Enfermedades foliares.
-- Heladas.
-- Estrés hídrico.
-- Exceso hídrico.
-
-### 2. Ampliación del sitio
-
-Se incorporaron:
-
-- Historial de consultas.
-- Bibliografía.
-- Explicación del resultado.
-- Privacidad.
-- Alcance y limitaciones.
-- Novedades.
-- Contacto.
-- Estado del sistema.
-
-La página independiente “Quiénes hacen Avizor” fue eliminada. La información del equipo quedó integrada en “Sobre Avizor” y se retiró esa opción del footer.
-
-### 3. Identidad y navegación
-
-Se unificaron header, navegación y footer:
-
-- Header fijo y translúcido durante el desplazamiento.
-- Menú hamburguesa desplegable en mobile.
-- Footer mobile común con información expandible.
-- Navegación inferior mobile.
-- Logo consistente en header y footer.
-
-El recurso vigente es `public/logo-mod-avizor.png`. La URL se cambió respecto de versiones anteriores para evitar que el navegador muestre un logo almacenado en caché.
-
-### 4. Inicio, Metodología y Sobre Avizor
-
-Inicio pasó a enfocarse en el problema de la información climática dispersa, el proceso de Avizor y el acceso directo a la consulta. Se eliminó de Inicio la sección antigua del equipo.
-
-Metodología incorporó:
-
-- Proceso de generación de señales.
-- Cómo leer los resultados.
-- Qué es y qué no es Avizor.
-- Mejora continua.
-- Principios de comunicación.
-
-Sobre Avizor incorporó historia, principios, métricas, equipo y enlaces personales.
-
-### 5. Equipo y LinkedIn
-
-- **Andrea Alvarez Zunino** — Fundadora · Producto & Desarrollo.
-- **Ezequiel Romeo** — Arquitectura de Software & IA.
-- **Natali Lazzaro** — Especialista Agronómica.
-
-Cada integrante tiene una descripción ampliada y un enlace personal a LinkedIn.
-
-LinkedIn oficial: https://www.linkedin.com/company/avizor-agtech
-
-### 6. Resultados en dos niveles
-
-#### Resumen general
-
-Es la primera pantalla posterior a la consulta e incluye:
-
-- Estado general y metadatos.
-- Resumen por categoría.
-- Variables climáticas.
-- Gráfico de evolución.
-- Comparación con reglas.
-- Recomendación general.
-- Fuente, limitaciones y calidad de datos.
-- Contexto fenológico cuando está disponible.
-
-Cada categoría permite ingresar a su detalle.
-
-#### Detalle por categoría
-
-- `/resultado/heladas`
-- `/resultado/enfermedades_foliares`
-- `/resultado/estres_hidrico`
-- `/resultado/exceso_hidrico`
-
-Cada detalle conserva variables, gráfico, comparación con la regla, evidencia, recomendaciones, limitaciones y calidad de datos.
-
-### 7. Versión mobile
-
-Todas las pantallas se adaptaron a mobile:
-
-- Header compacto y menú desplegable.
-- Tarjetas apiladas y controles táctiles.
-- Categorías desplazables horizontalmente cuando corresponde.
-- Gráficos adaptados al ancho disponible.
-- Footer común en todas las pantallas.
-- Biografías compactas con nombres completos.
-- Eliminación del desbordamiento horizontal.
-
-La validación habitual usa un viewport de 390 × 844 px.
-
-### 8. Fenología estimada
-
-La consulta rápida sigue solicitando localidad y cultivo. El usuario puede desplegar “Quiero mejorar la precisión” y agregar:
-
-- Fecha de siembra.
-- Grupo de madurez: III, IV corto, IV largo o V.
-- Cultivar opcional.
-
-El resultado puede mostrar:
-
-- Estadio actual estimado.
-- Fecha y margen estimados.
-- Nivel de confianza.
-- Modelo y versión.
-- Línea temporal E, R1, R3, R5 y R7.
-
-El detalle se encuentra en `/resultado/fenologia`. La estimación también aparece como contexto dentro de cada categoría.
-
-La fenología todavía no modifica las señales ni el Estado General. La relación categoría × estadio requiere validación agronómica.
-
-El proveedor actual es `lib/phenology/provider.ts` y usa un modelo calendario por grupo de madurez. Es orientativo y no debe presentarse como modelo termo-fotoperiódico validado.
-
-## Flujo de usuario
-
-```text
-Inicio
-  └── Consulta
-        ├── Localidad + cultivo
-        └── Datos opcionales
-              ├── Fecha de siembra
-              ├── Grupo de madurez
-              └── Cultivar
-                    ↓
-              Resumen general
-              ├── Heladas
-              ├── Enfermedades foliares
-              ├── Estrés hídrico
-              ├── Exceso hídrico
-              └── Fenología estimada
-```
-
-## Rutas
-
-| Ruta | Pantalla |
+| Ruta | Función |
 | --- | --- |
 | `/` | Inicio |
-| `/consultar` | Consulta |
-| `/resultado` | Resumen general |
-| `/resultado/[categoria]` | Detalle de categoría |
-| `/resultado/fenologia` | Detalle fenológico |
-| `/historial` | Historial local |
-| `/metodologia` | Metodología |
-| `/bibliografia` | Bibliografía |
-| `/explicacion-resultado` | Explicación del resultado |
-| `/sobre-avizor` | Proyecto y equipo |
-| `/contacto` | Contacto |
-| `/privacidad` | Privacidad |
-| `/alcance-limitaciones` | Alcance y limitaciones |
-| `/estado-sistema` | Estado del sistema |
+| `/consultar` | Formulario de consulta |
+| `/resultado` | Resumen de una consulta |
+| `/resultado/[categoria]` | Detalle de enfermedades, heladas o estrés hídrico |
+| `/resultado/plagas` | Detalle de plagas cuando la funcionalidad está habilitada |
+| `/resultado/fenologia` | Contexto fenológico estimado |
+| `/historial` | Historial local de consultas |
+| `/metodologia`, `/bibliografia`, `/explicacion-resultado` | Fundamento y lectura de resultados |
+| `/sobre-avizor`, `/contacto`, `/privacidad`, `/alcance-limitaciones`, `/novedades`, `/estado-sistema` | Información pública |
+| `/admin` | Panel administrativo protegido |
 
 ## Arquitectura
 
-| Capa | Tecnología |
+| Capa | Implementación |
 | --- | --- |
-| Frontend | Next.js 14, React y TypeScript |
-| Estilos | Tailwind CSS |
-| Backend | Next.js API Routes |
+| Aplicación | Next.js 15, React 18 y TypeScript |
+| UI | Tailwind CSS y componentes locales |
+| Backend | Route Handlers de Next.js y `ConsultaService` |
 | Base de datos | PostgreSQL |
-| Clima | Open-Meteo mediante `ClimateProvider` |
-| Reglas | `RulesEngine` + `ScoreEngine` |
-| Fenología | `PhenologyProvider` |
+| Clima | Open-Meteo, encapsulado por `ClimateProvider` |
+| Reglas | `RulesEngineV2`, `IndicatorEngine` y `ScoreEngine` |
+| Fenología | `PhenologyProvider` con modelos parametrizables |
 
-Reglas arquitectónicas:
+Reglas de arquitectura relevantes:
 
-- El frontend nunca llama a Open-Meteo directamente.
-- Las reglas agronómicas se obtienen desde PostgreSQL.
-- `RulesEngine` evalúa categorías y `ScoreEngine` calcula el Estado General.
-- El clima usa caché de tres horas.
-- Las localidades se normalizan antes de consultar.
-- La fenología permanece separada del score.
+- El frontend no consulta Open-Meteo directamente.
+- Las reglas agronómicas se leen de PostgreSQL; los umbrales no viven hardcodeados en la UI.
+- El motor de reglas y el cálculo del estado general están separados.
+- El cache climático es configurable y usa tres horas por defecto.
+- Las localidades se normalizan antes de consultar datos.
+- Fenología y plagas no modifican el score general mientras no exista una validación agronómica que lo autorice.
 
-## API
+## APIs
 
-`POST /api/consulta`
+| API | Uso | Autenticación |
+| --- | --- | --- |
+| `POST /api/consulta` | Compatibilidad con la experiencia web | Pública, con validaciones y límites |
+| `POST /api/public/consultas` | Crear consulta pública | Pública |
+| `/api/public/consultas/[id]/*` | Recuperar, guardar, observar o enviar feedback | Según recurso y token de consulta |
+| `POST /api/v1/consultas` | Integración empresarial | `x-api-key` con scope `consultas:crear` |
+| `/api/admin/*` | Operación administrativa | Sesión por rol o token interno autorizado |
 
-Consulta rápida:
+El contrato de integración está en [docs/openapi.yaml](docs/openapi.yaml). Las consultas pasan por `ConsultaService`, reutilizado por la web, las APIs y el laboratorio de reglas.
 
-```json
-{
-  "localidad": "Tandil, Buenos Aires",
-  "cultivo": "soja",
-  "session_id": "abc123"
-}
+## Panel administrativo
+
+El panel usa usuarios con roles, sesiones HTTP-only con vencimiento y permisos por módulo. Permite:
+
+- Crear, editar y versionar reglas; las reglas vigentes son inmutables y requieren validación para promoverse.
+- Ejecutar simulaciones en el Laboratorio.
+- Administrar cultivos, catálogo de plagas, regionalización y zonas.
+- Administrar modelos fenológicos e hitos variables.
+- Gestionar usuarios mediante invitaciones de un solo uso, auditoría, empresas y API keys revocables.
+- Consultar métricas, estado técnico de PostgreSQL y configuración no sensible.
+
+Las integraciones y notificaciones no tienen implementación ficticia: quedan visibles como pendientes de configuración hasta que exista infraestructura y definición funcional.
+
+## Base de datos y migraciones
+
+Las migraciones viven en `db/migrations` y se aplican con:
+
+```bash
+npm run db:migrate
 ```
 
-Consulta enriquecida:
+El ejecutor registra los archivos aplicados en `public.schema_migrations`. Cada migración se ejecuta y registra dentro de su propia transacción; una migración ya registrada se omite. No edites ni renombres una migración aplicada: agregá una nueva.
 
-```json
-{
-  "localidad": "Tandil, Buenos Aires",
-  "cultivo": "soja",
-  "session_id": "abc123",
-  "fecha_siembra": "2026-11-10",
-  "grupo_madurez": "IV corto",
-  "cultivar_id": "DM 40R16"
-}
-```
-
-La respuesta puede incluir `fenologia` además del resultado climático y agronómico.
-
-## Base de datos
-
-Las migraciones se encuentran en `db/migrations` y se aplican con `npm run db:migrate` (`scripts/apply-migrations.js`). Este comando usa el `DATABASE_URL` configurado: verificar el ambiente antes de ejecutarlo.
-
-El ejecutor consulta `public.schema_migrations` antes de aplicar cada archivo. Los archivos registrados se omiten (`skipped`); cada archivo pendiente se ejecuta y registra (`applied`) en una misma transacción. Si falla el SQL o el registro, se revierte esa migración, el proceso termina con error y el próximo intento continúa con las pendientes. Las migraciones que ya finalizaron conservan sus registros y fechas.
-
-Se conserva el orden fijo del script, con dos excepciones: `021_schema_migrations.sql` inicializa el historial cuando falta la tabla, y `003` se ejecuta anticipadamente si ya existe `reglas_agronomicas` y aún no está registrada. Esta deduplicación mantiene la compatibilidad con bases antiguas y no se repite durante el recorrido.
-
-En una base existente sin historial, las migraciones se aplican una vez para registrar su ejecución. `applied_at` corresponde a ese momento, no a una fecha histórica reconstruida. Después, dos corridas consecutivas no vuelven a ejecutar archivos registrados. No editar ni renombrar migraciones registradas: agregar un archivo nuevo a la lista del ejecutor. Las migraciones deben permitir una transacción por archivo, sin `BEGIN`/`COMMIT` propios ni operaciones que requieran ejecutarse fuera de una transacción. Ejecutar un solo proceso de migración por base a la vez.
-
-Para consultar el historial desde un cliente SQL conectado a la base elegida:
-
-```sql
-select filename, applied_at
-from public.schema_migrations
-order by applied_at, filename;
-```
-
-### Probar migraciones en PostgreSQL limpio
-
-No uses el `DATABASE_URL` de Railway ni el del `.env` local. Requiere Docker.
+Para validar la cadena completa en PostgreSQL 16 descartable (requiere Docker):
 
 ```bash
 npm run db:migrate:clean
 ```
 
-Ese comando corre `scripts/test-clean-migrations.js`. El script:
+Esta prueba no usa el `DATABASE_URL` local ni Railway. Crea el contenedor local `avizor-pg-migrate-test`, valida aplicación, idempotencia, rollback y esquema, y deja el contenedor disponible para inspección. Más detalle en [db/operations/README.md](db/operations/README.md).
 
-1. Levanta un Postgres 16 descartable y espera a que acepte conexiones en el host.
-2. Aplica las migraciones con `scripts/apply-migrations.js`, forzando `DATABASE_URL` y `DATABASE_SSL=false`.
-3. Comprueba el historial de las 21 migraciones y repite `npm run db:migrate`: ninguna se vuelve a aplicar y las fechas se mantienen.
-4. Simula una base sin historial con un duplicado heredado, verifica la ejecución anticipada de `003` y la adopción del historial.
-5. Inyecta fallos de SQL y de registro en copias temporales de las migraciones, comprueba rollback y reintento sin reaplicar archivos exitosos. No modifica los SQL del repositorio.
-6. Comprueba el esquema final: las 24 tablas esperadas (incluida `schema_migrations`), la extensión `pgcrypto`, la ausencia de las columnas de plagas retiradas en `016` y el constraint `api_keys_scopes_check`.
-
-Este comando recrea únicamente el contenedor local `avizor-pg-migrate-test` y borra sus datos de prueba. No utiliza la base de Railway ni el `DATABASE_URL` del `.env`.
-
-Si cierra bien imprime `schema_ok`. El contenedor queda activo para inspeccionarlo. Para tirarlo:
-
-```bash
-docker rm -f avizor-pg-migrate-test
-```
-
-El comando exacto que usa para crear la base es:
-
-```bash
-docker rm -f avizor-pg-migrate-test
-docker run --name avizor-pg-migrate-test \
-  -e POSTGRES_USER=avizor \
-  -e POSTGRES_PASSWORD=avizor \
-  -e POSTGRES_DB=avizor \
-  -p 54329:5432 \
-  -d postgres:16
-```
-
-Corrida de referencia (2026-09-08, base vacía, sin intervención manual): `001` a `020` aplicaron sin error, `active_soja_rules 13`, `schema_ok` con 23 tablas y `pgcrypto`. BE-001 hablaba de 18 archivos (`001`–`018`); el script actual también aplica `019` y `020`, y esa cadena completa es la que se prueba.
-
-La lógica está partida en tres módulos: `scripts/lib/disposable-postgres.js` administra el contenedor, `scripts/lib/clean-schema.js` define el esquema esperado y `scripts/lib/run-command.js` ejecuta los comandos.
-
-`006_fenologia_consultas.sql` agrega a consultas y logs:
-
-- Grupo de madurez.
-- Cultivar.
-- Estadio estimado.
-- Inicio y fin del rango.
-- Confianza fenológica.
-- Versión del modelo.
-
-Esta migración debe aplicarse antes de desplegar la funcionalidad en producción.
+El runbook de mínimo privilegio para Railway está en [db/operations/railway_least_privilege_roles.sql](db/operations/railway_least_privilege_roles.sql). Debe usarse una credencial de runtime distinta de la credencial que ejecuta migraciones.
 
 ## Desarrollo local
+
+Requisitos: Node.js, npm y PostgreSQL accesible mediante `DATABASE_URL`. Docker es opcional para la prueba limpia de migraciones.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Producción local:
+Para probar el build de producción:
 
 ```bash
 npm run build
 npm start
 ```
 
-Variables esperadas:
+Copiá `.env.example` a tu archivo local de entorno y completá únicamente los valores necesarios. Nunca subas secretos.
+
+Variables principales:
 
 ```env
 DATABASE_URL=
+DATABASE_SSL=true
 ENABLE_MAIZ=false
 ENABLE_ALERTAS=false
 ENABLE_OBSERVACIONES=true
 ENABLE_MODO_EXPERIMENTAL=false
+ENABLE_PLAGAS=false
+CLIMATE_CACHE_TTL_SECONDS=10800
+CLIMATE_CACHE_MAX_ENTRIES=500
+AVIZOR_INTERNAL_TOKEN=
+RATE_LIMIT_HASH_SECRET=
 ```
 
-Las variables productivas se configuran en Railway y no deben subirse al repositorio.
+Las API keys empresariales se guardan exclusivamente como SHA-256. El secreto original se entrega una sola vez al crearla.
 
 ## Verificación
 
 ```bash
 npx tsc --noEmit
+npm test
 npm run build
 ```
 
-En `scripts/` existen pruebas Playwright de smoke para Inicio, menú, footer, consulta, páginas públicas, resultados, categorías, logo, equipo, LinkedIn y fenología.
+La suite cubre, entre otros, reglas, indicadores, plagas, fenología, seguridad, privacidad/retención, resultados, contratos de clima y migraciones. En `scripts/` hay smoke tests visuales y de flujos públicos para desktop y mobile.
 
-## Pendientes
+## Seguridad y privacidad
 
-- Aplicar la migración fenológica en producción.
-- Validar los parámetros del modelo fenológico.
-- Incorporar temperatura histórica y fotoperíodo antes de declarar un modelo termo-fotoperiódico.
-- Validar la matriz categoría × estadio.
-- Mantener la fenología fuera del score hasta completar esa validación.
-- Ejecutar QA en Railway Preview antes de fusionar a `main`.
+- Validación de entradas y respuestas de error seguras.
+- Límites de tasa para flujos sensibles, como login e invitaciones.
+- Cookies de administración `httpOnly`, `sameSite=lax` y `secure` en producción.
+- Auditoría de operaciones administrativas y logging sin datos sensibles.
+- Políticas de retención y endpoint interno de mantenimiento.
+
+Antes de desplegar, revisar [docs/RAILWAY_SECURITY_CHECKLIST.md](docs/RAILWAY_SECURITY_CHECKLIST.md) y ejecutar QA en Railway Preview.
+
+## Pendientes conocidos
+
+- Validar agronómicamente modelos fenológicos y la matriz categoría × estadio antes de usarla en el score.
+- Mantener fenología fuera del score hasta contar con esa validación.
+- Completar decisiones agronómicas y datos geográficos para ampliar la aplicabilidad de plagas.
+- Definir infraestructura y eventos antes de implementar notificaciones o integraciones externas.
+- Aplicar y verificar las migraciones pendientes en cada ambiente antes de habilitar funciones que dependan de ellas.
 
 ## Equipo
 
-- Andrea Alvarez Zunino — producto, análisis funcional y desarrollo.
-- Ezequiel Romeo — arquitectura de software e inteligencia artificial.
-- Natali Lazzaro — validación técnica agronómica.
+- Andrea Alvarez Zunino — Producto, análisis funcional y desarrollo.
+- Ezequiel Romeo — Arquitectura de software e inteligencia artificial.
+- Natali Lazzaro — Validación técnica agronómica.
 
 © 2026 Avizor. Todos los derechos reservados.
-
-## Backend v2
-
-El backend principal se organiza alrededor de `ConsultaService`, reutilizado por web, API empresarial, simulaciones administrativas y el gateway preparado para WhatsApp.
-
-- API pública: `POST /api/public/consultas` y recursos asociados por consulta.
-- API empresarial: `POST /api/v1/consultas`, autenticada con `x-api-key`.
-- API interna: `/api/admin`, autenticada con `Authorization: Bearer $AVIZOR_INTERNAL_TOKEN`.
-- Contrato OpenAPI: `docs/openapi.yaml`.
-- Relevamiento y decisiones: `docs/backend-gap-analysis.md`.
-- Migración y seeds v2: `db/migrations/007_backend_v2.sql`.
-- Golden dataset: `npm test`.
-
-La fenología es contexto opcional. Mientras no exista un proveedor oficial o modelo propio validado, devuelve `proveedor_no_configurado` o `entradas_insuficientes`, y siempre `modifica_reglas: false`.
-
-### Variables nuevas
-
-```env
-CLIMATE_CACHE_TTL_SECONDS=10800
-AVIZOR_INTERNAL_TOKEN=
-```
-
-Para crear una API key empresarial, generar un secreto aleatorio, guardar únicamente su SHA-256 en `api_keys.key_hash` y entregar el valor original una sola vez al consumidor.
