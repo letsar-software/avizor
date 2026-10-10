@@ -60,10 +60,10 @@ export function pestSummaryForResult(result: ResultadoConsultaV2Publica) {
   };
 }
 
-export function PestSummaryCard({ result }: { result: ResultadoConsultaV2Publica }) {
+export function PestSummaryCard({ result, basePath = "/resultado" }: { result: ResultadoConsultaV2Publica; basePath?: string }) {
   const summary = pestSummaryForResult(result);
   const tone = SEVERITY_TONES[summary.severity];
-  return <Link href="/resultado/plagas" className="flex min-h-[118px] flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center sm:min-h-[92px] sm:flex-row sm:p-4 sm:text-left"><CategoryIconChip Icon={Bug} severity={summary.severity}/><span className="min-w-0 flex-1"><strong className="text-sm">Plagas</strong><span className={`mt-1 block text-xs font-semibold sm:text-sm ${tone.text}`}>{summary.label}</span></span><ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true"/></Link>;
+  return <Link href={`${basePath}/plagas`} className="flex min-h-[118px] flex-col items-center gap-2 rounded-xl border bg-white p-3 text-center sm:min-h-[92px] sm:flex-row sm:p-4 sm:text-left"><CategoryIconChip Icon={Bug} severity={summary.severity}/><span className="min-w-0 flex-1"><strong className="text-sm">Plagas</strong><span className={`mt-1 block text-xs font-semibold sm:text-sm ${tone.text}`}>{summary.label}</span></span><ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true"/></Link>;
 }
 
 export function PestResults({ result, compact = false }: { result: ResultadoConsultaV2Publica; compact?: boolean }) {

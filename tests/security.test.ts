@@ -8,7 +8,7 @@ import type { ClimateSeriesResult } from "../lib/climate/contract";
 const source = (path: string) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("las rutas públicas autorizan exclusivamente mediante share_token", async () => {
-  for (const path of ["app/api/public/consultas/[id]/route.ts", "lib/consultas/interactions-v2.ts"]) {
+  for (const path of ["lib/consultas/public-result.ts", "lib/consultas/interactions-v2.ts"]) {
     const contents = await source(path);
     assert.match(contents, /where share_token=\$1/);
     assert.doesNotMatch(contents, /id::text\s*=\s*\$1\s+or\s+share_token/i);
