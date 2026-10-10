@@ -35,6 +35,7 @@ function normalizeCultivo(cultivo: string) {
 
 function isCultivoSoportado(cultivo: string) {
   if (cultivo === "soja") return true;
+  if (cultivo === "trigo") return featureFlags.enableTrigo;
   if (cultivo === "maiz" || cultivo === "maíz") return featureFlags.enableMaiz;
   return false;
 }

@@ -10,6 +10,19 @@ const ACTIVE_STATES = new Set(["favorables", "condiciones_detectadas"]);
 
 export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenConsulta {
   const stableRules = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
+  const experimentalRules = results.filter((result) => result.regla.estado === "experimental" || result.regla.modo === "experimental");
+  const experimentalPartial = experimentalRules.filter((result) => result.estado === "condiciones_parciales");
+  if (stableRules.length === 0 && experimentalRules.length > 0) {
+    const names = experimentalPartial.map((result) => result.regla.nombre ?? result.riesgo.replaceAll("_", " "));
+    return {
+      descripcion: experimentalPartial.length
+        ? `Se observaron coincidencias parciales con referencias ambientales en ${names.join(", ")}. Son evaluaciones experimentales: no confirman enfermedad ni reemplazan el monitoreo del lote.`
+        : "Los datos climáticos están disponibles, pero las evaluaciones experimentales de trigo no permiten confirmar una coincidencia ambiental completa.",
+      destaque: experimentalPartial.length
+        ? "Revisá el detalle de las coincidencias parciales y sus limitaciones antes de tomar decisiones de manejo."
+        : "Tomá este resultado como orientativo: las reglas de trigo permanecen pendientes de validación agronómica.",
+    };
+  }
   const stableResults = collapsePresentationCategories(stableRules);
   const active = stableResults.filter((result) => ACTIVE_STATES.has(result.estado));
   const moderate = stableResults.filter((result) => result.estado === "moderadas");

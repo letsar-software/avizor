@@ -20,7 +20,10 @@ export class CalculatedPhenologyProvider implements PhenologyProviderV2 {
     // Si falla la lectura del modelo administrado, degradamos al default hardcodeado
     // en vez de perder la estimación por completo — es una dependencia nueva sobre
     // una tabla nueva, no motivo para romper una funcionalidad que ya andaba.
-    const modelo = await this.cargarModelo(input.cultivo ?? "soja").catch(() => null);
+    const cultivo = input.cultivo ?? "soja";
+    const modelo = await this.cargarModelo(cultivo).catch(() => null);
+    // Los coeficientes default pertenecen exclusivamente a soja.
+    if (!modelo && cultivo !== "soja") return { disponible: false, motivo: "proveedor_no_configurado", modifica_reglas: false };
     const calculator = new PhenologyProvider(modelo?.parametros ?? DEFAULT_PARAMETROS_FENOLOGICOS);
 
     const detail = calculator.estimate({

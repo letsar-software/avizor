@@ -39,3 +39,12 @@ test("advierte cuando toda la evaluación es indeterminada", () => {
   assert.match(summary.descripcion, /no permiten realizar una evaluación completa/);
   assert.match(summary.destaque, /orientativo/);
 });
+
+test("resume coincidencias parciales experimentales sin convertirlas en alerta productiva", () => {
+  const wheat = result("roya_amarilla", "condiciones_parciales");
+  wheat.regla = { ...wheat.regla, estado: "experimental", modo: "experimental", nombre: "Roya amarilla" };
+  const summary = buildConsultationSummary([wheat]);
+  assert.match(summary.descripcion, /coincidencias parciales/i);
+  assert.match(summary.descripcion, /no confirman enfermedad/i);
+  assert.match(summary.destaque, /limitaciones/i);
+});

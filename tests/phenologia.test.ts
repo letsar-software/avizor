@@ -55,6 +55,12 @@ test("CalculatedPhenologyProvider degrada al default si falla la lectura del mod
   assert.equal(result.disponible, true);
 });
 
+test("trigo sin modelo vigente no reutiliza los coeficientes de soja", async () => {
+  const provider = new CalculatedPhenologyProvider(async () => null);
+  const result = await provider.estimarEstadio({ cultivo: "trigo", fechaSiembra: "2026-06-01", grupoMadurez: "IV corto", latitud: 0, longitud: 0, fechaRef: "2026-07-15" });
+  assert.deepEqual(result, { disponible: false, motivo: "proveedor_no_configurado", modifica_reglas: false });
+});
+
 test("PhenologyProvider soporta un set de hitos distinto al default (docs/panel-admin-pendientes.md, punto 6)", () => {
   const grupoUnico = { III: [10, 40, 70], "IV corto": [10, 40, 70], "IV largo": [10, 40, 70], V: [10, 40, 70] };
   const parametros: ModeloFenologicoParametros = {

@@ -7,7 +7,7 @@ import LocalidadAutocomplete from "@/components/LocalidadAutocomplete";
 import { InfoMessage } from "@/components/ui/InfoMessage";
 import ModernDateInput from "@/components/ModernDateInput";
 
-export default function HeroSection() {
+export default function HeroSection({ enableTrigo = false }: { enableTrigo?: boolean }) {
   const router = useRouter();
   const [localidad, setLocalidad] = useState("Tandil, Buenos Aires");
   const [cultivo, setCultivo] = useState("soja");
@@ -17,6 +17,7 @@ export default function HeroSection() {
   const [fechaSiembra, setFechaSiembra] = useState("");
   const [grupoMadurez, setGrupoMadurez] = useState("IV corto");
   const [cultivar, setCultivar] = useState("");
+  const [etapaFenologica, setEtapaFenologica] = useState("");
 
   function sessionId() {
     const current = localStorage.getItem("avizor_session_id");
@@ -36,7 +37,7 @@ export default function HeroSection() {
     if (!localidad.trim()) { setError("Ingresá una localidad."); return; }
     setLoading(true); setError("");
     try {
-      const response = await fetch("/api/public/consultas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ localidad, cultivo, sessionId: sessionId(), ...(precision && fechaSiembra ? { fechaSiembra, grupoMadurez, cultivar: cultivar || undefined } : {}) }) });
+      const response = await fetch("/api/public/consultas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ localidad, cultivo, sessionId: sessionId(), ...(precision && fechaSiembra ? { fechaSiembra, grupoMadurez, cultivar: cultivar || undefined } : {}), ...(cultivo === "trigo" && etapaFenologica ? { etapaFenologica } : {}) }) });
       const payload = await response.json();
       if (!response.ok) { setError(payload.error?.message || "No pudimos completar la consulta."); return; }
       const data = payload.data;
@@ -52,11 +53,13 @@ export default function HeroSection() {
     <header><h1 className="text-[30px] font-bold tracking-tight sm:text-3xl">Realizá una consulta</h1><span className="mt-3 block h-0.5 w-9 bg-[#168c50]"/><p className="mt-5 text-sm leading-5 text-[#405369]">Elegí tu ubicación y cultivo<br className="sm:hidden"/> para comenzar.</p></header>
     <div className="mt-4 grid gap-7 lg:grid-cols-[1fr_360px] lg:items-center">
       <form onSubmit={submit} className="order-2 space-y-4 lg:order-1">
-        <div><label htmlFor="crop" className="mb-2 block text-xs font-bold text-[#405369]">Cultivo</label><div className="relative"><Sprout className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#087b4b]"/><select id="crop" value={cultivo} onChange={(event) => setCultivo(event.target.value)} className="h-12 w-full appearance-none rounded-lg border border-[#dce4df] bg-white pl-11 pr-10 text-sm"><option value="soja">Soja</option></select><ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2"/></div></div>
+        <div><label htmlFor="crop" className="mb-2 block text-xs font-bold text-[#405369]">Cultivo</label><div className="relative"><Sprout className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#087b4b]"/><select id="crop" value={cultivo} onChange={(event) => setCultivo(event.target.value)} className="h-12 w-full appearance-none rounded-lg border border-[#dce4df] bg-white pl-11 pr-10 text-sm"><option value="soja">Soja</option>{enableTrigo && <option value="trigo">Trigo</option>}</select><ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2"/></div></div>
         <div><label htmlFor="place" className="mb-2 block text-xs font-bold text-[#405369]">Localidad</label><LocalidadAutocomplete value={localidad} onChange={setLocalidad}/><p className="mt-1.5 text-[11px] leading-4 text-[#526477]">Podés consultar cualquier ciudad de Argentina. Elegí una opción para identificar correctamente la provincia.</p></div>
         <div className="rounded-xl border border-[#dce7e0] bg-[#f8fbf9] p-4">
+          {cultivo === "trigo" ? <div className="space-y-3"><p className="text-sm leading-6 text-[#405369]">No estimamos la fenología de trigo a partir de días fijos. Si conocés la etapa observada, podés informarla para dar contexto al resultado.</p><label htmlFor="wheat-stage" className="block text-xs font-bold text-[#405369]">Etapa observada <span className="font-normal">(opcional)</span><select id="wheat-stage" value={etapaFenologica} onChange={(event) => setEtapaFenologica(event.target.value)} className="mt-2 h-12 w-full rounded-lg border border-[#dce4df] bg-white px-4 text-sm"><option value="">No determinada</option><option value="emergencia">Emergencia (Z10)</option><option value="macollaje">Macollaje (Z20–29)</option><option value="encanazon">Encañazón (Z30–39)</option><option value="hoja_bandera">Hoja bandera (Z37–39)</option><option value="embuchado">Embuchado (Z45–49)</option><option value="espigazon">Espigazón (Z50–59)</option><option value="floracion">Floración (Z60–69)</option><option value="llenado_grano">Llenado de grano (Z70–89)</option><option value="madurez">Madurez (Z90+)</option></select></label></div> : <>
           <button type="button" onClick={() => setPrecision(!precision)} aria-expanded={precision} className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm font-bold text-[#087b4b]"><span className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/>Quiero mejorar la precisión</span><ChevronDown className={`h-4 w-4 transition-transform ${precision ? "rotate-180" : ""}`}/></button>
           {precision && <div className="mt-4 grid gap-4 border-t border-[#dce7e0] pt-4 sm:grid-cols-2"><div><label htmlFor="planting-date" className="mb-2 block text-xs font-bold text-[#405369]">Fecha de siembra</label><ModernDateInput id="planting-date" value={fechaSiembra} onChange={setFechaSiembra}/></div><div><label htmlFor="maturity-group" className="mb-2 block text-xs font-bold text-[#405369]">Grupo de madurez</label><select id="maturity-group" value={grupoMadurez} onChange={(event) => setGrupoMadurez(event.target.value)} className="h-12 w-full rounded-lg border border-[#dce4df] bg-white px-4 text-sm"><option>III</option><option>IV corto</option><option>IV largo</option><option>V</option></select></div><div className="sm:col-span-2"><label htmlFor="cultivar" className="mb-2 block text-xs font-bold text-[#405369]">Cultivar <span className="font-normal">(opcional)</span></label><input id="cultivar" value={cultivar} onChange={(event) => setCultivar(event.target.value)} placeholder="Ej.: DM 40R16" className="h-12 w-full rounded-lg border border-[#dce4df] bg-white px-4 text-sm"/></div><p className="text-[11px] leading-5 text-[#526477] sm:col-span-2">Estos datos permiten estimar la fenología. La estimación no modifica automáticamente las reglas agronómicas.</p></div>}
+          </>}
         </div>
         {error && <InfoMessage variant="error">{error}</InfoMessage>}
         <button disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-lg bg-[#087b4b] text-sm font-bold text-white shadow-sm disabled:opacity-60">{loading ? <><Loader2 className="h-5 w-5 animate-spin"/>Consultando…</> : <><Search className="h-5 w-5"/>Consultar</>}</button>

@@ -3,6 +3,7 @@ import { featureFlags } from "@/lib/config/featureFlags";
 import { getConfigSnapshot } from "@/lib/sistema/config-snapshot";
 
 const FLAG_LABELS: Record<keyof typeof featureFlags, string> = {
+  enableTrigo: "Cultivo trigo",
   enableMaiz: "Cultivo maíz",
   enableAlertas: "Alertas automáticas",
   enableObservaciones: "Observación del lote",

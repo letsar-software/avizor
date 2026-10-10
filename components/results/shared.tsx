@@ -26,7 +26,8 @@ const MONITOR_STATES = new Set(["moderadas"]);
 
 export function severityOf(rule?: ResultadoReglaV2): Severity {
   if (!rule) return "neutral";
-  if (rule.estado === "indeterminado") return "neutral";
+  if (rule.estado === "indeterminado" || rule.estado === "evaluacion_incompleta") return "neutral";
+  if (rule.estado === "condiciones_parciales") return "monitor";
   if (ATTENTION_STATES.has(rule.estado)) return "attention";
   if (MONITOR_STATES.has(rule.estado)) return "monitor";
   return "calm";

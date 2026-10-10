@@ -22,6 +22,10 @@ export class RulesEngineV2 {
       evaluado_en: evaluatedAt,
     };
 
+    if (rule.evaluabilidad === "NO_EVALUABLE" || rule.evaluabilidad === "PENDIENTE_EVIDENCIA") {
+      return { ...base, estado: "no_evaluable", motivo: "configuracion_incompleta", fuente_tecnica: rule.fuente_tecnica, limitaciones_declaradas: rule.limitaciones_declaradas, observado: [], calidad_dato: { cobertura_min: 0, dias_faltantes: rule.ventana_dias, distancia_punto_km: null } };
+    }
+
     let bestObserved: EvaluacionObservada[] = [];
     let bestMatches = -1;
     for (const level of [...rule.definicion.niveles].sort((a, b) => a.orden - b.orden)) {

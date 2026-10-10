@@ -31,6 +31,10 @@ function representativeRule(rules: ResultadoReglaV2[]) {
   const rank = (rule: ResultadoReglaV2) => {
     if (rule.estado === "favorables" || rule.estado === "condiciones_detectadas") return 4;
     if (rule.estado === "moderadas") return 3;
+    // Una coincidencia experimental no es una alerta productiva, pero debe
+    // prevalecer sobre una regla sin coincidencia al resumir la categoría.
+    if (rule.estado === "condiciones_parciales") return 3;
+    if (rule.estado === "evaluacion_incompleta") return 2;
     if (rule.estado === "indeterminado") return 2;
     if (rule.estado === "sin_condiciones" || rule.estado === "desfavorables") return 1;
     return 0;
@@ -40,6 +44,9 @@ function representativeRule(rules: ResultadoReglaV2[]) {
 
 export function statusLabel(rule?: ResultadoReglaV2, categoryName?: string) {
   if (!rule) return "No evaluada";
+  if (rule.estado === "no_evaluable") return "No evaluable con los datos y la validación disponibles";
+  if (rule.estado === "evaluacion_incompleta") return "Evaluación incompleta: se muestran las variables disponibles y faltantes";
+  if (rule.estado === "condiciones_parciales") return "Evaluación experimental: coincidencia parcial con la referencia";
   const category = categoryName?.toLowerCase();
   if (rule.estado === "sin_condiciones") return category ? `Sin condiciones asociadas a ${category}` : "Sin condiciones asociadas al fenómeno evaluado";
   if (rule.estado === "indeterminado") return "No fue posible evaluar esta categoría con los datos disponibles";

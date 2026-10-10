@@ -12,6 +12,7 @@ import {
 import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import { API_KEY_SCOPES, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_MAX, HITOS_FENOLOGICOS_MIN, HITO_FENOLOGICO_CODIGO_PATTERN } from "@/lib/phenology/spec";
+import { ETAPAS_TRIGO } from "@/lib/phenology/trigo";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -22,7 +23,7 @@ const grupoMadurez = z.enum(GRUPOS_MADUREZ);
 
 export const consultaV2Schema = z.object({
   localidad: shortText(120), cultivo: shortText(30), fechaSiembra: isoDate.optional(),
-  grupoMadurez: grupoMadurez.optional(), cultivar: optionalText(120),
+  grupoMadurez: grupoMadurez.optional(), cultivar: optionalText(120), etapaFenologica: z.enum(ETAPAS_TRIGO).optional(),
   sessionId: optionalText(128), canal: z.enum(["web", "whatsapp", "api_empresa", "admin"]).optional(), fechaRef: isoDate.optional(),
 }).strict();
 

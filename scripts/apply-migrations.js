@@ -65,6 +65,11 @@ async function runMigrations(client) {
     "db/migrations/018_api_key_scopes_check.sql",
     "db/migrations/019_privacy_retention.sql",
     "db/migrations/020_novedades_suscripcion_baja.sql",
+    "db/migrations/022_trigo_catalogo_inicial.sql",
+    "db/migrations/023_trigo_reglas_preliminares.sql",
+    "db/migrations/024_activa_trigo_experimental.sql",
+  "db/migrations/025_trigo_sin_coincidencia_incompleta.sql",
+  "db/migrations/026_fusariosis_resultado_incompleto.sql",
     historyMigration,
   ];
 
