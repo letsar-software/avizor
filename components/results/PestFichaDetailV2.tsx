@@ -107,7 +107,7 @@ export default function PestFichaDetailV2({
             lines={ficha.regiones}
           />
         )}
-        {tipo !== "plaga" && ficha.observaciones && (
+        {ficha.observaciones && (
           <Block
             Icon={BookOpen}
             title="Observaciones de revisión"

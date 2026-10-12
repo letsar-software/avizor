@@ -7,7 +7,7 @@ export interface FichaSanitaria {
   id: string;
   nombre: string;
   cientifico?: string;
-  cultivo: "soja";
+  cultivo: "soja" | "trigo";
   tipo: TipoFicha;
   estado: EstadoFicha;
   estadoReglaClimatica: EstadoReglaClimatica;
@@ -78,6 +78,224 @@ function patogeno(
     ambiente: [ambiente],
     etapa,
     fuentes: [PATOGENOS],
+  };
+}
+
+const PATOGENOS_TRIGO_VERIFICADOS: Record<string, Partial<FichaSanitaria>> = {
+  "trigo-roya-amarilla": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Enfermedad foliar cuya severidad depende del cultivar, nitrógeno e inóculo presentes en el lote.",
+    ambiente: [
+      "Temperaturas entre 10–15 °C, humedad elevada o lloviznas y al menos 6 horas de mojado.",
+      "Temperaturas superiores a 20 °C inhiben su crecimiento.",
+    ],
+    etapa: "Macollaje a llenado de grano.",
+    regiones: ["Región triguera; validar por subregión."],
+    observar: ["Pústulas amarillas y evolución de síntomas en el lote."],
+    observaciones: [
+      "Prioridad de monitoreo: validar ventana, zona, umbral y acción antes de publicar una regla.",
+      "Las condiciones ambientales no confirman presencia ni diagnóstico.",
+    ],
+    fuentes: [
+      "F01 — SINAVIMO (SENASA), Puccinia striiformis: https://www.sinavimo.gob.ar/plaga/puccinia-striiformis",
+    ],
+  },
+  "trigo-roya-hoja": {
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Enfermedad relevante en Argentina; requiere diagnóstico y seguimiento en el lote.",
+    ambiente: undefined,
+    etapa: "Encañazón a llenado de grano.",
+    regiones: ["Región triguera."],
+    observar: ["Pústulas en hojas y comportamiento sanitario del cultivar."],
+    observaciones: [
+      "Solo monitoreo y diagnóstico: no hay un corte climático local validado para automatizar.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+  },
+  "trigo-roya-tallo": {
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Enfermedad relevante en años favorables; requiere diagnóstico y evaluación del cultivar.",
+    ambiente: undefined,
+    etapa: "Encañazón a llenado de grano.",
+    regiones: ["Región triguera."],
+    observar: ["Pústulas en tallos y hojas, y su distribución en el lote."],
+    observaciones: [
+      "Solo monitoreo y diagnóstico: no hay una condición climática operativa documentada.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+  },
+  "trigo-mancha-amarilla": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Enfermedad foliar asociada a rastrojo e inóculo presentes en el lote.",
+    ambiente: [
+      "El rastrojo y el inóculo son determinantes; no hay corte local validado.",
+    ],
+    etapa: "Macollaje a llenado de grano.",
+    regiones: ["Región triguera."],
+    observar: ["Lesiones foliares, rastrojo y antecedentes del lote."],
+    observaciones: [
+      "Prioridad de monitoreo desde macollaje; no crear una alerta meteorológica sin evidencia cuantitativa argentina.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+      "F03 — SINAVIMO (SENASA), Pyrenophora tritici-repentis: https://www.sinavimo.gob.ar/plaga/pyrenophora-tritici-repentis",
+    ],
+  },
+  "trigo-septoriosis": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Patógeno asociado a residuos; la humedad y las lluvias orientan recorridas, no una predicción cerrada.",
+    ambiente: [
+      "Humedad elevada, mojado foliar y lluvias favorecen la dispersión.",
+    ],
+    etapa: "Macollaje a llenado de grano.",
+    regiones: ["Región triguera."],
+    observar: ["Manchas en hojas bajas, progresión y salpicado en el lote."],
+    observaciones: [
+      "Prioridad de monitoreo: no existe un umbral climático local validado.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+  },
+  "trigo-fusariosis-espiga": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Enfermedad de espiga crítica por daño y micotoxinas; requiere corroborar la floración real del lote.",
+    ambiente: [
+      "Precipitaciones frecuentes y humedad relativa alta alrededor de antesis, con temperaturas templadas a cálidas.",
+    ],
+    etapa: "Espigazón a antesis.",
+    regiones: ["Región pampeana y otras zonas."],
+    observar: [
+      "Espigas durante antesis, síntomas y antecedentes de fusariosis.",
+    ],
+    observaciones: [
+      "Prioridad de monitoreo: validar una regla local antes de publicar; no trasladar modelos de otras regiones sin calibración.",
+    ],
+    fuentes: [
+      "F04 — SINAVIMO (SENASA), Fusarium graminearum: https://www.sinavimo.gob.ar/plaga/fusarium-graminearum",
+      "F05 — INTA Balcarce, Segundo informe sanitario trigo 2025.",
+    ],
+  },
+  "trigo-fusariosis-corona": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    ambiente: [
+      "Temperaturas entre 20–28 °C y baja humedad o estrés hídrico post-antesis.",
+    ],
+    etapa: "Posantesis a madurez.",
+    regiones: ["Zona a relevar."],
+    observaciones: [
+      "Prioridad de monitoreo: validar ventana y condiciones antes de publicar una regla.",
+    ],
+    fuentes: [
+      "F06 — SINAVIMO (SENASA), Fusarium pseudograminearum: https://www.sinavimo.gob.ar/plaga/fusarium-pseudograminearum",
+    ],
+  },
+  "trigo-mancha-marron": {
+    estado: "no_evaluable",
+    estadoReglaClimatica: "sin_regla",
+    ambiente: undefined,
+    etapa: "Macollaje a llenado de grano.",
+    regiones: ["Zona a relevar."],
+    observaciones: [
+      "El Excel indica no incorporar una regla al MVP sin validación meteorológica específica.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+  },
+  "trigo-tizon-bacteriano": {
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    ambiente: undefined,
+    etapa: "Vegetativo a espigazón.",
+    regiones: ["Zona a relevar."],
+    observaciones: [
+      "Solo monitoreo y diagnóstico: no existe una regla climática automática documentada.",
+    ],
+    fuentes: [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+  },
+  "trigo-mal-rio-cuarto": {
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    ambiente: [
+      "La situación está regulada por el vector, su densidad y los hospedantes.",
+    ],
+    etapa: "Emergencia a macollaje.",
+    regiones: ["Centro-sur de Córdoba y zonas a validar."],
+    observaciones: [
+      "Prioridad de monitoreo: reforzar vigilancia regional, malezas hospedantes y presencia del vector; no usar el clima por sí solo.",
+    ],
+    fuentes: [
+      "F07 — SINAVIMO (SENASA), Mal de Río Cuarto Virus: https://www.sinavimo.gob.ar/plaga/mal-de-rio-cuarto-virus",
+    ],
+  },
+};
+
+function patogenoTrigo(
+  id: string,
+  nombre: string,
+  cientifico: string,
+  descripcion: string,
+  ambiente: string,
+  etapa: string,
+  fuentes: string[],
+  observar: string[],
+): FichaSanitaria {
+  const verificado = PATOGENOS_TRIGO_VERIFICADOS[id];
+  return {
+    id,
+    nombre,
+    cientifico,
+    cultivo: "trigo",
+    tipo: "enfermedad",
+    estado: "en_validacion",
+    estadoReglaClimatica: "experimental",
+    descripcion,
+    ambiente: [ambiente],
+    etapa,
+    observar,
+    observaciones: [
+      "Evaluación experimental: las condiciones climáticas no confirman infección ni presencia en el lote.",
+      "Mojado foliar, inóculo y observación a campo permanecen fuera de la evaluación climática.",
+    ],
+    ...verificado,
+    fuentes: [
+      "Natali — Patógenos del trigo y condiciones ambientales (VERIFICADO)",
+      ...(verificado?.fuentes ?? fuentes),
+    ],
+  };
+}
+
+function plagaTrigo(
+  ficha: Omit<FichaSanitaria, "cultivo" | "tipo">,
+): FichaSanitaria {
+  return {
+    ...ficha,
+    cultivo: "trigo",
+    tipo: "plaga",
+    fuentes: [
+      "Natali — Plagas del trigo y condiciones ambientales (VERIFICADO)",
+      ...ficha.fuentes,
+    ],
   };
 }
 
@@ -470,6 +688,298 @@ export const FICHAS_SANITARIAS: FichaSanitaria[] = [
       ambiente as string,
       etapa as string,
     ),
+  ),
+  plagaTrigo({
+    id: "trigo-pulgon-verde-cereales",
+    nombre: "Pulgón verde de los cereales",
+    cientifico: "Schizaphis graminum",
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Insecto chupador cuya saliva tóxica puede dañar plántulas y transmitir virus.",
+    ambiente: [
+      "Tiempo seco y temperaturas inferiores a 20 °C; las heladas no necesariamente reducen su presencia.",
+    ],
+    observar: [
+      "Colonias en plántulas y síntomas de daño; corroborar la presencia a campo.",
+    ],
+    etapa: "Emergencia a encañazón.",
+    regiones: ["Algunas áreas argentinas."],
+    observaciones: [
+      "La propuesta del Excel sólo eleva la prioridad de monitoreo: no infiere presencia.",
+      "Pendiente de validación IA para umbral, ventana, zona y recomendación.",
+    ],
+    fuentes: [
+      "F01 — SINAVIMO (SENASA), Schizaphis graminum: https://www.sinavimo.gob.ar/plaga/schizaphis-graminum",
+      "F02 — INTA Reconquista, Insectos en el cultivo de trigo, guía ilustrada.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-pulgon-ruso",
+    nombre: "Pulgón ruso",
+    cientifico: "Diuraphis noxia",
+    estado: "en_validacion",
+    estadoReglaClimatica: "pendiente_validacion",
+    descripcion:
+      "Puede enrollar hojas, afectar espigas y adquirir mayor importancia durante primaveras secas.",
+    ambiente: [
+      "Períodos secos y temperaturas templadas, sin un corte local documentado.",
+    ],
+    observar: ["Enrollamiento de hojas, colonias y daño en espigas."],
+    etapa: "Macollaje a precosecha.",
+    regiones: ["Región triguera; validar la presión local."],
+    observaciones: [
+      "El Excel propone reforzar el monitoreo en períodos secos y templados; no es una regla climática.",
+      "Pendiente de validación IA para umbral, ventana, zona y recomendación.",
+    ],
+    fuentes: [
+      "F03 — SINAVIMO (SENASA), Diuraphis noxia: https://www.sinavimo.gob.ar/plaga/diuraphis-noxia",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-pulgon-avena",
+    nombre: "Pulgón de la avena",
+    cientifico: "Rhopalosiphum padi",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Plaga chupadora con potencial de transmitir virus; requiere seguimiento de colonias y del cultivo.",
+    observar: ["Colonias, daño en hojas y síntomas compatibles con virosis."],
+    etapa: "Macollaje a espigazón.",
+    observaciones: [
+      "Solo monitoreo: el Excel no documenta una condición climática operativa.",
+    ],
+    fuentes: [
+      "F02 — INTA Reconquista, Insectos en el cultivo de trigo, guía ilustrada.",
+      "F04 — INTA Balcarce, Controladores biológicos de pulgones e isocas del trigo.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-pulgon-espiga",
+    nombre: "Pulgón de la espiga",
+    cientifico: "Sitobion avenae",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion: "Coloniza espigas y puede afectar el llenado de grano.",
+    observar: ["Colonias en espigas durante el llenado de grano."],
+    etapa: "Espigazón a llenado de grano.",
+    observaciones: [
+      "Solo monitoreo: el Excel no documenta una condición climática operativa.",
+    ],
+    fuentes: [
+      "F02 — INTA Reconquista, Insectos en el cultivo de trigo, guía ilustrada.",
+      "F04 — INTA Balcarce, Controladores biológicos de pulgones e isocas del trigo.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-isoca-militar-verdadera",
+    nombre: "Isoca militar verdadera",
+    cientifico: "Mythimna adultera (= Pseudaletia adultera)",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Oruga defoliadora que puede afectar la formación y el llenado de grano.",
+    observar: ["Larvas y defoliación desde encañazón hasta llenado."],
+    etapa: "Encañazón a llenado de grano.",
+    regiones: ["Región triguera."],
+    observaciones: [
+      "Solo monitoreo: el Excel no documenta una condición climática operativa.",
+    ],
+    fuentes: [
+      "F05 — Referencia citada en el Excel sin detalle bibliográfico disponible.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-oruga-desgranadora",
+    nombre: "Oruga desgranadora",
+    cientifico: "Helicoverpa gelotopoeon",
+    estado: "no_evaluable",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Puede afectar estructuras reproductivas; la identificación de especie y daño debe confirmarse a campo.",
+    observar: ["Daño en espigas y granos durante la etapa reproductiva."],
+    etapa: "Espigazón a llenado de grano.",
+    observaciones: [
+      "El Excel indica no incorporarla al MVP sin validación específica para trigo.",
+      "No hay evidencia climática específica para automatizar una regla.",
+    ],
+    fuentes: [
+      "F04 — INTA Balcarce, Controladores biológicos de pulgones e isocas del trigo.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-gusanos-blancos",
+    nombre: "Gusanos blancos",
+    cientifico: "Diloboderus abderus y otros Scarabaeidae",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Las larvas pueden dañar raíces, semillas y plántulas del trigo.",
+    observar: ["Muestreo de suelo e historial del lote antes de la siembra."],
+    etapa: "Siembra a emergencia.",
+    regiones: ["Región triguera."],
+    observaciones: [
+      "Solo monitoreo y diagnóstico a campo: no hay una regla meteorológica común documentada.",
+    ],
+    fuentes: [
+      "F04 — INTA Balcarce, Controladores biológicos de pulgones e isocas del trigo.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-orugas-cortadoras",
+    nombre: "Orugas cortadoras",
+    cientifico: "Agrotis spp. y Peridroma spp.",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion: "Cortan plántulas a nivel del suelo durante la implantación.",
+    observar: ["Muestreo de suelo y bordes del lote; plántulas cortadas."],
+    etapa: "Siembra a emergencia.",
+    regiones: ["Región triguera."],
+    observaciones: [
+      "Solo monitoreo y diagnóstico a campo: no hay una regla meteorológica única documentada.",
+    ],
+    fuentes: [
+      "F04 — INTA Balcarce, Controladores biológicos de pulgones e isocas del trigo.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-trips",
+    nombre: "Trips",
+    cientifico: "Thripidae spp.",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Puede causar daño durante las primeras etapas del cultivo; la evidencia climática específica está pendiente.",
+    observar: ["Presencia de trips y daño en plántulas."],
+    etapa: "Emergencia a macollaje.",
+    regiones: ["Norte de Santa Fe y otras zonas a validar."],
+    observaciones: [
+      "Solo monitoreo: el Excel no documenta una condición climática operativa.",
+    ],
+    fuentes: [
+      "F02 — INTA Reconquista, Insectos en el cultivo de trigo, guía ilustrada.",
+    ],
+  }),
+  plagaTrigo({
+    id: "trigo-chinches",
+    nombre: "Chinches",
+    cientifico: "Nezara viridula y otras Pentatomidae",
+    estado: "informacion",
+    estadoReglaClimatica: "sin_regla",
+    descripcion:
+      "Puede afectar espigas y granos; se requiere identificación y monitoreo a campo.",
+    observar: ["Presencia y daño en espigas y granos."],
+    etapa: "Espigazón a llenado de grano.",
+    observaciones: [
+      "Solo monitoreo: el Excel no documenta una condición climática operativa ni evidencia por especie o zona.",
+    ],
+    fuentes: [
+      "F02 — INTA Reconquista, Insectos en el cultivo de trigo, guía ilustrada.",
+    ],
+  }),
+  patogenoTrigo(
+    "trigo-roya-amarilla",
+    "Roya amarilla",
+    "Puccinia striiformis f. sp. tritici",
+    "Enfermedad foliar del trigo; la presencia requiere tejido susceptible e inóculo.",
+    "Desarrollo de referencia entre 10–16 °C; la germinación se documenta entre 7–15 °C y requiere agua libre.",
+    "Macollaje a llenado de grano.",
+    ["UGA Extension, Stripe Rust of Wheat (C960)", "SINAVIMO"],
+    ["Pústulas amarillas en hojas y evolución de los síntomas en el lote."],
+  ),
+  patogenoTrigo(
+    "trigo-roya-hoja",
+    "Roya de la hoja",
+    "Puccinia triticina",
+    "Enfermedad foliar cuya expresión depende de inóculo y susceptibilidad varietal.",
+    "Referencia ambiental: 15–22 °C y humedad libre; el mojado foliar no está medido por Avizor.",
+    "Encañazón a llenado de grano.",
+    ["New Mexico State University, Leaf, Stem, and Stripe Rust Diseases"],
+    ["Pústulas en hojas, distribución en el lote y antecedentes varietales."],
+  ),
+  patogenoTrigo(
+    "trigo-roya-tallo",
+    "Roya del tallo",
+    "Puccinia graminis f. sp. tritici",
+    "Enfermedad que puede afectar tallos y hojas cuando hay tejido susceptible e inóculo.",
+    "Óptimo de referencia entre 18–30 °C y humedad libre; no se observa mojado foliar prolongado.",
+    "Encañazón a llenado de grano.",
+    ["New Mexico State University, Leaf, Stem, and Stripe Rust Diseases"],
+    ["Pústulas en tallos y hojas, y su distribución en el lote."],
+  ),
+  patogenoTrigo(
+    "trigo-mancha-amarilla",
+    "Mancha amarilla",
+    "Pyrenophora tritici-repentis",
+    "Enfermedad foliar asociada a rastrojo e inóculo presente en el lote.",
+    "La bibliografía cita períodos húmedos dependientes de la temperatura; el rango 10–30 °C es sólo referencia, no una regla binaria.",
+    "Desde embuchado a grano pastoso.",
+    ["University of Nebraska–Lincoln, Tan Spot of Wheat (G429)"],
+    ["Lesiones foliares, rastrojo y antecedentes del lote."],
+  ),
+  patogenoTrigo(
+    "trigo-septoriosis",
+    "Septoriosis",
+    "Zymoseptoria tritici",
+    "Enfermedad foliar cuya infección requiere inóculo y períodos de humedad o mojado.",
+    "Referencia ambiental: 16–25 °C y alrededor de 6 horas de mojado; neblina o llovizna no equivalen a mojado foliar.",
+    "Macollaje a llenado de grano.",
+    ["UC IPM, Septoria tritici blotch of wheat"],
+    ["Manchas en hojas bajas, progresión y salpicado en el lote."],
+  ),
+  patogenoTrigo(
+    "trigo-fusariosis-espiga",
+    "Fusariosis de la espiga",
+    "Fusarium graminearum species complex",
+    "Enfermedad de espiga que requiere floración confirmada, inóculo y condiciones de humedad.",
+    "La bibliografía cita alta humedad durante floración y 25–30 °C; la lluvia sola no confirma una condición de infección.",
+    "Floración (Z60–69).",
+    ["UGA Extension, Wheat Production Guide; Fusarium head blight"],
+    ["Espigas durante floración, síntomas y antecedentes de fusariosis."],
+  ),
+  patogenoTrigo(
+    "trigo-fusariosis-corona",
+    "Fusariosis de corona",
+    "Fusarium pseudograminearum",
+    "Puede producir espigas blancas y grano vano; no debe confundirse con fusariosis de la espiga.",
+    "Condiciones ambientales documentadas en la ficha de revisión.",
+    "Posantesis a madurez.",
+    ["F06 — SINAVIMO (SENASA), Fusarium pseudograminearum."],
+    ["Espigas blancas, grano vano y síntomas de corona."],
+  ),
+  patogenoTrigo(
+    "trigo-mancha-marron",
+    "Mancha marrón",
+    "Bipolaris sorokiniana",
+    "Enfermedad que se mantiene como información de diagnóstico mientras falta una regla meteorológica específica validada.",
+    "Condiciones ambientales a relevar.",
+    "Macollaje a llenado de grano.",
+    [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+    ["Síntomas foliares y antecedentes del lote."],
+  ),
+  patogenoTrigo(
+    "trigo-tizon-bacteriano",
+    "Tizón bacteriano",
+    "Pseudomonas syringae pv. syringae",
+    "Enfermedad relevante en algunos años; requiere monitoreo y diagnóstico a campo.",
+    "Condiciones ambientales a relevar.",
+    "Vegetativo a espigazón.",
+    [
+      "F02 — INTA Marcos Juárez, Comportamiento sanitario de variedades de trigo.",
+    ],
+    ["Síntomas compatibles y distribución en el lote."],
+  ),
+  patogenoTrigo(
+    "trigo-mal-rio-cuarto",
+    "Mal de Río Cuarto",
+    "MRCV; vector Delphacodes kuscheli",
+    "Enfermedad viral cuya situación depende de la densidad del vector y de hospedantes.",
+    "La condición ambiental no reemplaza la observación del vector.",
+    "Emergencia a macollaje.",
+    ["F07 — SINAVIMO (SENASA), Mal de Río Cuarto Virus."],
+    ["Presencia del vector, malezas hospedantes y síntomas en el cultivo."],
   ),
 ];
 
