@@ -5,18 +5,25 @@ const { createPgPool } = require("./lib/database-pool");
 const historyMigration = "db/migrations/021_schema_migrations.sql";
 
 function readSql(migration) {
-  return fs.readFileSync(path.join(process.cwd(), migration), "utf8").replace(/^\uFEFF/, "");
+  return fs
+    .readFileSync(path.join(process.cwd(), migration), "utf8")
+    .replace(/^\uFEFF/, "");
 }
 
 async function tableExists(client, tableName) {
-  const result = await client.query("select to_regclass($1) as table_name", [tableName]);
+  const result = await client.query("select to_regclass($1) as table_name", [
+    tableName,
+  ]);
   return Boolean(result.rows[0].table_name);
 }
 
 async function applyMigration(client, migration, bootstrap = false) {
   const filename = path.basename(migration);
   if (!bootstrap) {
-    const applied = await client.query("select 1 from public.schema_migrations where filename = $1", [filename]);
+    const applied = await client.query(
+      "select 1 from public.schema_migrations where filename = $1",
+      [filename],
+    );
     if (applied.rowCount > 0) {
       console.log(`skipped ${migration}`);
       return;
@@ -26,7 +33,10 @@ async function applyMigration(client, migration, bootstrap = false) {
   await client.query("begin");
   try {
     await client.query(readSql(migration));
-    await client.query("insert into public.schema_migrations (filename) values ($1)", [filename]);
+    await client.query(
+      "insert into public.schema_migrations (filename) values ($1)",
+      [filename],
+    );
     await client.query("commit");
   } catch (error) {
     await client.query("rollback");
@@ -41,7 +51,10 @@ async function runMigrations(client) {
   }
 
   if (await tableExists(client, "public.reglas_agronomicas")) {
-    await applyMigration(client, "db/migrations/003_dedupe_reglas_agronomicas.sql");
+    await applyMigration(
+      client,
+      "db/migrations/003_dedupe_reglas_agronomicas.sql",
+    );
   }
 
   const migrations = [
@@ -68,8 +81,9 @@ async function runMigrations(client) {
     "db/migrations/022_trigo_catalogo_inicial.sql",
     "db/migrations/023_trigo_reglas_preliminares.sql",
     "db/migrations/024_activa_trigo_experimental.sql",
-  "db/migrations/025_trigo_sin_coincidencia_incompleta.sql",
-  "db/migrations/026_fusariosis_resultado_incompleto.sql",
+    "db/migrations/025_trigo_sin_coincidencia_incompleta.sql",
+    "db/migrations/026_fusariosis_resultado_incompleto.sql",
+    "db/migrations/027_reglas_configurables_genericas.sql",
     historyMigration,
   ];
 
