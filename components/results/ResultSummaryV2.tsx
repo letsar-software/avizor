@@ -2,80 +2,1041 @@
 /* eslint-disable @next/next/no-img-element -- local SVG stage art is fixed-size and already optimized */
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BarChart3, BookOpen, CalendarDays, CheckCircle2, ChevronDown, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Eye, Leaf, Loader2, MapPin, Scale, ShieldCheck, Snowflake, Sprout, Sun, Thermometer, Timer, TriangleAlert, Wind } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
+  Eye,
+  Leaf,
+  Loader2,
+  MapPin,
+  Scale,
+  ShieldCheck,
+  Snowflake,
+  Sprout,
+  Sun,
+  Thermometer,
+  Timer,
+  TriangleAlert,
+  Wind,
+} from "lucide-react";
 import type { ResultadoConsultaV2Publica, SerieClimaticaDiaria } from "@/types";
-import { aggregateClimate, categoryDefinitions, formatDate, formatDateTime, formatNumber, representativeRuleForDefinition } from "@/lib/results/presentation";
+import {
+  aggregateClimate,
+  categoryDefinitions,
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  representativeRuleForDefinition,
+} from "@/lib/results/presentation";
 import { buildConsultationSummary } from "@/lib/results/consultation-summary";
-import { analysisCoverageLabel, calculateAnalysisQuality } from "@/lib/results/analysis-quality";
+import {
+  analysisCoverageLabel,
+  calculateAnalysisQuality,
+} from "@/lib/results/analysis-quality";
 import InteractiveLineChart from "@/components/results/InteractiveLineChart";
 import HistoricalTemperatureChart from "@/components/results/HistoricalTemperatureChart";
+import ClimateHistoricalPanel from "@/components/results/ClimateHistoricalPanel";
 import { PestSummaryCard } from "@/components/results/PestResults";
-import { CategoryIconChip, ResultScopeNote, StatusLabelText, categoryIcons, severityOf } from "@/components/results/shared";
+import {
+  CategoryIconChip,
+  ResultScopeNote,
+  StatusLabelText,
+  categoryIcons,
+  severityOf,
+} from "@/components/results/shared";
 import Accordion from "@/components/Accordion";
 import { groupLimitations } from "@/lib/results/supplementary";
 import ModernDateInput from "@/components/ModernDateInput";
 import CompartirSection from "@/components/CompartirSection";
-import { useResult, type ResultViewProps } from "@/components/results/useResult";
+import {
+  useResult,
+  type ResultViewProps,
+} from "@/components/results/useResult";
 
-const phenologyImages:Record<string,string>={E:"/phenology/soja-e.svg",R1:"/phenology/soja-r1.svg",R3:"/phenology/soja-r3.svg",R5:"/phenology/soja-r5.svg",R7:"/phenology/soja-r7.svg"};
+const phenologyImages: Record<string, string> = {
+  E: "/phenology/soja-e.svg",
+  R1: "/phenology/soja-r1.svg",
+  R3: "/phenology/soja-r3.svg",
+  R5: "/phenology/soja-r5.svg",
+  R7: "/phenology/soja-r7.svg",
+};
 
-export default function ResultSummaryV2({initialResult,basePath="/resultado"}:ResultViewProps = {}){
- const {result,setResult,loaded}=useResult(initialResult);
- const metrics=useMemo(()=>aggregateClimate(result?.clima.serie??[]),[result]);
- if(!loaded)return <main className="min-h-[60vh]"/>;
- if(!result)return <main className="mx-auto max-w-3xl px-5 py-16 text-center text-[#081a31]"><CloudRain className="mx-auto h-12 w-12 text-[#087b4b]"/><h1 className="mt-4 text-2xl font-bold">No encontramos un resultado actualizado</h1><p className="mt-3 text-sm text-[#526477]">Realizá una nueva consulta para obtener información climática vigente.</p><Link href="/consultar" className="mt-6 inline-flex rounded-lg bg-[#087b4b] px-5 py-3 text-sm font-bold text-white">Realizar consulta</Link></main>;
- const title=result.estado_general;
- return <main className="mx-auto max-w-[1420px] px-4 py-5 text-[#081a31] sm:px-7 lg:py-8">
-  <Link href="/consultar" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#087b4b]"><ArrowLeft className="h-4 w-4"/>Volver a consultar</Link>
-  <section className="mt-2 rounded-xl border border-[#8fc9a8] bg-white p-5 lg:grid lg:grid-cols-[.9fr_1.15fr_.9fr] lg:gap-7 lg:p-7"><div className="flex gap-4"><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#087b4b]"><ShieldCheck className="h-9 w-9"/></span><div><p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">Estado general</p><h1 className="mt-1 text-2xl font-bold uppercase leading-tight text-[#087b4b] sm:text-3xl">{title}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#405369]">{result.explicacion}</p></div></div><ConsultationSummary result={result}/><Metadata result={result}/></section>
-  <section className="mt-5"><h2 className="text-xl font-bold">Resumen por categoría</h2><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">{categoryDefinitions.slice(0,1).map(definition=><CategoryCard key={definition.slug} result={result} definition={definition} basePath={basePath}/>)}<PestSummaryCard result={result} basePath={basePath}/>{categoryDefinitions.slice(1).map(definition=><CategoryCard key={definition.slug} result={result} definition={definition} basePath={basePath}/>)}</div></section>
-  <GeneralRecommendation result={result}/>
-  <PrecisionSection result={result} onUpdate={setResult} basePath={basePath} readOnly={Boolean(initialResult)}/>
-  <ForecastSection forecast={result.prevision}/>
-  <EvidenceSection result={result} metrics={metrics}/>
-  <SupplementaryInformation result={result}/>
-  <CompartirSection token={result.share_token} persisted={Boolean(initialResult || result.id)}/>
-  <div className="mt-3"><ResultScopeNote/></div>
- </main>;
+export default function ResultSummaryV2({
+  initialResult,
+  basePath = "/resultado",
+}: ResultViewProps = {}) {
+  const { result, setResult, loaded } = useResult(initialResult);
+  const [climateAnalysisOpen, setClimateAnalysisOpen] = useState(false);
+  const metrics = useMemo(
+    () => aggregateClimate(result?.clima.serie ?? []),
+    [result],
+  );
+  if (!loaded) return <main className="min-h-[60vh]" />;
+  if (!result)
+    return (
+      <main className="mx-auto max-w-3xl px-5 py-16 text-center text-[#081a31]">
+        <CloudRain className="mx-auto h-12 w-12 text-[#087b4b]" />
+        <h1 className="mt-4 text-2xl font-bold">
+          No encontramos un resultado actualizado
+        </h1>
+        <p className="mt-3 text-sm text-[#526477]">
+          Realizá una nueva consulta para obtener información climática vigente.
+        </p>
+        <Link
+          href="/consultar"
+          className="mt-6 inline-flex rounded-lg bg-[#087b4b] px-5 py-3 text-sm font-bold text-white"
+        >
+          Realizar consulta
+        </Link>
+      </main>
+    );
+  const title = result.estado_general;
+  return (
+    <main className="mx-auto max-w-[1420px] px-4 py-5 text-[#081a31] sm:px-7 lg:py-8">
+      <Link
+        href="/consultar"
+        className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#087b4b]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Volver a consultar
+      </Link>
+      <section className="mt-2 rounded-xl border border-[#8fc9a8] bg-white p-5 lg:grid lg:grid-cols-[.9fr_1.15fr_.9fr] lg:gap-7 lg:p-7">
+        <div className="flex gap-4">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#087b4b]">
+            <ShieldCheck className="h-9 w-9" />
+          </span>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">
+              Estado general
+            </p>
+            <h1 className="mt-1 text-2xl font-bold uppercase leading-tight text-[#087b4b] sm:text-3xl">
+              {title}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#405369]">
+              {result.explicacion}
+            </p>
+          </div>
+        </div>
+        <ConsultationSummary
+          result={result}
+          climateAnalysisOpen={climateAnalysisOpen}
+          onClimateAnalysisToggle={() =>
+            setClimateAnalysisOpen((value) => !value)
+          }
+        />
+        <Metadata result={result} />
+        {climateAnalysisOpen ? (
+          <ClimateHistoricalPanel
+            result={result}
+            onClose={() => setClimateAnalysisOpen(false)}
+            className="lg:col-span-3"
+          />
+        ) : null}
+      </section>
+      <section className="mt-5">
+        <h2 className="text-xl font-bold">Resumen por categoría</h2>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {categoryDefinitions.slice(0, 1).map((definition) => (
+            <CategoryCard
+              key={definition.slug}
+              result={result}
+              definition={definition}
+              basePath={basePath}
+            />
+          ))}
+          <PestSummaryCard result={result} basePath={basePath} />
+          {categoryDefinitions.slice(1).map((definition) => (
+            <CategoryCard
+              key={definition.slug}
+              result={result}
+              definition={definition}
+              basePath={basePath}
+            />
+          ))}
+        </div>
+      </section>
+      <div className="mt-5 grid gap-3 lg:grid-cols-2 lg:items-stretch">
+        <GeneralRecommendation result={result} />
+        <PrecisionSection
+          result={result}
+          onUpdate={setResult}
+          basePath={basePath}
+          readOnly={Boolean(initialResult)}
+        />
+      </div>
+      <ForecastSection forecast={result.prevision} />
+      <EvidenceSection result={result} metrics={metrics} />
+      <SupplementaryInformation result={result} />
+      <CompartirSection
+        token={result.share_token}
+        persisted={Boolean(initialResult || result.id)}
+      />
+      <div className="mt-3">
+        <ResultScopeNote />
+      </div>
+    </main>
+  );
 }
 
-function CategoryCard({result,definition,basePath}:{result:ResultadoConsultaV2Publica;definition:(typeof categoryDefinitions)[number];basePath:string}){const rule=representativeRuleForDefinition(result,definition.risk);const Icon=categoryIcons[definition.slug];return <Link href={`${basePath}/${definition.slug}`} className="flex min-h-[92px] items-center gap-2 rounded-xl border bg-white p-4 text-left"><CategoryIconChip Icon={Icon} severity={severityOf(rule)}/><span className="min-w-0 flex-1"><strong className="text-sm">{definition.name}</strong><StatusLabelText rule={rule} categoryName={definition.name} className="mt-1 block text-xs font-semibold sm:text-sm"/></span><ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true"/></Link>}
-function ConsultationSummary({result}:{result:ResultadoConsultaV2Publica}){const summary=result.resumen_consulta??buildConsultationSummary(result.reglas);return <div className="mt-5 border-t pt-5 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0"><h2 className="text-sm font-bold text-[#087b4b]">Resumen de tu consulta</h2><p className="mt-2 text-sm leading-6 text-[#263a4d]">{summary.descripcion.split(". ")[0]}.</p><p className="mt-3 flex gap-2 text-sm font-bold leading-5 text-[#087b4b]"><Leaf className="mt-0.5 h-4 w-4 shrink-0"/>{summary.destaque}</p></div>}
-function GeneralRecommendation({result}:{result:ResultadoConsultaV2Publica}){const summary=result.resumen_consulta??buildConsultationSummary(result.reglas);return <section className="mt-5 rounded-xl border border-[#8fc9a8] bg-[#f4faf6] p-5"><div className="flex gap-3"><Leaf className="mt-0.5 h-5 w-5 shrink-0 text-[#087b4b]"/><div><h2 className="text-base font-bold text-[#087b4b]">Recomendación general</h2><p className="mt-2 text-sm font-semibold leading-6 text-[#263a4d]">{summary.destaque}</p></div></div></section>}
-export function consultationContext(result:ResultadoConsultaV2Publica){const context=result.contexto_fenologico;const location=[result.localidad?.nombre,result.localidad?.provincia].filter(Boolean).join(", ")||"No informada";return {ubicacion:location,cultivo:result.cultivo?result.cultivo.charAt(0).toUpperCase()+result.cultivo.slice(1):"No informado",fenologia:context.disponible?`${context.estadio_estimado??"—"} · ${context.descripcion??"Etapa estimada"}`:"No informada"}}
-function Metadata({result}:{result:ResultadoConsultaV2Publica}){const generated=new Date(result.generado_en);const context=consultationContext(result);const quality=result.calidad_analisis??calculateAnalysisQuality(result.reglas,result.clima.cobertura);return <div className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:mt-0 lg:grid-cols-1 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0"><Fact Icon={MapPin} label="Ubicación" value={context.ubicacion}/><Fact Icon={Leaf} label="Cultivo" value={context.cultivo}/><Fact Icon={Sprout} label="Fenología" value={context.fenologia}/><Fact Icon={CalendarDays} label="Período analizado" value={`${formatDate(result.clima.rango_temporal.desde,true)} – ${formatDate(result.clima.rango_temporal.hasta,true)}`}/><Fact Icon={CheckCircle2} label="Cobertura del análisis" value={`${Math.round(quality.cobertura*100)} % · ${analysisCoverageLabel(quality.estado)}`}/><Fact Icon={Timer} label="Última actualización" value={Number.isNaN(generated.getTime())?formatDate(result.fecha_ref,true):formatDateTime(result.generado_en)}/></div>}
-function Fact({Icon,label,value}:{Icon:typeof CalendarDays;label:string;value:string}){return <div className="flex gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#087b4b]"><Icon className="h-4 w-4"/></span><p className="text-xs text-[#526477]">{label}<strong className="mt-1 block text-sm text-[#081a31]">{value}</strong></p></div>}
-function PrecisionSection({result,onUpdate,basePath,readOnly}:{result:ResultadoConsultaV2Publica;onUpdate:(value:ResultadoConsultaV2Publica)=>void;basePath:string;readOnly:boolean}){
- const[open,setOpen]=useState(false);const[date,setDate]=useState("");const[group,setGroup]=useState("IV corto");const[cultivar,setCultivar]=useState("");const[loading,setLoading]=useState(false);const[error,setError]=useState("");
- const context=result.contexto_fenologico;const stage=context.estadio_estimado??"E";const image=phenologyImages[stage]??phenologyImages.E;
- async function recalculate(event:React.FormEvent){event.preventDefault();if(!date){setError("Ingresá la fecha de siembra.");return}setLoading(true);setError("");try{const location=result.localidad?`${result.localidad.nombre}, ${result.localidad.provincia}`:"";const response=await fetch("/api/public/consultas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({localidad:location,cultivo:result.cultivo,fechaSiembra:date,grupoMadurez:group,cultivar:cultivar||undefined,canal:"web"})});const payload=await response.json();if(!response.ok)throw new Error(payload.error?.message||"No pudimos recalcular la consulta.");const updated=payload.data as ResultadoConsultaV2Publica;sessionStorage.setItem("avizor_resultado",JSON.stringify(updated));const previous=JSON.parse(sessionStorage.getItem("avizor_consulta")||"{}");sessionStorage.setItem("avizor_consulta",JSON.stringify({...previous,fechaSiembra:date,grupoMadurez:group,cultivar:cultivar||undefined,result:updated}));onUpdate(updated);setOpen(false)}catch(cause){setError(cause instanceof Error?cause.message:"No pudimos recalcular la consulta.")}finally{setLoading(false)}}
- return <section className="mt-3">
-  <div className="rounded-xl border border-[#8fc9a8] bg-[#f7fbf8] p-5">{context.disponible?<div className="grid items-center gap-4 sm:grid-cols-[90px_64px_1fr_auto]"><img src={image} alt={`Ilustración del estadio ${stage}`} className="mx-auto h-24 w-24 object-contain"/><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#087b4b] text-2xl font-bold text-white">{stage}</span><div className="min-w-0"><h2 className="text-base font-bold">Contexto fenológico estimado</h2><p className="mt-2 text-xl font-bold">{context.descripcion}</p><p className="mt-2 text-sm leading-6 text-[#405369]">{context.incertidumbre?.nota??"Estimación calculada con la fecha de siembra y el grupo de madurez informados."}</p></div><div className="flex flex-col gap-3"><PhenologyPrecision context={context}/><div className="flex flex-wrap justify-end gap-2">{!readOnly && <button type="button" onClick={()=>setOpen(!open)} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#178a51] bg-white px-4 text-sm font-bold text-[#087b4b]">Modificar datos</button>}<Link href={`${basePath}/fenologia`} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#087b4b] px-4 text-sm font-bold text-white transition hover:bg-[#06683f]">Ver fenología completa</Link></div></div></div>:<><p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">Fenología del cultivo</p><h2 className="mt-2 text-lg font-bold">Fenología no determinada</h2><p className="mt-2 text-sm leading-6 text-[#405369]">{result.cultivo === "trigo" ? "Todavía no hay un modelo técnico validado para estimar la etapa de trigo." : "Agregá la fecha de siembra y el grupo de madurez para estimar el momento del cultivo."}</p>{result.cultivo === "soja" && !readOnly && <button type="button" onClick={()=>setOpen(!open)} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#087b4b] px-4 text-sm font-bold text-white"><Sprout className="h-4 w-4"/>Completar datos del cultivo <ArrowRight className="h-4 w-4"/></button>}</>}
-  {open&&<form onSubmit={recalculate} className="mt-5 grid gap-3 border-t border-[#cde3d5] pt-5 sm:grid-cols-3"><div><label htmlFor="result-planting-date" className="mb-2 block text-sm font-bold">Fecha de siembra</label><ModernDateInput id="result-planting-date" value={date} onChange={setDate} required/></div><label className="text-sm font-bold">Grupo de madurez<select value={group} onChange={event=>setGroup(event.target.value)} className="mt-2 h-12 w-full rounded-xl border bg-white px-3 font-normal"><option>III</option><option>IV corto</option><option>IV largo</option><option>V</option></select></label><label className="text-sm font-bold">Cultivar <span className="font-normal">(opcional)</span><input value={cultivar} onChange={event=>setCultivar(event.target.value)} placeholder="Ej.: DM 40R16" className="mt-2 h-12 w-full rounded-xl border bg-white px-3 font-normal"/></label>{error&&<p className="text-sm text-red-700 sm:col-span-3">{error}</p>}<button disabled={loading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#087b4b] px-5 text-sm font-bold text-white sm:col-span-3 sm:justify-self-start">{loading?<><Loader2 className="h-4 w-4 animate-spin"/>Recalculando…</>:"Recalcular análisis"}</button></form>}
-  </div>
- </section>;
+function CategoryCard({
+  result,
+  definition,
+  basePath,
+}: {
+  result: ResultadoConsultaV2Publica;
+  definition: (typeof categoryDefinitions)[number];
+  basePath: string;
+}) {
+  const rule = representativeRuleForDefinition(result, definition.risk);
+  const Icon = categoryIcons[definition.slug];
+  return (
+    <Link
+      href={`${basePath}/${definition.slug}`}
+      className="flex min-h-[92px] items-center gap-2 rounded-xl border bg-white p-4 text-left"
+    >
+      <CategoryIconChip Icon={Icon} severity={severityOf(rule)} />
+      <span className="min-w-0 flex-1">
+        <strong className="text-sm">{definition.name}</strong>
+        <StatusLabelText
+          rule={rule}
+          categoryName={definition.name}
+          className="mt-1 block text-xs font-semibold sm:text-sm"
+        />
+      </span>
+      <ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+    </Link>
+  );
+}
+function ConsultationSummary({
+  result,
+  climateAnalysisOpen,
+  onClimateAnalysisToggle,
+}: {
+  result: ResultadoConsultaV2Publica;
+  climateAnalysisOpen: boolean;
+  onClimateAnalysisToggle: () => void;
+}) {
+  const summary =
+    result.resumen_consulta ?? buildConsultationSummary(result.reglas);
+  return (
+    <div className="mt-5 border-t pt-5 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+      <h2 className="text-sm font-bold text-[#087b4b]">
+        Resumen de tu consulta
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-[#263a4d]">
+        {summary.descripcion.split(". ")[0]}.
+      </p>
+      <p className="mt-3 flex gap-2 text-sm font-bold leading-5 text-[#087b4b]">
+        <Leaf className="mt-0.5 h-4 w-4 shrink-0" />
+        {summary.destaque}
+      </p>
+      <button
+        type="button"
+        onClick={onClimateAnalysisToggle}
+        aria-expanded={climateAnalysisOpen}
+        className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#087b4b] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#066a40]"
+      >
+        {climateAnalysisOpen
+          ? "Ocultar análisis climático e histórico"
+          : "Análisis climático e histórico"}
+      </button>
+    </div>
+  );
+}
+function GeneralRecommendation({
+  result,
+}: {
+  result: ResultadoConsultaV2Publica;
+}) {
+  const summary =
+    result.resumen_consulta ?? buildConsultationSummary(result.reglas);
+  return (
+    <section className="rounded-xl border border-[#8fc9a8] bg-[#f4faf6] p-5">
+      <div className="flex gap-3">
+        <Leaf className="mt-0.5 h-5 w-5 shrink-0 text-[#087b4b]" />
+        <div>
+          <h2 className="text-base font-bold text-[#087b4b]">
+            Recomendación general
+          </h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#263a4d]">
+            {summary.destaque}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+export function consultationContext(result: ResultadoConsultaV2Publica) {
+  const context = result.contexto_fenologico;
+  const location =
+    [result.localidad?.nombre, result.localidad?.provincia]
+      .filter(Boolean)
+      .join(", ") || "No informada";
+  return {
+    ubicacion: location,
+    cultivo: result.cultivo
+      ? result.cultivo.charAt(0).toUpperCase() + result.cultivo.slice(1)
+      : "No informado",
+    fenologia: context.disponible
+      ? `${context.estadio_estimado ?? "—"} · ${context.descripcion ?? "Etapa estimada"}`
+      : "No informada",
+  };
+}
+function Metadata({ result }: { result: ResultadoConsultaV2Publica }) {
+  const generated = new Date(result.generado_en);
+  const context = consultationContext(result);
+  const quality =
+    result.calidad_analisis ??
+    calculateAnalysisQuality(result.reglas, result.clima.cobertura);
+  return (
+    <div className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2 lg:mt-0 lg:grid-cols-1 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+      <Fact Icon={MapPin} label="Ubicación" value={context.ubicacion} />
+      <Fact Icon={Leaf} label="Cultivo" value={context.cultivo} />
+      <Fact Icon={Sprout} label="Fenología" value={context.fenologia} />
+      <Fact
+        Icon={CalendarDays}
+        label="Período analizado"
+        value={`${formatDate(result.clima.rango_temporal.desde, true)} – ${formatDate(result.clima.rango_temporal.hasta, true)}`}
+      />
+      <Fact
+        Icon={CheckCircle2}
+        label="Cobertura del análisis"
+        value={`${Math.round(quality.cobertura * 100)} % · ${analysisCoverageLabel(quality.estado)}`}
+      />
+      <Fact
+        Icon={Timer}
+        label="Última actualización"
+        value={
+          Number.isNaN(generated.getTime())
+            ? formatDate(result.fecha_ref, true)
+            : formatDateTime(result.generado_en)
+        }
+      />
+    </div>
+  );
+}
+function Fact({
+  Icon,
+  label,
+  value,
+}: {
+  Icon: typeof CalendarDays;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#087b4b]">
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="text-xs text-[#526477]">
+        {label}
+        <strong className="mt-1 block text-sm text-[#081a31]">{value}</strong>
+      </p>
+    </div>
+  );
+}
+function PrecisionSection({
+  result,
+  onUpdate,
+  basePath,
+  readOnly,
+}: {
+  result: ResultadoConsultaV2Publica;
+  onUpdate: (value: ResultadoConsultaV2Publica) => void;
+  basePath: string;
+  readOnly: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState("");
+  const [group, setGroup] = useState("IV corto");
+  const [cultivar, setCultivar] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const context = result.contexto_fenologico;
+  const stage = context.estadio_estimado ?? "E";
+  const image = phenologyImages[stage] ?? phenologyImages.E;
+  async function recalculate(event: React.FormEvent) {
+    event.preventDefault();
+    if (!date) {
+      setError("Ingresá la fecha de siembra.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const location = result.localidad
+        ? `${result.localidad.nombre}, ${result.localidad.provincia}`
+        : "";
+      const response = await fetch("/api/public/consultas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          localidad: location,
+          cultivo: result.cultivo,
+          fechaSiembra: date,
+          grupoMadurez: group,
+          cultivar: cultivar || undefined,
+          canal: "web",
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok)
+        throw new Error(
+          payload.error?.message || "No pudimos recalcular la consulta.",
+        );
+      const updated = payload.data as ResultadoConsultaV2Publica;
+      sessionStorage.setItem("avizor_resultado", JSON.stringify(updated));
+      const previous = JSON.parse(
+        sessionStorage.getItem("avizor_consulta") || "{}",
+      );
+      sessionStorage.setItem(
+        "avizor_consulta",
+        JSON.stringify({
+          ...previous,
+          fechaSiembra: date,
+          grupoMadurez: group,
+          cultivar: cultivar || undefined,
+          result: updated,
+        }),
+      );
+      onUpdate(updated);
+      setOpen(false);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "No pudimos recalcular la consulta.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <section>
+      <div className="rounded-xl border border-[#8fc9a8] bg-[#f7fbf8] p-5">
+        {context.disponible ? (
+          <div className="grid items-center gap-4 sm:grid-cols-[90px_64px_1fr_auto]">
+            <img
+              src={image}
+              alt={`Ilustración del estadio ${stage}`}
+              className="mx-auto h-24 w-24 object-contain"
+            />
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#087b4b] text-2xl font-bold text-white">
+              {stage}
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold">
+                Contexto fenológico estimado
+              </h2>
+              <p className="mt-2 text-xl font-bold">{context.descripcion}</p>
+              <p className="mt-2 text-sm leading-6 text-[#405369]">
+                {context.incertidumbre?.nota ??
+                  "Estimación calculada con la fecha de siembra y el grupo de madurez informados."}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <PhenologyPrecision context={context} />
+              <div className="flex flex-wrap justify-end gap-2">
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setOpen(!open)}
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#178a51] bg-white px-4 text-sm font-bold text-[#087b4b]"
+                  >
+                    Modificar datos
+                  </button>
+                )}
+                <Link
+                  href={`${basePath}/fenologia`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#087b4b] px-4 text-sm font-bold text-white transition hover:bg-[#06683f]"
+                >
+                  Ver fenología completa
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">
+              Fenología del cultivo
+            </p>
+            <h2 className="mt-2 text-lg font-bold">Fenología no determinada</h2>
+            <p className="mt-2 text-sm leading-6 text-[#405369]">
+              {result.cultivo === "trigo"
+                ? "Todavía no hay un modelo técnico validado para estimar la etapa de trigo."
+                : "Agregá la fecha de siembra y el grupo de madurez para estimar el momento del cultivo."}
+            </p>
+            {result.cultivo === "soja" && !readOnly && (
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#087b4b] px-4 text-sm font-bold text-white"
+              >
+                <Sprout className="h-4 w-4" />
+                Completar datos del cultivo <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+          </>
+        )}
+        {open && (
+          <form
+            onSubmit={recalculate}
+            className="mt-5 grid gap-3 border-t border-[#cde3d5] pt-5 sm:grid-cols-3"
+          >
+            <div>
+              <label
+                htmlFor="result-planting-date"
+                className="mb-2 block text-sm font-bold"
+              >
+                Fecha de siembra
+              </label>
+              <ModernDateInput
+                id="result-planting-date"
+                value={date}
+                onChange={setDate}
+                required
+              />
+            </div>
+            <label className="text-sm font-bold">
+              Grupo de madurez
+              <select
+                value={group}
+                onChange={(event) => setGroup(event.target.value)}
+                className="mt-2 h-12 w-full rounded-xl border bg-white px-3 font-normal"
+              >
+                <option>III</option>
+                <option>IV corto</option>
+                <option>IV largo</option>
+                <option>V</option>
+              </select>
+            </label>
+            <label className="text-sm font-bold">
+              Cultivar <span className="font-normal">(opcional)</span>
+              <input
+                value={cultivar}
+                onChange={(event) => setCultivar(event.target.value)}
+                placeholder="Ej.: DM 40R16"
+                className="mt-2 h-12 w-full rounded-xl border bg-white px-3 font-normal"
+              />
+            </label>
+            {error && (
+              <p className="text-sm text-red-700 sm:col-span-3">{error}</p>
+            )}
+            <button
+              disabled={loading}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#087b4b] px-5 text-sm font-bold text-white sm:col-span-3 sm:justify-self-start"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Recalculando…
+                </>
+              ) : (
+                "Recalcular análisis"
+              )}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
 }
 
-export function ForecastSection({forecast}:{forecast:ResultadoConsultaV2Publica["prevision"]}){
- const[open,setOpen]=useState(false);
- if(!forecast?.length)return <section className="mt-5 rounded-xl border border-[#d9e8df] bg-[#f8fbf9] p-5" aria-label="Previsión climática"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700"><CloudRain className="h-5 w-5"/></span><div><h2 className="text-base font-bold">Previsión climática</h2><p className="mt-1 text-sm text-[#526477]">La previsión climática no está disponible en este momento.</p></div></div></section>;
- return <section className="mt-5 overflow-hidden rounded-xl border border-[#cfe3f5] bg-[#f5faff]" aria-labelledby="forecast-title"><button type="button" aria-expanded={open} aria-controls="forecast-content" onClick={()=>setOpen(value=>!value)} className="flex min-h-14 w-full items-center gap-3 p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-avizor-green lg:pointer-events-none"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700"><CloudRain className="h-5 w-5"/></span><span className="min-w-0 flex-1"><span id="forecast-title" className="block text-base font-bold">Previsión climática</span><span className="mt-1 block text-sm text-[#526477]">Próximos 5 días</span></span><ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-blue-700 transition-transform lg:hidden ${open?"rotate-180":""}`}/></button><div id="forecast-content" className={`${open?"block":"hidden"} border-t border-[#cfe3f5] p-5 lg:block lg:border-t-0 lg:pt-0`}><p className="text-sm text-[#526477]">Información complementaria: no forma parte de las señales actuales.</p><div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">{forecast.map(day=><ForecastDay key={day.fecha} day={day}/>)}</div></div></section>;
+export function ForecastSection({
+  forecast,
+}: {
+  forecast: ResultadoConsultaV2Publica["prevision"];
+}) {
+  const [open, setOpen] = useState(false);
+  if (!forecast?.length)
+    return (
+      <section
+        className="mt-5 rounded-xl border border-[#d9e8df] bg-[#f8fbf9] p-5"
+        aria-label="Previsión climática"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+            <CloudRain className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-base font-bold">Previsión climática</h2>
+            <p className="mt-1 text-sm text-[#526477]">
+              La previsión climática no está disponible en este momento.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  return (
+    <section
+      className="mt-5 overflow-hidden rounded-xl border border-[#cfe3f5] bg-[#f5faff]"
+      aria-labelledby="forecast-title"
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="forecast-content"
+        onClick={() => setOpen((value) => !value)}
+        className="flex min-h-14 w-full items-center gap-3 p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-avizor-green lg:pointer-events-none"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+          <CloudRain className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span id="forecast-title" className="block text-base font-bold">
+            Previsión climática
+          </span>
+          <span className="mt-1 block text-sm text-[#526477]">
+            Próximos 5 días
+          </span>
+        </span>
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-5 w-5 shrink-0 text-blue-700 transition-transform lg:hidden ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <div
+        id="forecast-content"
+        className={`${open ? "block" : "hidden"} border-t border-[#cfe3f5] p-5 lg:block lg:border-t-0 lg:pt-0`}
+      >
+        <p className="text-sm text-[#526477]">
+          Información complementaria: no forma parte de las señales actuales.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {forecast.map((day) => (
+            <ForecastDay key={day.fecha} day={day} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
-function ForecastDay({day}:{day:NonNullable<ResultadoConsultaV2Publica["prevision"]>[number]}){const label=new Intl.DateTimeFormat("es-AR",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"}).format(new Date(`${day.fecha}T12:00:00Z`));const temperature=day.temperaturaMinima!==null||day.temperaturaMaxima!==null?`${forecastNumber(day.temperaturaMinima)}° / ${forecastNumber(day.temperaturaMaxima)}°`:"Temperatura no disponible";return <article className="rounded-lg border border-[#d9e8f5] bg-white p-3"><div className="flex items-center justify-between gap-2"><h3 className="capitalize text-sm font-bold text-[#263a4d]">{label}</h3><WeatherIcon code={day.codigoMeteorologico}/></div><p className="mt-2 text-base font-bold text-[#081a31]">{temperature}</p><p className="mt-2 text-xs text-[#526477]">{day.precipitacion===null?"Lluvia no disponible":day.precipitacion>0?`Lluvia: ${forecastNumber(day.precipitacion)} mm`:"Sin lluvias previstas"}</p><dl className="mt-3 space-y-1 border-t border-[#edf3f8] pt-2 text-xs text-[#526477]"><div className="flex justify-between gap-2"><dt>Humedad</dt><dd className="font-semibold text-[#263a4d]">{day.humedadRelativa===null?"—":`${forecastNumber(day.humedadRelativa)} %`}</dd></div><div className="flex justify-between gap-2"><dt className="inline-flex items-center gap-1"><Wind className="h-3 w-3"/>Viento</dt><dd className="font-semibold text-[#263a4d]">{day.vientoMedio===null?"—":`${forecastNumber(day.vientoMedio)} km/h`}</dd></div></dl></article>}
-export function weatherIconForCode(code:number|null|undefined){if(code===0)return Sun;if(code===1||code===2)return CloudSun;if(code===3)return Cloud;if(code===45||code===48)return CloudFog;if([95,96,99].includes(code??-1))return CloudLightning;if([71,73,75,77,85,86].includes(code??-1))return Snowflake;if([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code??-1))return CloudRain;return Cloud;}
-function WeatherIcon({code}:{code:number|null|undefined}){const Icon=weatherIconForCode(code);return <Icon aria-label={code===null||code===undefined?"Condición climática no disponible":"Condición climática prevista"} className="h-6 w-6 shrink-0 text-blue-700"/>}
-function forecastNumber(value:number|null){return value===null?"—":new Intl.NumberFormat("es-AR",{maximumFractionDigits:1}).format(value)}
-function PhenologyPrecision({context}:{context:ResultadoConsultaV2Publica["contexto_fenologico"]}){void context;return null}
+function ForecastDay({
+  day,
+}: {
+  day: NonNullable<ResultadoConsultaV2Publica["prevision"]>[number];
+}) {
+  const label = new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(`${day.fecha}T12:00:00Z`));
+  const temperature =
+    day.temperaturaMinima !== null || day.temperaturaMaxima !== null
+      ? `${forecastNumber(day.temperaturaMinima)}° / ${forecastNumber(day.temperaturaMaxima)}°`
+      : "Temperatura no disponible";
+  return (
+    <article className="rounded-lg border border-[#d9e8f5] bg-white p-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="capitalize text-sm font-bold text-[#263a4d]">{label}</h3>
+        <WeatherIcon code={day.codigoMeteorologico} />
+      </div>
+      <p className="mt-2 text-base font-bold text-[#081a31]">{temperature}</p>
+      <p className="mt-2 text-xs text-[#526477]">
+        {day.precipitacion === null
+          ? "Lluvia no disponible"
+          : day.precipitacion > 0
+            ? `Lluvia: ${forecastNumber(day.precipitacion)} mm`
+            : "Sin lluvias previstas"}
+      </p>
+      <dl className="mt-3 space-y-1 border-t border-[#edf3f8] pt-2 text-xs text-[#526477]">
+        <div className="flex justify-between gap-2">
+          <dt>Humedad</dt>
+          <dd className="font-semibold text-[#263a4d]">
+            {day.humedadRelativa === null
+              ? "—"
+              : `${forecastNumber(day.humedadRelativa)} %`}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="inline-flex items-center gap-1">
+            <Wind className="h-3 w-3" />
+            Viento
+          </dt>
+          <dd className="font-semibold text-[#263a4d]">
+            {day.vientoMedio === null
+              ? "—"
+              : `${forecastNumber(day.vientoMedio)} km/h`}
+          </dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+export function weatherIconForCode(code: number | null | undefined) {
+  if (code === 0) return Sun;
+  if (code === 1 || code === 2) return CloudSun;
+  if (code === 3) return Cloud;
+  if (code === 45 || code === 48) return CloudFog;
+  if ([95, 96, 99].includes(code ?? -1)) return CloudLightning;
+  if ([71, 73, 75, 77, 85, 86].includes(code ?? -1)) return Snowflake;
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1))
+    return CloudRain;
+  return Cloud;
+}
+function WeatherIcon({ code }: { code: number | null | undefined }) {
+  const Icon = weatherIconForCode(code);
+  return (
+    <Icon
+      aria-label={
+        code === null || code === undefined
+          ? "Condición climática no disponible"
+          : "Condición climática prevista"
+      }
+      className="h-6 w-6 shrink-0 text-blue-700"
+    />
+  );
+}
+function forecastNumber(value: number | null) {
+  return value === null
+    ? "—"
+    : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 }).format(
+        value,
+      );
+}
+function PhenologyPrecision({
+  context,
+}: {
+  context: ResultadoConsultaV2Publica["contexto_fenologico"];
+}) {
+  void context;
+  return null;
+}
 
-function EvidenceSection({result,metrics}:{result:ResultadoConsultaV2Publica;metrics:ReturnType<typeof aggregateClimate>}){const quality=result.calidad_analisis??calculateAnalysisQuality(result.reglas,result.clima.cobertura);return <section className="mt-5" aria-label="Qué está viendo Avizor"><Accordion id="result-evidence" title="Qué está viendo Avizor" summary="Variables climáticas y comparación con las reglas." icon={<Eye className="h-5 w-5"/>}><div className="grid gap-3 lg:grid-cols-[.9fr_1.15fr_1fr]"><Metrics data={metrics}/><ClimateComparisonTabs series={result.clima.serie} historico={result.historico_temperatura}/><RuleComparison result={result}/></div><AnalysisQualityDetails quality={quality}/></Accordion></section>}
-function ClimateComparisonTabs({series,historico}:{series:SerieClimaticaDiaria[];historico:ResultadoConsultaV2Publica["historico_temperatura"]}){const[tab,setTab]=useState<"observed"|"historical">("observed");return <section className="rounded-xl border bg-white p-5"><div className="flex gap-2 border-b"><button type="button" aria-pressed={tab==="observed"} onClick={()=>setTab("observed")} className={`min-h-10 px-3 text-sm font-bold ${tab==="observed"?"border-b-2 border-[#087b4b] text-[#087b4b]":"text-[#526477]"}`}>Datos observados</button><button type="button" aria-pressed={tab==="historical"} onClick={()=>setTab("historical")} className={`min-h-10 px-3 text-sm font-bold ${tab==="historical"?"border-b-2 border-[#087b4b] text-[#087b4b]":"text-[#526477]"}`}>Comparación histórica</button></div><div className="min-h-[210px] pt-3">{tab==="observed"?<ClimateChart series={series} embedded/>:<HistoricalTemperatureChart historico={historico}/>}</div></section>}
-function AnalysisQualityDetails({quality}:{quality:ReturnType<typeof calculateAnalysisQuality>}){if(!quality.evaluaciones_limitadas.length)return null;return <section className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><h3 className="text-sm font-bold">Evaluaciones limitadas por datos climáticos</h3><p className="mt-1 text-sm text-[#526477]">Cobertura del análisis: {Math.round(quality.cobertura*100)} % · {analysisCoverageLabel(quality.estado)}.</p>{quality.variables_faltantes_relevantes.length?<p className="mt-2 text-sm">Variables relevantes con faltantes: <strong>{quality.variables_faltantes_relevantes.map(variable=>variable.replaceAll("_"," ")).join(", ")}</strong>.</p>:null}<ul className="mt-3 space-y-2 text-sm">{quality.evaluaciones_limitadas.map(item=><li key={`${item.riesgo}-${item.variable??"clima"}`}><strong>{item.categoria??item.riesgo}</strong>: {item.dias_disponibles} de {item.dias_esperados} días disponibles{item.variable?` · ${item.variable.replaceAll("_"," ")}`:""} · motivo: datos insuficientes.</li>)}</ul></section>}
+function EvidenceSection({
+  result,
+  metrics,
+}: {
+  result: ResultadoConsultaV2Publica;
+  metrics: ReturnType<typeof aggregateClimate>;
+}) {
+  const quality =
+    result.calidad_analisis ??
+    calculateAnalysisQuality(result.reglas, result.clima.cobertura);
+  return (
+    <section className="mt-5" aria-label="Qué está viendo Avizor">
+      <Accordion
+        id="result-evidence"
+        title="Qué está viendo Avizor"
+        summary="Variables climáticas y comparación con las reglas."
+        icon={<Eye className="h-5 w-5" />}
+      >
+        <div className="grid gap-3 lg:grid-cols-[.9fr_1.15fr_1fr]">
+          <Metrics data={metrics} />
+          <ClimateComparisonTabs
+            series={result.clima.serie}
+            historico={result.historico_temperatura}
+          />
+          <RuleComparison result={result} />
+        </div>
+        <AnalysisQualityDetails quality={quality} />
+      </Accordion>
+    </section>
+  );
+}
+function ClimateComparisonTabs({
+  series,
+  historico,
+}: {
+  series: SerieClimaticaDiaria[];
+  historico: ResultadoConsultaV2Publica["historico_temperatura"];
+}) {
+  const [tab, setTab] = useState<"observed" | "historical">("observed");
+  return (
+    <section className="rounded-xl border bg-white p-5">
+      <div className="flex gap-2 border-b">
+        <button
+          type="button"
+          aria-pressed={tab === "observed"}
+          onClick={() => setTab("observed")}
+          className={`min-h-10 px-3 text-sm font-bold ${tab === "observed" ? "border-b-2 border-[#087b4b] text-[#087b4b]" : "text-[#526477]"}`}
+        >
+          Datos observados
+        </button>
+        <button
+          type="button"
+          aria-pressed={tab === "historical"}
+          onClick={() => setTab("historical")}
+          className={`min-h-10 px-3 text-sm font-bold ${tab === "historical" ? "border-b-2 border-[#087b4b] text-[#087b4b]" : "text-[#526477]"}`}
+        >
+          Comparación histórica
+        </button>
+      </div>
+      <div className="min-h-[210px] pt-3">
+        {tab === "observed" ? (
+          <ClimateChart series={series} embedded />
+        ) : (
+          <HistoricalTemperatureChart historico={historico} />
+        )}
+      </div>
+    </section>
+  );
+}
+function AnalysisQualityDetails({
+  quality,
+}: {
+  quality: ReturnType<typeof calculateAnalysisQuality>;
+}) {
+  if (!quality.evaluaciones_limitadas.length) return null;
+  return (
+    <section className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <h3 className="text-sm font-bold">
+        Evaluaciones limitadas por datos climáticos
+      </h3>
+      <p className="mt-1 text-sm text-[#526477]">
+        Cobertura del análisis: {Math.round(quality.cobertura * 100)} % ·{" "}
+        {analysisCoverageLabel(quality.estado)}.
+      </p>
+      {quality.variables_faltantes_relevantes.length ? (
+        <p className="mt-2 text-sm">
+          Variables relevantes con faltantes:{" "}
+          <strong>
+            {quality.variables_faltantes_relevantes
+              .map((variable) => variable.replaceAll("_", " "))
+              .join(", ")}
+          </strong>
+          .
+        </p>
+      ) : null}
+      <ul className="mt-3 space-y-2 text-sm">
+        {quality.evaluaciones_limitadas.map((item) => (
+          <li key={`${item.riesgo}-${item.variable ?? "clima"}`}>
+            <strong>{item.categoria ?? item.riesgo}</strong>:{" "}
+            {item.dias_disponibles} de {item.dias_esperados} días disponibles
+            {item.variable ? ` · ${item.variable.replaceAll("_", " ")}` : ""} ·
+            motivo: datos insuficientes.
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
-function Metrics({data,embedded=false}:{data:ReturnType<typeof aggregateClimate>;embedded?:boolean}){const rows=[["Precipitación acumulada",`${formatNumber(data.precipitation)} mm`],["Días con lluvia",`${data.rainyDays} días`],["Humedad relativa promedio",`${formatNumber(data.humidity)} %`],["Temperatura media",`${formatNumber(data.temperature)} °C`],["Temperatura mínima",`${formatNumber(data.minimum)} °C`]];return <section className={embedded?"":"rounded-xl border bg-white p-5"}>{!embedded&&<h3 className="text-base font-bold">Variables clave ({data.availableDays} días)</h3>}<dl className={embedded?"divide-y":"mt-4 divide-y"}>{rows.map(([label,value])=><div key={label} className="flex justify-between gap-3 py-3 text-sm"><dt className="flex items-center gap-2"><Thermometer className="h-4 w-4 text-indigo-600"/>{label}</dt><dd className="font-bold">{value}</dd></div>)}</dl></section>}
-function ClimateChart({series,embedded=false}:{series:SerieClimaticaDiaria[];embedded?:boolean}){const values=series.map(d=>d.precipitacion??0);const cumulative:number[]=[];values.reduce((sum,value,index)=>(cumulative[index]=sum+value,sum+value),0);return <section className={embedded?"":"rounded-xl border bg-white p-5"}>{!embedded&&<h3 className="text-base font-bold">Evolución de precipitación acumulada</h3>}<p className={`${embedded?"":"mt-1"} text-sm text-[#526477]`}>Datos diarios reales · {series.length} días</p><InteractiveLineChart dates={series.map(day=>day.fecha)} values={cumulative} bars={values} label="Acumulado" barLabel="Precipitación diaria" unit="mm"/></section>}
-function RuleComparison({result,embedded=false}:{result:ResultadoConsultaV2Publica;embedded?:boolean}){return <section className={embedded?"":"rounded-xl border bg-white p-5"}>{!embedded&&<h3 className="text-base font-bold">Comparación con las reglas</h3>}<ul className={`${embedded?"":"mt-4"} divide-y`}>{categoryDefinitions.map(def=>{const rule=representativeRuleForDefinition(result,def.risk);return <li key={def.slug} className="flex items-start justify-between gap-3 py-3 text-sm"><span>{def.name}</span><StatusLabelText rule={rule} categoryName={def.name} className="max-w-[60%] text-right font-bold"/></li>})}</ul></section>}
+function Metrics({
+  data,
+  embedded = false,
+}: {
+  data: ReturnType<typeof aggregateClimate>;
+  embedded?: boolean;
+}) {
+  const rows = [
+    ["Precipitación acumulada", `${formatNumber(data.precipitation)} mm`],
+    ["Días con lluvia", `${data.rainyDays} días`],
+    ["Humedad relativa promedio", `${formatNumber(data.humidity)} %`],
+    ["Temperatura media", `${formatNumber(data.temperature)} °C`],
+    ["Temperatura mínima", `${formatNumber(data.minimum)} °C`],
+  ];
+  return (
+    <section className={embedded ? "" : "rounded-xl border bg-white p-5"}>
+      {!embedded && (
+        <h3 className="text-base font-bold">
+          Variables clave ({data.availableDays} días)
+        </h3>
+      )}
+      <dl className={embedded ? "divide-y" : "mt-4 divide-y"}>
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-3 py-3 text-sm">
+            <dt className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4 text-indigo-600" />
+              {label}
+            </dt>
+            <dd className="font-bold">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+function ClimateChart({
+  series,
+  embedded = false,
+}: {
+  series: SerieClimaticaDiaria[];
+  embedded?: boolean;
+}) {
+  const values = series.map((d) => d.precipitacion ?? 0);
+  const cumulative: number[] = [];
+  values.reduce(
+    (sum, value, index) => ((cumulative[index] = sum + value), sum + value),
+    0,
+  );
+  return (
+    <section className={embedded ? "" : "rounded-xl border bg-white p-5"}>
+      {!embedded && (
+        <h3 className="text-base font-bold">
+          Evolución de precipitación acumulada
+        </h3>
+      )}
+      <p className={`${embedded ? "" : "mt-1"} text-sm text-[#526477]`}>
+        Datos diarios reales · {series.length} días
+      </p>
+      <InteractiveLineChart
+        dates={series.map((day) => day.fecha)}
+        values={cumulative}
+        bars={values}
+        label="Acumulado"
+        barLabel="Precipitación diaria"
+        unit="mm"
+      />
+    </section>
+  );
+}
+function RuleComparison({
+  result,
+  embedded = false,
+}: {
+  result: ResultadoConsultaV2Publica;
+  embedded?: boolean;
+}) {
+  return (
+    <section className={embedded ? "" : "rounded-xl border bg-white p-5"}>
+      {!embedded && (
+        <h3 className="text-base font-bold">Comparación con las reglas</h3>
+      )}
+      <ul className={`${embedded ? "" : "mt-4"} divide-y`}>
+        {categoryDefinitions.map((def) => {
+          const rule = representativeRuleForDefinition(result, def.risk);
+          return (
+            <li
+              key={def.slug}
+              className="flex items-start justify-between gap-3 py-3 text-sm"
+            >
+              <span>{def.name}</span>
+              <StatusLabelText
+                rule={rule}
+                categoryName={def.name}
+                className="max-w-[60%] text-right font-bold"
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
-function SupplementaryInformation({result}:{result:ResultadoConsultaV2Publica}){const limitations=unique(result.reglas.map(rule=>rule.limitaciones_declaradas));const recommendations=unique(result.reglas.map(rule=>rule.recomendacion));const sources=unique(result.reglas.map(rule=>rule.fuente_tecnica));return <section className="mt-5 space-y-2" aria-label="Información complementaria">{recommendations.length?<Accordion id="result-observe" title="Qué observar" summary="Recomendaciones específicas de monitoreo para esta situación." icon={<Eye className="h-5 w-5"/>}><TextList lines={recommendations} columns="two"/></Accordion>:null}<Accordion id="result-limitations" title="Limitaciones de esta evaluación" summary={limitations.length?`Ver ${limitations.length} limitaciones`:"No se informaron limitaciones adicionales"} icon={<TriangleAlert className="h-5 w-5"/>}><GroupedLimitations lines={limitations}/></Accordion><Accordion id="result-sources" title="Fuente y evidencia" summary={`${sources.length} ${sources.length===1?"fuente utilizada":"fuentes utilizadas"}`} icon={<BookOpen className="h-5 w-5"/>}><TextList lines={sources} columns="two"/></Accordion></section>}
-function GroupedLimitations({lines}:{lines:string[]}){const groups=groupLimitations(lines);return groups.length?<div className="divide-y divide-[#e8eeea]">{groups.map(group=><details key={group.title} className="group py-1"><summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-3 outline-none transition hover:bg-[#f7fbf8] focus-visible:ring-2 focus-visible:ring-avizor-green"><span className="min-w-0 flex-1"><strong className="block text-[15px] text-[#0b2138]">{group.title}</strong><span className="mt-0.5 block text-sm text-[#607083]">{group.items.length} {group.items.length===1?"observación":"observaciones"}</span></span><span className="shrink-0 text-sm font-bold text-[#087b4b] group-open:hidden">Ver detalle</span><span className="hidden shrink-0 text-sm font-bold text-[#087b4b] group-open:inline">Ocultar detalle</span></summary><div className="pb-4 pl-2 pr-2 sm:pl-5"><TextList lines={group.items}/></div></details>)}</div>:<p className="text-sm text-[#526477]">Sin información adicional.</p>}
-function TextList({lines,columns="one"}:{lines:string[];columns?:"one"|"two"}){return lines.length?<ul className={`grid gap-x-8 gap-y-2 ${columns==="two"?"md:grid-cols-2":""}`}>{lines.map((line,index)=><li key={`${line}-${index}`} className="flex gap-2 text-sm leading-6"><span className="text-[#087b4b]" aria-hidden="true">•</span><span>{line}</span></li>)}</ul>:<p className="text-sm text-[#526477]">Sin información adicional.</p>}
-function unique(values:Array<string|null|undefined>){return Array.from(new Set(values.map(value=>value?.trim()).filter((value):value is string=>Boolean(value))))}
+function SupplementaryInformation({
+  result,
+}: {
+  result: ResultadoConsultaV2Publica;
+}) {
+  const limitations = unique(
+    result.reglas.map((rule) => rule.limitaciones_declaradas),
+  );
+  const recommendations = unique(
+    result.reglas.map((rule) => rule.recomendacion),
+  );
+  const sources = unique(result.reglas.map((rule) => rule.fuente_tecnica));
+  return (
+    <section className="mt-5 space-y-2" aria-label="Información complementaria">
+      {recommendations.length ? (
+        <Accordion
+          id="result-observe"
+          title="Qué observar"
+          summary="Recomendaciones específicas de monitoreo para esta situación."
+          icon={<Eye className="h-5 w-5" />}
+        >
+          <TextList lines={recommendations} columns="two" />
+        </Accordion>
+      ) : null}
+      <Accordion
+        id="result-limitations"
+        title="Limitaciones de esta evaluación"
+        summary={
+          limitations.length
+            ? `Ver ${limitations.length} limitaciones`
+            : "No se informaron limitaciones adicionales"
+        }
+        icon={<TriangleAlert className="h-5 w-5" />}
+      >
+        <GroupedLimitations lines={limitations} />
+      </Accordion>
+      <Accordion
+        id="result-sources"
+        title="Fuente y evidencia"
+        summary={`${sources.length} ${sources.length === 1 ? "fuente utilizada" : "fuentes utilizadas"}`}
+        icon={<BookOpen className="h-5 w-5" />}
+      >
+        <TextList lines={sources} columns="two" />
+      </Accordion>
+    </section>
+  );
+}
+function GroupedLimitations({ lines }: { lines: string[] }) {
+  const groups = groupLimitations(lines);
+  return groups.length ? (
+    <div className="divide-y divide-[#e8eeea]">
+      {groups.map((group) => (
+        <details key={group.title} className="group py-1">
+          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-2 py-3 outline-none transition hover:bg-[#f7fbf8] focus-visible:ring-2 focus-visible:ring-avizor-green">
+            <span className="min-w-0 flex-1">
+              <strong className="block text-[15px] text-[#0b2138]">
+                {group.title}
+              </strong>
+              <span className="mt-0.5 block text-sm text-[#607083]">
+                {group.items.length}{" "}
+                {group.items.length === 1 ? "observación" : "observaciones"}
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-bold text-[#087b4b] group-open:hidden">
+              Ver detalle
+            </span>
+            <span className="hidden shrink-0 text-sm font-bold text-[#087b4b] group-open:inline">
+              Ocultar detalle
+            </span>
+          </summary>
+          <div className="pb-4 pl-2 pr-2 sm:pl-5">
+            <TextList lines={group.items} />
+          </div>
+        </details>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-[#526477]">Sin información adicional.</p>
+  );
+}
+function TextList({
+  lines,
+  columns = "one",
+}: {
+  lines: string[];
+  columns?: "one" | "two";
+}) {
+  return lines.length ? (
+    <ul
+      className={`grid gap-x-8 gap-y-2 ${columns === "two" ? "md:grid-cols-2" : ""}`}
+    >
+      {lines.map((line, index) => (
+        <li key={`${line}-${index}`} className="flex gap-2 text-sm leading-6">
+          <span className="text-[#087b4b]" aria-hidden="true">
+            •
+          </span>
+          <span>{line}</span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-sm text-[#526477]">Sin información adicional.</p>
+  );
+}
+function unique(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}

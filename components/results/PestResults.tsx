@@ -60,6 +60,12 @@ export function pestSummaryForResult(result: ResultadoConsultaV2Publica) {
   };
 }
 
+export function pestCatalogHref(result: ResultadoConsultaV2Publica, basePath = "/resultado") {
+  const params = new URLSearchParams({ cultivo: result.cultivo, volver: basePath });
+  if (result.localidad?.nombre) params.set("localidad", result.localidad.nombre);
+  return `/plagas-enfermedades?${params.toString()}`;
+}
+
 export function PestSummaryCard({ result, basePath = "/resultado" }: { result: ResultadoConsultaV2Publica; basePath?: string }) {
   const summary = pestSummaryForResult(result);
   const tone = SEVERITY_TONES[summary.severity];

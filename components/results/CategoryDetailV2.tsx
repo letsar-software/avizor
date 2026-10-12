@@ -1,37 +1,257 @@
 "use client";
-import { useMemo,useState } from "react";import Link from "next/link";
-import { ArrowLeft,BookOpen,CalendarDays,CheckCircle2,Eye,MapPin,ShieldCheck,Thermometer,Timer,TriangleAlert } from "lucide-react";
-import type { ResultadoConsultaV2Publica,SerieClimaticaDiaria } from "@/types";
-import { aggregateClimate,categoryDefinitions,formatDate,formatDateTime,formatNumber,representativeRuleForDefinition,ruleForSlug,statusLabel } from "@/lib/results/presentation";
-import { CategoryIconChip,ResultScopeNote,SEVERITY_TONES,categoryIcons,severityOf } from "@/components/results/shared";
-import InteractiveLineChart from "@/components/results/InteractiveLineChart";
-import HistoricalTemperatureChart from "@/components/results/HistoricalTemperatureChart";
-import { useResult, type ResultViewProps } from "@/components/results/useResult";
-export default function CategoryDetailV2({slug,initialResult,basePath="/resultado"}:{slug:string}&ResultViewProps){const{result,loaded}=useResult(initialResult);const[climateTab,setClimateTab]=useState<"observed"|"historical">("observed");const selected=useMemo(()=>result?ruleForSlug(result,slug):null,[result,slug]);if(!loaded)return <main className="min-h-[60vh]"/>;if(!result||!selected)return <main className="mx-auto max-w-2xl px-5 py-16 text-center"><h1 className="text-2xl font-bold">Necesitamos una consulta actualizada</h1><Link href="/consultar" className="mt-5 inline-flex rounded-lg bg-[#087b4b] px-5 py-3 text-white">Realizar consulta</Link></main>;const{definition,rule,rules}=selected;const Icon=categoryIcons[definition.slug];const severity=severityOf(rule);const tone=SEVERITY_TONES[severity];const days=rule?.ventana.dias??14;const window=result.clima.serie.slice(-days);const summary=aggregateClimate(window);return <main className="mx-auto max-w-[1420px] px-4 py-5 text-[#081a31] sm:px-7 lg:py-8">
- <Link href={basePath} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#087b4b]"><ArrowLeft className="h-4 w-4"/>Volver al resultado</Link>
- <section className="mt-2 grid gap-5 rounded-xl bg-white p-1 lg:grid-cols-[1fr_1.05fr] lg:border lg:p-6"><div className="flex gap-4"><CategoryIconChip Icon={Icon} severity={severity} size="lg"/><div><p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">Detalle por categoría</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">{definition.name}</h1><p className={`mt-2 text-base font-bold ${tone.text}`}>{statusLabel(rule, definition.name)}</p><p className="mt-4 max-w-xl text-sm leading-6 text-[#405369]">{detailExplanation(rule)}</p></div></div><Metadata result={result} days={days}/></section>
- <nav className="mt-4 flex gap-2 overflow-x-auto pb-2 lg:grid lg:grid-cols-4">{categoryDefinitions.map(item=>{const ItemIcon=categoryIcons[item.slug];const itemRule=representativeRuleForDefinition(result,item.risk);const itemTone=SEVERITY_TONES[severityOf(itemRule)];const active=item.slug===definition.slug;return <Link key={item.slug} href={`${basePath}/${item.slug}`} className={`flex min-w-[96px] flex-col items-center gap-2 rounded-xl border p-2 text-center lg:min-w-0 lg:flex-row lg:p-3 lg:text-left ${active?`border-current ${itemTone.chipBg} ${itemTone.text}`:"border-transparent bg-white"}`}><ItemIcon className="h-5 w-5"/><span className="text-xs font-bold">{item.name}<span className="mt-1 block text-xs font-normal">{statusLabel(itemRule, item.name)}</span></span></Link>})}</nav>
- {definition.slug==="enfermedades_foliares"&&rules.length?<DiseaseEvaluations rules={rules} summary={summary} fenologia={result.contexto_fenologico}/>:null}
- <div className="mt-3 grid gap-3 lg:grid-cols-[.95fr_1.25fr_.95fr]"><Variables definition={definition.slug} summary={summary} series={window}/><section className="rounded-xl border bg-white p-5"><div className="flex gap-2 border-b"><button type="button" aria-pressed={climateTab==="observed"} onClick={()=>setClimateTab("observed")} className={`min-h-10 px-3 text-sm font-bold ${climateTab==="observed"?"border-b-2 border-[#087b4b] text-[#087b4b]":"text-[#526477]"}`}>Datos observados</button><button type="button" aria-pressed={climateTab==="historical"} onClick={()=>setClimateTab("historical")} className={`min-h-10 px-3 text-sm font-bold ${climateTab==="historical"?"border-b-2 border-[#087b4b] text-[#087b4b]":"text-[#526477]"}`}>Comparación histórica</button></div><div className="min-h-[210px] pt-3">{climateTab==="observed"?<SeriesChart definition={definition.slug} series={window}/>:<HistoricalTemperatureChart historico={result.historico_temperatura}/>}</div></section><Comparison rule={rule} categoryName={definition.name}/></div>
- <section className="mt-3 rounded-xl border bg-white p-5"><h2 className="text-base font-bold">¿Cómo evaluó Avizor esta regla?</h2><p className="mt-1 text-sm text-[#526477]">Valores observados comparados con la regla agronómica vigente.</p>{rule?.observado.length?<div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{rule.observado.map(item=><article key={`${item.variable}-${item.agregador}`} className="rounded-lg border p-4 text-sm"><strong>{variableName(item.variable)}</strong><p className="mt-2">Umbral: {item.umbral} {item.unidad}</p><p className="mt-2 text-[#526477]">Observado: {formatNumber(item.valor)} {item.unidad}</p><span className={`mt-2 inline-block rounded px-2 py-1 text-xs ${item.cumple?"bg-green-100 text-green-800":"bg-red-100 text-red-700"}`}>{item.cumple?"✓ Cumple":"✕ No cumple"}</span></article>)}</div>:<p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-[#526477]">{rule?.motivo==="datos_insuficientes"?"No hay cobertura suficiente para evaluar todas las condiciones.":"Ningún nivel de la regla coincidió completamente con los datos observados."}</p>}</section>
- <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Card Icon={BookOpen} title="Fuente y evidencia" lines={[rule?.fuente_tecnica??"Fuente técnica registrada en la regla."]}/><Card Icon={Eye} title="Qué observar" lines={[rule?.recomendacion??"Mantener el monitoreo habitual del lote."]}/><Card Icon={TriangleAlert} title="Limitaciones" lines={[rule?.limitaciones_declaradas??"No reemplaza la observación a campo."]}/><Card Icon={ShieldCheck} title="Calidad de los datos" lines={[`Fuente: ${result.proveedor_climatico}`,`Cobertura: ${Math.round((rule?.calidad_dato.cobertura_min??result.clima.cobertura)*100)} %`,`Período: ${rule?.ventana.dias??14} días`]}/></div>
- <div className="mt-3"><ResultScopeNote/></div></main>}
-function Metadata({result,days}:{result:ResultadoConsultaV2Publica;days:number}){return <div className="grid gap-4 rounded-xl border bg-white p-5 sm:grid-cols-2"><Fact Icon={CalendarDays} label="Período analizado" value={`${days} días (${formatDate(result.clima.serie.slice(-days)[0]?.fecha??"",true)} – ${formatDate(result.clima.rango_temporal.hasta,true)})`}/><Fact Icon={MapPin} label="Estación de referencia" value={`${result.localidad?.nombre??"—"} (${result.proveedor_climatico})`}/><Fact Icon={CheckCircle2} label="Cobertura" value={`${Math.round(result.clima.cobertura*100)} %`}/><Fact Icon={Timer} label="Actualización" value={formatDateTime(result.generado_en)}/></div>}
-function Fact({Icon,label,value}:{Icon:typeof CalendarDays;label:string;value:string}){return <div className="flex gap-3"><Icon className="h-5 w-5 text-[#087b4b]"/><p className="text-xs text-[#526477]">{label}<strong className="mt-1 block text-sm text-[#081a31]">{value}</strong></p></div>}
-function Variables({definition,summary,series}:{definition:string;summary:ReturnType<typeof aggregateClimate>;series:SerieClimaticaDiaria[]}){
- const minimums=series.map(day=>day.temperaturaMinima).filter((value):value is number=>value!==null);const rain=series.map(day=>day.precipitacion).filter((value):value is number=>value!==null);
- const avgMin=minimums.length?minimums.reduce((a,b)=>a+b,0)/minimums.length:null;const frostDays=minimums.filter(value=>value<2).length;const dryDays=rain.filter(value=>value<1).length;const maxRain=rain.length?Math.max(...rain):null;
- const rows=definition==="heladas"?[["Temperatura mínima promedio",`${formatNumber(avgMin)} °C`],["Días con temperatura mínima < 2 °C",`${frostDays} días`],["Temperatura mínima más baja",`${formatNumber(summary.minimum)} °C`],["Humedad relativa promedio",`${formatNumber(summary.humidity)} %`],["Días consecutivos con heladas",`${maxConsecutive(minimums,value=>value<2)} días`]]:definition==="enfermedades_foliares"?[["Humedad relativa media",`${formatNumber(summary.humidity)} %`],["Días con lluvia",`${summary.rainyDays} de ${series.length} días`],["Precipitación acumulada",`${formatNumber(summary.precipitation)} mm`],["Temperatura media",`${formatNumber(summary.temperature)} °C`],["Temperatura mínima media",`${formatNumber(avgMin)} °C`]]:definition==="estres_hidrico"?[["Precipitación acumulada",`${formatNumber(summary.precipitation)} mm`],["Días sin lluvia",`${dryDays} días`],["Evapotranspiración acumulada",`${formatNumber(summary.et0)} mm`],["Temperatura media",`${formatNumber(summary.temperature)} °C`]]:[["Precipitación acumulada",`${formatNumber(summary.precipitation)} mm`],["Días con lluvia",`${summary.rainyDays} días`],["Mayor lluvia diaria",`${formatNumber(maxRain)} mm`],["Humedad relativa promedio",`${formatNumber(summary.humidity)} %`],["Temperatura media",`${formatNumber(summary.temperature)} °C`]];
- return <section className="rounded-xl border bg-white p-5"><h2 className="text-base font-bold">Resumen de variables ({series.length} días)</h2><dl className="mt-4 divide-y">{rows.map(([a,b])=><div key={a} className="flex justify-between gap-3 py-3 text-sm"><dt>{a}</dt><dd className="font-bold">{b}</dd></div>)}</dl></section>}
-function maxConsecutive(values:number[],matches:(value:number)=>boolean){let best=0,current=0;for(const value of values){current=matches(value)?current+1:0;best=Math.max(best,current)}return best}function SeriesChart({definition,series}:{definition:string;series:SerieClimaticaDiaria[]}){const raw=series.map(day=>definition==="heladas"?day.temperaturaMinima:definition==="enfermedades_foliares"?day.humedadRelativa:day.precipitacion);const label=definition==="heladas"?"Temperatura mínima":definition==="enfermedades_foliares"?"Humedad relativa":"Precipitación";const unit=definition==="heladas"?"°C":definition==="enfermedades_foliares"?"%":"mm";return <section className="rounded-xl border bg-white p-5"><h2 className="text-base font-bold">Evolución de datos observados</h2><p className="mt-1 text-sm text-[#526477]">Serie diaria de Open-Meteo</p><InteractiveLineChart dates={series.map(day=>day.fecha)} values={raw} label={label} unit={unit}/></section>}
-function Comparison({rule,categoryName}:{rule:ResultadoConsultaV2Publica["reglas"][number]|undefined;categoryName:string}){return <section className="rounded-xl border bg-white p-5"><h2 className="text-base font-bold">Comparación con la regla</h2><p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm font-semibold">{statusLabel(rule, categoryName)}</p><ul className="mt-4 divide-y">{rule?.observado.map(item=><li key={`${item.variable}-${item.agregador}`} className="flex justify-between gap-3 py-3 text-sm"><span>{variableName(item.variable)} {item.umbral}</span><strong className={item.cumple?"text-[#087b4b]":"text-red-600"}>{item.cumple?"Cumple":"No cumple"}</strong></li>)}</ul></section>}
-function detailExplanation(rule:ResultadoConsultaV2Publica["reglas"][number]|undefined){
- if(!rule)return "Esta categoría no pudo evaluarse.";
- if(rule.explicacion)return rule.explicacion;
- if(rule.estado==="evaluacion_incompleta")return "Se muestran las variables climáticas disponibles, pero faltan requisitos agronómicos para completar la evaluación.";
- if(rule.motivo==="datos_insuficientes")return "No hay datos suficientes para evaluar esta categoría con la cobertura requerida.";
- if(rule.estado==="sin_condiciones")return "Durante el período analizado, los valores observados no alcanzaron el umbral definido para esta regla.";
- return "Los datos observados no coinciden por completo con ninguno de los niveles definidos para esta regla.";
-}function variableName(value:string){return({humedad_relativa:"Humedad relativa",precipitacion:"Precipitación",temperatura_media:"Temperatura media",temperatura_min:"Temperatura mínima"} as Record<string,string>)[value]??value}
-function Card({Icon,title,lines}:{Icon:typeof BookOpen;title:string;lines:string[]}){return <section className="rounded-xl border bg-white p-5"><h2 className="flex gap-2 text-base font-bold"><Icon className="h-5 w-5 text-[#087b4b]"/>{title}</h2><ul className="mt-4 space-y-3">{lines.map((line,index)=><li key={index} className="text-sm leading-6 text-[#405369]">› {line}</li>)}</ul></section>}
-function DiseaseEvaluations({rules,summary,fenologia}:{rules:ResultadoConsultaV2Publica["reglas"];summary:ReturnType<typeof aggregateClimate>;fenologia:ResultadoConsultaV2Publica["contexto_fenologico"]}){return <section className="mt-3 rounded-xl border bg-white p-5"><h2 className="text-base font-bold">Enfermedades evaluadas</h2><p className="mt-1 text-sm text-[#526477]">Cada señal corresponde a una regla ambiental específica y no constituye un diagnóstico.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rules.map(item=>{const name=item.regla.nombre??item.riesgo.replaceAll("_"," ");const tone=SEVERITY_TONES[severityOf(item)];const temperature=item.observado.find(value=>value.variable==="temperatura_media");const rain=item.observado.find(value=>value.variable==="precipitacion");return <article key={`${item.regla.clave}-${item.regla.version}`} className={`rounded-lg border p-4 ${tone.border}`}><h3 className="text-sm font-bold">{name}</h3><p className={`mt-2 text-sm font-semibold ${tone.text}`}>{statusLabel(item,name)}</p><dl className="mt-3 space-y-1 text-xs text-[#405369]"><div><dt className="inline font-semibold">Temperatura: </dt><dd className="inline">{temperature?`${formatNumber(temperature.valor)} °C · referencia ${temperature.umbral} °C · ${temperature.cumple?"coincide":"no coincide"}`:"No disponible"}</dd></div><div><dt className="inline font-semibold">Humedad relativa: </dt><dd className="inline">{formatNumber(summary.humidity)} % (disponible; no equivale a mojado foliar)</dd></div><div><dt className="inline font-semibold">Precipitación: </dt><dd className="inline">{rain?`${formatNumber(rain.valor)} mm · ${rain.cumple?"coincide":"no coincide"}`:`${formatNumber(summary.precipitation)} mm observados`}</dd></div>{item.riesgo==="fusariosis_espiga"?<div><dt className="inline font-semibold">Fenología: </dt><dd className="inline">{fenologia.disponible?fenologia.descripcion??fenologia.estadio_estimado:"No informada"}</dd></div>:null}<div><dt className="inline font-semibold">Variable faltante: </dt><dd className="inline">Mojado foliar e inóculo no disponibles.</dd></div></dl>{item.motivo?<p className="mt-2 text-xs text-[#526477]">Motivo: {item.motivo.replaceAll("_"," ")}</p>:null}</article>})}</div></section>}
+import { useMemo } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BookOpen,
+  Eye,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react";
+import type { ResultadoConsultaV2Publica } from "@/types";
+import {
+  aggregateClimate,
+  formatNumber,
+  ruleForSlug,
+  statusLabel,
+} from "@/lib/results/presentation";
+import {
+  CategoryIconChip,
+  ResultScopeNote,
+  SEVERITY_TONES,
+  categoryIcons,
+  severityOf,
+} from "@/components/results/shared";
+import {
+  useResult,
+  type ResultViewProps,
+} from "@/components/results/useResult";
+import { DiseaseEvaluationCards } from "@/components/results/DiseaseEvaluationCards";
+import { CategoryDetailMetadata } from "@/components/results/CategoryDetailMetadata";
+import { CategoryInformationCard } from "@/components/results/CategoryInformationCard";
+import { CategoryNavigation } from "@/components/results/CategoryNavigation";
+import { CategoryClimate } from "@/components/results/CategoryClimate";
+import { CategoryRuleComparison } from "@/components/results/CategoryRuleComparison";
+export default function CategoryDetailV2({
+  slug,
+  initialResult,
+  basePath = "/resultado",
+}: { slug: string } & ResultViewProps) {
+  const { result, loaded } = useResult(initialResult);
+  const selected = useMemo(
+    () => (result ? ruleForSlug(result, slug) : null),
+    [result, slug],
+  );
+  if (!loaded) return <main className="min-h-[60vh]" />;
+  if (!result || !selected)
+    return (
+      <main className="mx-auto max-w-2xl px-5 py-16 text-center">
+        <h1 className="text-2xl font-bold">
+          Necesitamos una consulta actualizada
+        </h1>
+        <Link
+          href="/consultar"
+          className="mt-5 inline-flex rounded-lg bg-[#087b4b] px-5 py-3 text-white"
+        >
+          Realizar consulta
+        </Link>
+      </main>
+    );
+  const { definition, rule, rules } = selected;
+  const Icon = categoryIcons[definition.slug];
+  const severity = severityOf(rule);
+  const tone = SEVERITY_TONES[severity];
+  const days = rule?.ventana.dias ?? 14;
+  const ruleSeries = result.clima.serie.slice(-days);
+  const visualSeries = result.clima.serie.slice(-14);
+  return (
+    <main className="mx-auto max-w-[1420px] px-4 py-5 text-[#081a31] sm:px-7 lg:py-8">
+      <Link
+        href={basePath}
+        className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#087b4b]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Volver al resultado
+      </Link>
+      <section className="mt-2 grid gap-5 rounded-xl bg-white p-1 lg:grid-cols-[1fr_1.05fr] lg:border lg:p-6">
+        <div className="flex gap-4">
+          <CategoryIconChip Icon={Icon} severity={severity} size="lg" />
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">
+              Detalle por categoría
+            </p>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+              {definition.name}
+            </h1>
+            <p className={`mt-2 text-base font-bold ${tone.text}`}>
+              {statusLabel(rule, definition.name)}
+            </p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-[#405369]">
+              {detailExplanation(rule)}
+            </p>
+          </div>
+        </div>
+        <CategoryDetailMetadata
+          result={result}
+          days={days}
+          ruleSeries={ruleSeries}
+        />
+      </section>
+      <CategoryNavigation
+        result={result}
+        activeSlug={definition.slug}
+        basePath={basePath}
+      />
+      {definition.slug === "enfermedades_foliares" && rules.length ? (
+        <DiseaseEvaluationCards rules={rules} cultivo={result.cultivo} />
+      ) : null}
+      <div className="mt-3">
+        <CategoryClimate
+          series={visualSeries}
+          category={definition.slug}
+          historico={result.historico_temperatura}
+        />
+      </div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <CategoryRuleComparison rule={rule} categoryName={definition.name} />
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <CategoryInformationCard
+          Icon={BookOpen}
+          title="Fuente y evidencia"
+          lines={[
+            rule?.fuente_tecnica ?? "Fuente técnica registrada en la regla.",
+          ]}
+        />
+        <CategoryInformationCard
+          Icon={Eye}
+          title="Qué observar"
+          lines={[
+            rule?.recomendacion ?? "Mantener el monitoreo habitual del lote.",
+          ]}
+        />
+        <CategoryInformationCard
+          Icon={TriangleAlert}
+          title="Limitaciones"
+          lines={[
+            rule?.limitaciones_declaradas ??
+              "No reemplaza la observación a campo.",
+          ]}
+        />
+        <CategoryInformationCard
+          Icon={ShieldCheck}
+          title="Calidad de los datos"
+          lines={[
+            `Fuente: ${result.proveedor_climatico}`,
+            `Cobertura: ${Math.round((rule?.calidad_dato.cobertura_min ?? result.clima.cobertura) * 100)} %`,
+            `Período: ${rule?.ventana.dias ?? 14} días`,
+          ]}
+        />
+      </div>
+      <div className="mt-3">
+        <ResultScopeNote />
+      </div>
+    </main>
+  );
+}
+function detailExplanation(
+  rule: ResultadoConsultaV2Publica["reglas"][number] | undefined,
+) {
+  if (!rule) return "Esta categoría no pudo evaluarse.";
+  if (rule.explicacion) return rule.explicacion;
+  if (rule.estado === "evaluacion_incompleta")
+    return "Se muestran las variables climáticas disponibles, pero faltan requisitos agronómicos para completar la evaluación.";
+  if (rule.motivo === "datos_insuficientes")
+    return "No hay datos suficientes para evaluar esta categoría con la cobertura requerida.";
+  if (rule.estado === "sin_condiciones")
+    return "Durante el período analizado, los valores observados no alcanzaron el umbral definido para esta regla.";
+  return "Los datos observados no coinciden por completo con ninguno de los niveles definidos para esta regla.";
+}
+function DiseaseEvaluations({
+  rules,
+  summary,
+  fenologia,
+}: {
+  rules: ResultadoConsultaV2Publica["reglas"];
+  summary: ReturnType<typeof aggregateClimate>;
+  fenologia: ResultadoConsultaV2Publica["contexto_fenologico"];
+}) {
+  return (
+    <section className="mt-3 rounded-xl border bg-white p-5">
+      <h2 className="text-base font-bold">Enfermedades evaluadas</h2>
+      <p className="mt-1 text-sm text-[#526477]">
+        Cada señal corresponde a una regla ambiental específica y no constituye
+        un diagnóstico.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {rules.map((item) => {
+          const name = item.regla.nombre ?? item.riesgo.replaceAll("_", " ");
+          const tone = SEVERITY_TONES[severityOf(item)];
+          const temperature = item.observado.find(
+            (value) => value.variable === "temperatura_media",
+          );
+          const rain = item.observado.find(
+            (value) => value.variable === "precipitacion",
+          );
+          return (
+            <article
+              key={`${item.regla.clave}-${item.regla.version}`}
+              className={`rounded-lg border p-4 ${tone.border}`}
+            >
+              <h3 className="text-sm font-bold">{name}</h3>
+              <p className={`mt-2 text-sm font-semibold ${tone.text}`}>
+                {statusLabel(item, name)}
+              </p>
+              <dl className="mt-3 space-y-1 text-xs text-[#405369]">
+                <div>
+                  <dt className="inline font-semibold">Temperatura: </dt>
+                  <dd className="inline">
+                    {temperature
+                      ? `${formatNumber(temperature.valor)} °C · referencia ${temperature.umbral} °C · ${temperature.cumple ? "coincide" : "no coincide"}`
+                      : "No disponible"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="inline font-semibold">Humedad relativa: </dt>
+                  <dd className="inline">
+                    {formatNumber(summary.humidity)} % (disponible; no equivale
+                    a mojado foliar)
+                  </dd>
+                </div>
+                <div>
+                  <dt className="inline font-semibold">Precipitación: </dt>
+                  <dd className="inline">
+                    {rain
+                      ? `${formatNumber(rain.valor)} mm · ${rain.cumple ? "coincide" : "no coincide"}`
+                      : `${formatNumber(summary.precipitation)} mm observados`}
+                  </dd>
+                </div>
+                {item.riesgo === "fusariosis_espiga" ? (
+                  <div>
+                    <dt className="inline font-semibold">Fenología: </dt>
+                    <dd className="inline">
+                      {fenologia.disponible
+                        ? (fenologia.descripcion ?? fenologia.estadio_estimado)
+                        : "No informada"}
+                    </dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="inline font-semibold">Variable faltante: </dt>
+                  <dd className="inline">
+                    Mojado foliar e inóculo no disponibles.
+                  </dd>
+                </div>
+              </dl>
+              {item.motivo ? (
+                <p className="mt-2 text-xs text-[#526477]">
+                  Motivo: {item.motivo.replaceAll("_", " ")}
+                </p>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
