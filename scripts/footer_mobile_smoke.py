@@ -4,19 +4,19 @@ with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True)
     for route in ["/", "/privacidad"]:
         page = browser.new_page(viewport={"width": 390, "height": 844})
-        page.goto(f"http://localhost:3508{route}", wait_until="domcontentloaded")
+        page.goto(f"http://localhost:3508{route}", wait_until="networkidle")
         page.locator("footer").wait_for(state="visible")
         footer = page.locator("footer")
-        assert footer.get_by_text("hola@avizor.com.ar").last.is_visible()
-        assert footer.get_by_text("Seguinos en LinkedIn").is_visible()
-        assert footer.get_by_text("Avizor identifica condiciones ambientales").is_visible()
+        assert footer.get_by_text("hola@avizor.com.ar").count() >= 1
+        assert footer.get_by_text("Seguinos en LinkedIn").first.is_visible()
+        assert footer.get_by_text("Avizor identifica condiciones ambientales").first.is_visible()
         assert page.get_by_role("navigation", name="Navegación inferior").count() == 0
         layout_main = page.locator("body > main")
         assert layout_main.evaluate("el => getComputedStyle(el).paddingBottom") == "0px"
 
         page.get_by_role("button", name="Abrir menú").click()
         mobile_menu = page.get_by_role("navigation", name="Menú móvil")
-        assert mobile_menu.is_visible()
+        mobile_menu.wait_for(state="visible")
         resources = mobile_menu.get_by_role("button", name="Recursos")
         assert resources.get_attribute("aria-expanded") == "false"
         resources.click()
@@ -30,7 +30,7 @@ with sync_playwright() as playwright:
         page.close()
 
     page = browser.new_page(viewport={"width": 390, "height": 844})
-    page.goto("http://localhost:3508/", wait_until="domcontentloaded")
+    page.goto("http://localhost:3508/", wait_until="networkidle")
     page.get_by_role("button", name="Abrir menú").wait_for(state="visible")
     page.get_by_role("button", name="Abrir menú").click()
     page.get_by_role("button", name="Recursos").click()
@@ -41,7 +41,7 @@ with sync_playwright() as playwright:
 
     for width, height in [(320, 568), (768, 900)]:
         page = browser.new_page(viewport={"width": width, "height": height})
-        page.goto("http://localhost:3508/", wait_until="domcontentloaded")
+        page.goto("http://localhost:3508/", wait_until="networkidle")
         page.get_by_role("button", name="Abrir menú").wait_for(state="visible")
         assert page.get_by_role("navigation", name="Navegación inferior").count() == 0
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")

@@ -8,8 +8,8 @@ import { enforcePublicConsultationLimit } from "@/lib/security/rate-limit";
 export async function POST(request: Request) {
   const id = requestId(request);
   try {
-    await enforcePublicConsultationLimit(request);
     const body = parseInput(consultaV2Schema, await readJsonBody(request)) as ConsultaInput;
+    await enforcePublicConsultationLimit(request);
     const result = await new ConsultaService().ejecutar({ ...body, localidad: body.localidad, cultivo: body.cultivo, canal: "web" }, id);
     return success(result, id, { version: "2.0" }, 201);
   } catch (error) { return failure(error, id); }

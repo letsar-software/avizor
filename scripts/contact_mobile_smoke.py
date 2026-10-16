@@ -6,7 +6,8 @@ with sync_playwright() as playwright:
     page.goto("http://localhost:3506/contacto", wait_until="networkidle")
     assert page.locator("h1").get_by_text("Contacto", exact=True).is_visible()
     assert page.get_by_role("heading", name="Escribinos").is_visible()
-    assert page.get_by_role("link", name="Seguinos en LinkedIn").is_visible()
+    assert page.get_by_role("link", name="Seguinos en LinkedIn").count() >= 1
+    assert page.get_by_role("link", name="Seguinos en LinkedIn").first.is_visible()
     assert page.get_by_label("Nombre (opcional)").is_visible()
     assert page.get_by_label("Email", exact=True).is_visible()
     assert page.get_by_label("Asunto").is_visible()

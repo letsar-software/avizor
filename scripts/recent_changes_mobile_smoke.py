@@ -10,14 +10,14 @@ with sync_playwright() as p:
     people = {
         "Andrea Alvarez Zunino": "https://www.linkedin.com/in/andrea-alvarez-zunino",
         "Ezequiel Romeo": "https://www.linkedin.com/in/ezequiel-romeo/",
-        "Natali Lazzaro": "https://www.linkedin.com/in/natali-lazzaro-16702738/",
+        "Natali Lázaro": "https://www.linkedin.com/in/natali-lazzaro-16702738/",
     }
     for name, href in people.items():
         heading = page.get_by_role("heading", name=name, exact=True)
         assert heading.is_visible()
         article = heading.locator("xpath=ancestor::article")
         assert article.get_by_role("link", name="Ver perfil en LinkedIn").get_attribute("href") == href
-    assert page.get_by_text("Tecnología, desarrollo de producto y conocimiento agronómico", exact=False).is_visible()
+    assert page.get_by_text("Tecnología, agronomía, diseño y desarrollo de producto", exact=False).is_visible()
     assert page.locator('img[src*="logo-mod-avizor.png"]').first.is_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
 

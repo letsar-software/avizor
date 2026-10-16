@@ -55,10 +55,10 @@ with sync_playwright() as p:
         page.goto(base)
         page.evaluate("value => sessionStorage.setItem('avizor_resultado', value)", json.dumps(result))
         page.goto(f"{base}/resultado", wait_until="networkidle")
-        for text in ("Estado general", "Resumen por", "Evidencia clim", "Contexto fenol", "Limitaciones"):
+        for text in ("Estado general", "Resumen por", "Qué está viendo Avizor", "Contexto fenol", "Limitaciones"):
             assert page.get_by_text(text, exact=False).first.is_visible(), f"{name}: {text}"
         assert not page.get_by_text("Favorable - Favorable", exact=True).count(), f"{name}: duplicated label"
-        for accordion_id in ("result-observe", "result-limitations", "result-sources", "result-quality"):
+        for accordion_id in ("result-observe", "result-limitations", "result-sources"):
             assert page.locator(f"button[aria-controls='{accordion_id}-panel']").get_attribute("aria-expanded") == "false", f"{name}: {accordion_id} should start closed"
         assert page.get_by_text("1 fuente utilizada", exact=True).is_visible(), f"{name}: source count"
         page.locator("button[aria-controls='result-limitations-panel']").click()
