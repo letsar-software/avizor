@@ -104,6 +104,8 @@ Las migraciones viven en `db/migrations` y se aplican con:
 npm run db:migrate
 ```
 
+El inventario con fechas y descripciones está en [docs/HISTORIAL_MIGRACIONES.md](docs/HISTORIAL_MIGRACIONES.md).
+
 El ejecutor registra los archivos aplicados en `public.schema_migrations`. Cada migración se ejecuta y registra dentro de su propia transacción; una migración ya registrada se omite. No edites ni renombres una migración aplicada: agregá una nueva.
 
 Para validar la cadena completa en PostgreSQL 16 descartable (requiere Docker):

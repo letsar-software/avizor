@@ -17,3 +17,7 @@ Ese comando corre `scripts/test-clean-migrations.js`. Levanta el contenedor desc
 7. Repetir en producción y retirar las credenciales anteriores cuando el rollback window finalice.
 
 El script no crea contraseñas, no transfiere ownership y no modifica el entorno real automáticamente.
+
+## Historial de migraciones
+
+Consultar [el historial completo](../../docs/HISTORIAL_MIGRACIONES.md) para las fechas de incorporación a Git, los cambios de cada SQL y cómo consultar el registro por ambiente en `public.schema_migrations`.
