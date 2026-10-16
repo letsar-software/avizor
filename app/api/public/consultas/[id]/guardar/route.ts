@@ -1,3 +1,15 @@
-import { saveQuery } from "@/lib/consultas/interactions-v2"; import { failure,requestId,success } from "@/lib/http/responses";
-import { readJsonBody } from "@/lib/http/json-body"; import { guardarSchema,parseInput,parsePublicId } from "@/lib/security/validation"; import { enforceEmailSaveLimit } from "@/lib/security/rate-limit";
-export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const rid=requestId(request);try{const body=parseInput(guardarSchema,await readJsonBody(request));await enforceEmailSaveLimit(body.email);const result=await saveQuery(parsePublicId((await params).id),body);return success({id:result.rows[0]?.id},rid,{},201);}catch(error){return failure(error,rid);}}
+import { saveQuery } from "@/lib/consultas/interactions-v2";
+import { failure, requestId, success } from "@/lib/http/responses";
+import { readJsonBody } from "@/lib/http/json-body";
+import { guardarSchema, parseInput, parsePublicId } from "@/lib/security/validation";
+import { enforceConsultationInteractionLimit } from "@/lib/security/rate-limit";
+export async function POST(request: Request, {params}: {params: Promise<{id:string}>}) {
+  const rid=requestId(request);
+  try {
+    await enforceConsultationInteractionLimit(request);
+    const body=parseInput(guardarSchema,await readJsonBody(request));
+
+    const result=await saveQuery(parsePublicId((await params).id),body,request.headers.get("x-consulta-token"));
+    return success({id:result.rows[0]?.id},rid,{},201);
+  } catch(error) { return failure(error,rid); }
+}

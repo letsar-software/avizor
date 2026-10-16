@@ -1,3 +1,4 @@
+import { createInteractionToken } from "@/lib/security/consultation-token";
 import type { ClimateSeriesProvider } from "@/lib/climate/contract";
 import { OpenMeteoAdapter } from "@/lib/climate/open-meteo-adapter";
 import {
@@ -45,11 +46,7 @@ export class DomainError extends Error {
 }
 
 export interface ConsultaResultadoV2 {
-  id: string | null;
-  request_id: string;
-  share_token: string;
-  estado_general: EstadoGeneral;
-  explicacion: string;
+  id: string | null; request_id: string; share_token: string; interaction_token?: string; estado_general: EstadoGeneral; explicacion: string;
   resumen_consulta: { descripcion: string; destaque: string };
   localidad: ReturnType<typeof normalizeLocalidad>;
   cultivo: string;
@@ -220,52 +217,10 @@ export class ConsultaService {
           }
         : { evaluaciones: [], disponibilidad: "zona_no_resuelta" };
     }
-    const result: ConsultaResultadoV2 = {
-      id: null,
-      request_id: requestId,
-      share_token: crypto.randomUUID(),
-      estado_general: score.estadoGeneral,
-      explicacion: score.explicacion,
-      resumen_consulta: buildConsultationSummary(results),
-      localidad,
-      cultivo,
-      fecha_ref: fechaRef,
-      generado_en: new Date().toISOString(),
-      proveedor_climatico: climate.proveedor,
-      reglas: results,
-      ...(plagas ? { plagas } : {}),
-      contexto_fenologico: phenology,
-      calidad_analisis: calidadAnalisis,
-      clima: {
-        serie: climate.serie,
-        rango_temporal: climate.rangoTemporal,
-        cobertura: climate.cobertura,
-        variables_disponibles: climate.variablesDisponibles,
-        variables_faltantes: climate.variablesFaltantes,
-        dias_solicitados: climate.diasSolicitados,
-        dias_disponibles: climate.diasDisponibles,
-        obtenido_en: climate.obtenidoEn,
-        adapter_version: climate.adapterVersion,
-      },
-      ...(historicoTemperatura
-        ? { historico_temperatura: historicoTemperatura }
-        : {}),
-      ...(climate.prevision.length ? { prevision: climate.prevision } : {}),
-      duracion_ms: Math.round(performance.now() - started),
-    };
-    result.id = await (this.dependencies.persist ?? persistConsultaV2)({
-      input: {
-        ...input,
-        cultivo,
-        localidad: input.localidad.trim(),
-        canal: input.canal ?? "web",
-        fechaRef,
-      },
-      localidad,
-      climate,
-      rules,
-      result,
-    });
+    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, ...(plagas ? { plagas } : {}), contexto_fenologico: phenology, calidad_analisis: calidadAnalisis, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, variables_faltantes: climate.variablesFaltantes, dias_solicitados: climate.diasSolicitados, dias_disponibles: climate.diasDisponibles, obtenido_en: climate.obtenidoEn, adapter_version: climate.adapterVersion }, ...(historicoTemperatura ? { historico_temperatura: historicoTemperatura } : {}), ...(climate.prevision.length ? { prevision: climate.prevision } : {}), duracion_ms: Math.round(performance.now() - started) };
+    const interactionToken = createInteractionToken();
+    result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result, interactionToken });
+    if (result.id) result.interaction_token = interactionToken;
     return result;
   }
 

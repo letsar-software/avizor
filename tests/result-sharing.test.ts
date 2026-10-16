@@ -56,3 +56,8 @@ test("la tarjeta de plagas conserva el token en su enlace de detalle",()=>{
   const card=renderToStaticMarkup(React.createElement(PestSummaryCard,{result:snapshot,basePath}));
   assert.ok(card.includes(`${basePath}/plagas`));
 });
+
+test("la lectura compartida elimina credenciales privadas incluso si aparecen en un snapshot",async()=>{
+ const result=await getPublicResult(token,mockQuery([{id:"x",resultado:{...snapshot,interaction_token:"private"},vigente:true}]),true);
+ assert.equal("interaction_token" in result,false);
+});

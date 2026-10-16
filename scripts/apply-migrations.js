@@ -81,9 +81,9 @@ async function runMigrations(client) {
     "db/migrations/022_trigo_catalogo_inicial.sql",
     "db/migrations/023_trigo_reglas_preliminares.sql",
     "db/migrations/024_activa_trigo_experimental.sql",
-    "db/migrations/025_trigo_sin_coincidencia_incompleta.sql",
-    "db/migrations/026_fusariosis_resultado_incompleto.sql",
-    "db/migrations/027_reglas_configurables_genericas.sql",
+  "db/migrations/025_trigo_sin_coincidencia_incompleta.sql",
+  "db/migrations/026_fusariosis_resultado_incompleto.sql",
+    "db/migrations/027_consulta_interaction_token.sql",
     historyMigration,
   ];
 

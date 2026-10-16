@@ -9,6 +9,7 @@ paths:
   /api/public/consultas:
     post:
       summary: Ejecuta y guarda una consulta web
+      description: La respuesta incluye interaction_token privado cuando se persiste. Enviarlo en x-consulta-token para escrituras; no compartirlo en enlaces.
       operationId: createPublicQuery
       requestBody:
         required: true
@@ -21,24 +22,31 @@ paths:
   /api/public/consultas/{shareToken}:
     get:
       summary: Recupera una consulta compartida
+      description: Solo lectura, disponible durante 30 días. Cuota compartida con la página pública de 60 lecturas por minuto por IP.
       parameters:
         - { name: shareToken, in: path, required: true, schema: { type: string } }
-      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '404': { $ref: '#/components/responses/Error' }, '410': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /api/public/consultas/{id}/observaciones:
     post:
       summary: Guarda una observación que no modifica el resultado
+      description: Requiere la credencial privada de la consulta creada. Límite conjunto de 10 interacciones por minuto por IP.
+      security: [ { ConsultationInteractionToken: [] } ]
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '201': { $ref: '#/components/responses/Success' } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /api/public/consultas/{id}/feedback:
     post:
       summary: Guarda feedback de campo
+      description: Requiere la credencial privada de la consulta creada. Límite conjunto de 10 interacciones por minuto por IP.
+      security: [ { ConsultationInteractionToken: [] } ]
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '201': { $ref: '#/components/responses/Success' } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /api/public/consultas/{id}/guardar:
     post:
       summary: Guarda seguimiento por email sin login
+      description: Requiere la credencial privada de la consulta creada. Límite conjunto de 10 interacciones por minuto por IP.
+      security: [ { ConsultationInteractionToken: [] } ]
       parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
-      responses: { '201': { $ref: '#/components/responses/Success' } }
+      responses: { '201': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' }, '429': { $ref: '#/components/responses/Error' } }
   /api/v1/consultas:
     post:
       summary: Consulta empresarial sobre el mismo servicio de dominio
@@ -54,6 +62,7 @@ paths:
     post: { summary: Ejecuta una simulación protegida, security: [ { InternalToken: [] } ], responses: { '200': { $ref: '#/components/responses/Success' } } }
 components:
   securitySchemes:
+    ConsultationInteractionToken: { type: apiKey, in: header, name: x-consulta-token }
     ApiKey: { type: apiKey, in: header, name: x-api-key }
     InternalToken: { type: http, scheme: bearer }
   schemas:

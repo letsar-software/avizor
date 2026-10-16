@@ -1,3 +1,4 @@
+import { createInteractionToken } from "@/lib/security/consultation-token";
 import { NextResponse } from "next/server";
 import type { ConsultaErrorCode, ConsultaRequest, ResultadoConsulta } from "@/types";
 import { ClimateProvider } from "@/lib/climate/provider";
@@ -108,11 +109,13 @@ export async function POST(request: Request) {
       fenologia,
     };
 
+    const interactionToken = createInteractionToken();
     const persistenceResults = await Promise.allSettled([
-      createConsulta({ request: body, climateData, rules, result }),
+      createConsulta({ interactionToken, request: body, climateData, rules, result }),
       logConsulta({ request: body, climateData, rules, result }),
     ]);
 
+    if (persistenceResults[0].status === "fulfilled" && persistenceResults[0].value) result.interaction_token = interactionToken;
     persistenceResults.forEach((persistenceResult) => {
       if (persistenceResult.status === "rejected") {
         logSafeError({ operation: "consulta.persistence", error_code: "PERSISTENCIA_FALLIDA", status: 500 });

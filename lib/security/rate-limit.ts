@@ -5,6 +5,8 @@ import { DomainError } from "@/lib/consultas/service";
 
 export const RATE_LIMITS = {
   publicConsultation: { scope: "public_consultation", limit: 20, windowSeconds: 3600 },
+  publicResultRead: { scope: "public_result_read", limit: 60, windowSeconds: 60 },
+  consultationInteraction: { scope: "consultation_interaction", limit: 10, windowSeconds: 60 },
   emailSave: { scope: "email_save", limit: 3, windowSeconds: 3600 },
   enterpriseBurst: { scope: "enterprise_burst", limit: 30, windowSeconds: 60 },
   adminLogin: { scope: "admin_login", limit: 8, windowSeconds: 900 },
@@ -70,4 +72,11 @@ export function enforceEmailSaveLimit(email: string) {
 
 export function enforceEnterpriseBurstLimit(apiKeyId: string) {
   return enforceRateLimit(RATE_LIMITS.enterpriseBurst, apiKeyId);
+}
+
+export function enforcePublicResultReadLimit(request: Request) {
+  return enforceRateLimit(RATE_LIMITS.publicResultRead, resolveClientIp(request));
+}
+export function enforceConsultationInteractionLimit(request: Request) {
+  return enforceRateLimit(RATE_LIMITS.consultationInteraction, resolveClientIp(request));
 }

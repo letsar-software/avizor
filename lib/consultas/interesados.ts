@@ -1,7 +1,9 @@
+import { requireConsultationInteraction } from "@/lib/security/consultation-access";
+import { enforceEmailSaveLimit } from "@/lib/security/rate-limit";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
 import { logSafeInfo } from "@/lib/logging/safe";
 
-export interface InteresadoConConsentimiento { email: string; consentimiento: true; consentimiento_version: string; consentimiento_fecha: string; share_token?: string; session_id?: string; localidad?: string; cultivo?: string }
+export interface InteresadoConConsentimiento { email: string; consentimiento: true; consentimiento_version: string; consentimiento_fecha: string; share_token?: string; interaction_token?: string | null; session_id?: string; localidad?: string; cultivo?: string }
 export interface SuscriptorActivo { id: string; email: string; consentimiento_version: string; consentimiento_fecha: string }
 
 export function esSuscriptorActivo(record: { consentimiento: boolean; baja_en: string | null; ultima_interaccion_en: string | null; created_at: string }, now = new Date()) {
@@ -12,12 +14,13 @@ export function esSuscriptorActivo(record: { consentimiento: boolean; baja_en: s
 export async function saveInteresadoConConsentimiento(input: InteresadoConConsentimiento) {
   const email = input.email.trim().toLowerCase();
   if (!hasDatabaseConfig()) { logSafeInfo({ operation: "interesado.persistence_unavailable" }); return null; }
-  const consultation = input.share_token ? await query<{ id: string }>("select id::text from consultas where share_token = $1", [input.share_token]) : null;
+  const consultation = input.share_token ? await requireConsultationInteraction(input.share_token, input.interaction_token) : null;
+  await enforceEmailSaveLimit(email);
   // A new explicit consent may reactivate a prior suppression, but an ordinary
   // consultation never calls this function.
-  const restored = await query<{ id: string }>(`update interesados set consentimiento=true, consentimiento_version=$2, consentimiento_fecha=$3, baja_en=null, ultima_interaccion_en=$3, consulta_id=$4, session_id=$5, localidad=$6, cultivo=$7 where id=(select id from interesados where lower(email)=lower($1) and baja_en is not null order by baja_en desc limit 1) returning id::text`, [email, input.consentimiento_version, input.consentimiento_fecha, consultation?.rows[0]?.id ?? null, input.session_id ?? null, input.localidad ?? null, input.cultivo ?? null]);
+  const restored = await query<{ id: string }>(`update interesados set consentimiento=true, consentimiento_version=$2, consentimiento_fecha=$3, baja_en=null, ultima_interaccion_en=$3, consulta_id=$4, session_id=$5, localidad=$6, cultivo=$7 where id=(select id from interesados where lower(email)=lower($1) and baja_en is not null order by baja_en desc limit 1) returning id::text`, [email, input.consentimiento_version, input.consentimiento_fecha, consultation?.id ?? null, input.session_id ?? null, input.localidad ?? null, input.cultivo ?? null]);
   if (restored.rows[0]) return restored.rows[0].id;
-  const result = await query<{ id: string }>(`insert into interesados (consulta_id, session_id, email, localidad, cultivo, consentimiento, consentimiento_version, consentimiento_fecha, ultima_interaccion_en) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id::text`, [consultation?.rows[0]?.id ?? null, input.session_id ?? null, email, input.localidad ?? null, input.cultivo ?? null, true, input.consentimiento_version, input.consentimiento_fecha, input.consentimiento_fecha]);
+  const result = await query<{ id: string }>(`insert into interesados (consulta_id, session_id, email, localidad, cultivo, consentimiento, consentimiento_version, consentimiento_fecha, ultima_interaccion_en) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id::text`, [consultation?.id ?? null, input.session_id ?? null, email, input.localidad ?? null, input.cultivo ?? null, true, input.consentimiento_version, input.consentimiento_fecha, input.consentimiento_fecha]);
   return result.rows[0]?.id ?? null;
 }
 

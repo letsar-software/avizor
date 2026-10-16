@@ -16,5 +16,7 @@ export async function getPublicResult(token: string, execute: typeof query = que
   if (!Array.isArray(row.resultado?.reglas) || !Array.isArray(row.resultado?.clima?.serie)) {
     throw new DomainError("CONSULTA_NO_ENCONTRADA", "No encontramos un resultado compatible. Realizá una nueva consulta.", 404);
   }
-  return { ...row.resultado, id: row.id, share_token: id };
+  const { interaction_token: _privateToken, ...snapshot } = row.resultado;
+  void _privateToken;
+  return { ...snapshot, id: row.id, share_token: id };
 }

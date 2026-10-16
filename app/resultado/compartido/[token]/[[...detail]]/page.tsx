@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { enforcePublicResultReadLimit } from "@/lib/security/rate-limit";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";

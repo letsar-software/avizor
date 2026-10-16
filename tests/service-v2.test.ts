@@ -17,3 +17,12 @@ test('fenología sin datos y sin proveedor no modifica reglas',async()=>{const p
 test('plagas se integra de forma aditiva y explicita la zona pendiente',async()=>{const withPests=new ConsultaService({climate,loadRules:async()=>[rule],persist:async()=>null,enablePests:true,resolvePestZone:async()=>null});const result=await withPests.ejecutar({cultivo:'soja',localidad:'Tandil',fechaRef:'2026-07-23'});assert.deepEqual(result.plagas,{evaluaciones:[],disponibilidad:'zona_no_resuelta'});assert.equal(result.reglas[0].estado,'condiciones_detectadas');});
 test('score trata indeterminado con prudencia',()=>assert.equal(new ScoreEngineV2().evaluate([{riesgo:'x',regla:{clave:'x',version:'1',estado:'vigente'},estado:'indeterminado',ventana:{desde:'',hasta:'',dias:1},observado:[],calidad_dato:{cobertura_min:0,dias_faltantes:1,distancia_punto_km:null},evaluado_en:'x'}]).estadoGeneral,'Monitoreo preventivo sugerido'));
 test('una regla pendiente de evidencia se informa como no evaluable y no inventa umbrales',()=>{const pending:ReglaAgronomicaV2={...rule,clave:'roya_amarilla',cultivo:'trigo',estado:'experimental',evaluabilidad:'PENDIENTE_EVIDENCIA',definicion:{niveles:[]}};const evaluation=new RulesEngineV2().evaluate(pending,serie,'2026-07-23T12:00:00Z');assert.equal(evaluation.estado,'no_evaluable');assert.equal(evaluation.observado.length,0);});
+
+test("la credencial privada se entrega solo al creador tras persistir y queda fuera del snapshot",async()=>{
+ let credential="";let stored="";
+ const instance=new ConsultaService({climate,loadRules:async()=>[rule],persist:async(data)=>{credential=data.interactionToken;stored=JSON.stringify(data.result);return "saved";}});
+ const result=await instance.ejecutar({cultivo:"soja",localidad:"Tandil",fechaRef:"2026-07-23"});
+ assert.match(credential,/^[a-f0-9]{64}$/);assert.equal(result.interaction_token,credential);assert.ok(!stored.includes(credential));
+ const unavailable=new ConsultaService({climate,loadRules:async()=>[rule],persist:async()=>null});
+ assert.equal((await unavailable.ejecutar({cultivo:"soja",localidad:"Tandil",fechaRef:"2026-07-23"})).interaction_token,undefined);
+});

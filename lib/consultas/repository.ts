@@ -1,3 +1,5 @@
+import { requireConsultationInteraction } from "@/lib/security/consultation-access";
+import { hashInteractionToken } from "@/lib/security/consultation-token";
 import type { ClimateData, ConsultaRequest, ResultadoConsulta, ReglaAgronomica } from "@/types";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
 import { logSafeInfo } from "@/lib/logging/safe";
@@ -7,10 +9,12 @@ interface CreateConsultaInput {
   climateData: ClimateData;
   rules: ReglaAgronomica[];
   result: ResultadoConsulta;
+  interactionToken: string;
 }
 
 interface InteractionBase {
   share_token?: string;
+  interaction_token?: string | null;
   session_id?: string;
 }
 
@@ -31,11 +35,10 @@ export interface SaveFeedbackInput extends InteractionBase {
   sugerencia?: string;
 }
 
-async function getConsultaIdByShareToken(shareToken?: string) {
+async function getConsultaIdByShareToken(shareToken?: string, token?: string | null) {
   if (!shareToken || !hasDatabaseConfig()) return null;
 
-  const result = await query<{ id: string }>("select id::text from consultas where share_token = $1", [shareToken]);
-  return result.rows[0]?.id ?? null;
+  return (await requireConsultationInteraction(shareToken, token)).id;
 }
 
 export async function createConsulta(input: CreateConsultaInput) {
@@ -66,8 +69,9 @@ export async function createConsulta(input: CreateConsultaInput) {
       fecha_inicio_estimada,
       fecha_fin_estimada,
       nivel_confianza_fenologia,
-      modelo_fenologico_version
-    ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14, $15, $16, $17, $18, $19, $20, $21)
+      modelo_fenologico_version,
+      interaction_token_hash
+    ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     returning id::text`,
     [
       input.result.share_token,
@@ -91,6 +95,7 @@ export async function createConsulta(input: CreateConsultaInput) {
       input.result.fenologia?.fecha_fin_estimada ?? null,
       input.result.fenologia?.confianza ?? null,
       input.result.fenologia?.version ?? null,
+      hashInteractionToken(input.interactionToken),
     ],
   );
 
@@ -108,7 +113,7 @@ export async function saveInteresado(input: SaveInteresadoInput) {
     return null;
   }
 
-  const consultaId = await getConsultaIdByShareToken(input.share_token);
+  const consultaId = await getConsultaIdByShareToken(input.share_token, input.interaction_token);
   const result = await query<{ id: string }>(
     `insert into interesados (consulta_id, session_id, email, localidad, cultivo)
     values ($1, $2, $3, $4, $5)
@@ -132,7 +137,7 @@ export async function saveObservacion(input: SaveObservacionInput) {
     return null;
   }
 
-  const consultaId = await getConsultaIdByShareToken(input.share_token);
+  const consultaId = await getConsultaIdByShareToken(input.share_token, input.interaction_token);
   const result = await query<{ id: string }>(
     `insert into observaciones (consulta_id, session_id, opciones, detalle)
     values ($1, $2, $3, $4)
@@ -156,7 +161,7 @@ export async function saveFeedback(input: SaveFeedbackInput) {
     return null;
   }
 
-  const consultaId = await getConsultaIdByShareToken(input.share_token);
+  const consultaId = await getConsultaIdByShareToken(input.share_token, input.interaction_token);
   const result = await query<{ id: string }>(
     `insert into feedback (consulta_id, session_id, utilidad, observaciones, sugerencia)
     values ($1, $2, $3, $4, $5)
