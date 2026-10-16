@@ -299,6 +299,20 @@ test("20 una regla configurable aplica Zadoks sin ramificaciones por cultivo", (
     codigo_zadoks: 65,
   });
   assert.equal(result.estado, "vigilancia");
+  // No inferir Zadoks a partir del nombre del estadio ni de variables climáticas.
+  for (const missing of [undefined, null]) {
+    const withoutZadoks = engine.evaluate(configurable, days(1, { min: -1 }), at, {
+      disponible: true,
+      estadio_estimado: "Floración",
+      modifica_reglas: false,
+      codigo_zadoks: missing,
+    });
+    assert.equal(withoutZadoks.estado, "no_evaluable");
+    assert.equal(withoutZadoks.motivo, "dato_requerido_no_disponible:codigo_zadoks");
+  }
+  assert.equal(engine.evaluate(configurable, days(1, { min: -1 }), at, {
+    disponible: true, modifica_reglas: false, codigo_zadoks: 59,
+  }).motivo, "fuera_fenologia");
 });
 test("21 una variable de plan pago ausente devuelve no evaluable", () => {
   const requiresSoil: ReglaAgronomicaV2 = {

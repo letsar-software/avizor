@@ -63,7 +63,7 @@ La aplicación en Railway se verificó mediante TLS con certificado validado. Es
 
 - Existen dos archivos con prefijo **027**. El identificador que usa `schema_migrations` es el nombre completo, por lo que se registran por separado. Ambos se conservan con su nombre original porque ya están aplicados en producción. La próxima migración debe usar **028** si sigue disponible al crearla.
 - El orden efectivo se define en `scripts/apply-migrations.js`, no por el orden de esta tabla. El runner crea 021 primero cuando necesita inicializar el historial y puede aplicar 003 anticipadamente para sanear reglas existentes.
-- Al elaborar este historial, `027_reglas_configurables_genericas.sql` existe en Git y estaba registrada en producción, pero no figura en la lista del runner. Este inventario la documenta; no modifica el runner ni afirma que una base nueva la reciba automáticamente.
+- El 2026-10-16 se incorporó `027_reglas_configurables_genericas.sql` a la lista del runner, después de sus dependencias. Así las bases nuevas reciben también sus tablas y configuración; en ambientes donde ya está registrada se omite. Se conservaron el nombre y el SQL originales.
 - Los scripts de `db/operations` son procedimientos operativos manuales y no forman parte de este inventario de migraciones automáticas.
 
 ## Cómo mantener este historial

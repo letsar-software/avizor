@@ -16,7 +16,7 @@ const postgres = createDisposablePostgres({
   user: "avizor",
   password: "avizor",
   database: "avizor",
-  hostPort: "54329",
+  hostPort: process.env.AVIZOR_TEST_PG_PORT || "54329",
 });
 
 function applyMigrations(databaseUrl, options = {}) {
@@ -60,7 +60,10 @@ function assertRepeatSkips() {
 function verifyLegacyAdoption() {
   // Solo en el contenedor descartable creado por este script: simular una base
   // sin historial y con duplicados anteriores a la migración 003.
-  postgres.query("drop table public.schema_migrations; drop index if exists reglas_agronomicas_unique_rule_idx;");
+  // Una base legacy anterior al historial tampoco tenía la credencial privada
+  // incorporada en 027. Recrear ese estado solo en este contenedor descartable;
+  // perder el historial de una base moderna requiere recuperación operativa.
+  postgres.query("alter table consultas drop column interaction_token_hash; drop table public.schema_migrations; drop index if exists reglas_agronomicas_unique_rule_idx;");
   postgres.query(`insert into reglas_agronomicas
     select (jsonb_populate_record(null::reglas_agronomicas,
       to_jsonb(r) || jsonb_build_object('id', gen_random_uuid(), 'clave', 'be002_duplicate', 'created_at', now() + interval '1 day'))).*
