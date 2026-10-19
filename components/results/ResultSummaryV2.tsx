@@ -30,6 +30,8 @@ import {
   Wind,
 } from "lucide-react";
 import type { ResultadoConsultaV2Publica, SerieClimaticaDiaria } from "@/types";
+import { categoriesForResult } from "@/lib/results/category-presentation";
+import { CategoryRiskCard } from "@/components/results/CategoryRiskCard";
 import {
   aggregateClimate,
   categoryDefinitions,
@@ -48,11 +50,8 @@ import HistoricalTemperatureChart from "@/components/results/HistoricalTemperatu
 import ClimateHistoricalPanel from "@/components/results/ClimateHistoricalPanel";
 import { PestSummaryCard } from "@/components/results/PestResults";
 import {
-  CategoryIconChip,
   ResultScopeNote,
   StatusLabelText,
-  categoryIcons,
-  severityOf,
 } from "@/components/results/shared";
 import Accordion from "@/components/Accordion";
 import { groupLimitations } from "@/lib/results/supplementary";
@@ -146,23 +145,7 @@ export default function ResultSummaryV2({
       <section className="mt-5">
         <h2 className="text-xl font-bold">Resumen por categoría</h2>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          {categoryDefinitions.slice(0, 1).map((definition) => (
-            <CategoryCard
-              key={definition.slug}
-              result={result}
-              definition={definition}
-              basePath={basePath}
-            />
-          ))}
-          <PestSummaryCard result={result} basePath={basePath} />
-          {categoryDefinitions.slice(1).map((definition) => (
-            <CategoryCard
-              key={definition.slug}
-              result={result}
-              definition={definition}
-              basePath={basePath}
-            />
-          ))}
+          <CategorySummaryCards result={result} basePath={basePath} />
         </div>
       </section>
       <div className="mt-5 grid gap-3 lg:grid-cols-2 lg:items-stretch">
@@ -188,35 +171,23 @@ export default function ResultSummaryV2({
   );
 }
 
-function CategoryCard({
-  result,
-  definition,
-  basePath,
-}: {
-  result: ResultadoConsultaV2Publica;
-  definition: (typeof categoryDefinitions)[number];
-  basePath: string;
-}) {
-  const rule = representativeRuleForDefinition(result, definition.risk);
-  const Icon = categoryIcons[definition.slug];
-  return (
-    <Link
-      href={`${basePath}/${definition.slug}`}
-      className="flex min-h-[92px] items-center gap-2 rounded-xl border bg-white p-4 text-left"
-    >
-      <CategoryIconChip Icon={Icon} severity={severityOf(rule)} />
-      <span className="min-w-0 flex-1">
-        <strong className="text-sm">{definition.name}</strong>
-        <StatusLabelText
-          rule={rule}
-          categoryName={definition.name}
-          className="mt-1 block text-xs font-semibold sm:text-sm"
-        />
-      </span>
-      <ArrowRight className="hidden h-4 w-4 sm:block" aria-hidden="true" />
-    </Link>
+/**
+ * Mismas tarjetas para todos los cultivos. Plagas conserva su resumen propio
+ * porque se evalúa con un motor separado (reglas_plagas) y no hay reglas
+ * agronómicas que consolidar para esa categoría.
+ */
+function CategorySummaryCards({ result, basePath }: { result: ResultadoConsultaV2Publica; basePath: string }) {
+  const categories = categoriesForResult(result);
+  const pestCard = <PestSummaryCard key="plagas" result={result} basePath={basePath} />;
+  const cards = categories.map((category) =>
+    category.key === "plagas" && result.plagas && !category.rules.length && category.resolution_source !== "agronomic_advisory"
+      ? pestCard
+      : <CategoryRiskCard key={category.key} category={category} basePath={basePath} />,
   );
+  if (!categories.some((category) => category.key === "plagas")) cards.splice(1, 0, pestCard);
+  return <>{cards}</>;
 }
+
 function ConsultationSummary({
   result,
   climateAnalysisOpen,
@@ -916,7 +887,6 @@ function RuleComparison({
               <span>{def.name}</span>
               <StatusLabelText
                 rule={rule}
-                categoryName={def.name}
                 className="max-w-[60%] text-right font-bold"
               />
             </li>

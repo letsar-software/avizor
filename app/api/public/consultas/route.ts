@@ -1,4 +1,5 @@
 import { ConsultaService } from "@/lib/consultas/service";
+import { internalOrAnonymous } from "@/lib/lots/request-actor";
 import { failure, requestId, success } from "@/lib/http/responses";
 import type { ConsultaInput } from "@/types";
 import { readJsonBody } from "@/lib/http/json-body";
@@ -10,7 +11,8 @@ export async function POST(request: Request) {
   try {
     await enforcePublicConsultationLimit(request);
     const body = parseInput(consultaV2Schema, await readJsonBody(request)) as ConsultaInput;
-    const result = await new ConsultaService().ejecutar({ ...body, localidad: body.localidad, cultivo: body.cultivo, canal: "web" }, id);
+    // La web es anónima: un lot_id sólo se acepta con token interno (ver lib/lots/access.ts).
+    const result = await new ConsultaService().ejecutar({ ...body, localidad: body.localidad, cultivo: body.cultivo, canal: "web" }, id, { actor: internalOrAnonymous(request) });
     return success(result, id, { version: "2.0" }, 201);
   } catch (error) { return failure(error, id); }
 }

@@ -85,10 +85,24 @@ async function runMigrations(client) {
     "db/migrations/026_fusariosis_resultado_incompleto.sql",
     "db/migrations/027_consulta_interaction_token.sql",
     "db/migrations/027_reglas_configurables_genericas.sql",
+    "db/migrations/029_roya_amarilla_reglas_configurables.sql",
+    // 030 (avisos técnicos) depende de categorias_agronomicas/cultivos (027); 031 vincula
+    // reglas con categorías y agrega variables críticas/complementarias; 032 crea catálogo
+    // de variables, lotes y datos de campo (depende de empresas, 014). Todas idempotentes.
+    "db/migrations/030_agronomic_advisories.sql",
+    "db/migrations/031_variables_criticas_complementarias.sql",
+    "db/migrations/032_variables_y_datos_de_campo.sql",
     historyMigration,
   ];
 
-  for (const migration of migrations) {
+  // Sólo para verificar copias (scripts/verify-migrations-copy.js): aplica las anteriores
+  // a la indicada para medir después el impacto de las pendientes en una transacción.
+  const stopBefore = process.env.AVIZOR_MIGRATIONS_STOP_BEFORE;
+  const selected = stopBefore
+    ? migrations.filter((migration) => migration === historyMigration || path.basename(migration) < stopBefore)
+    : migrations;
+
+  for (const migration of selected) {
     await applyMigration(client, migration);
   }
 

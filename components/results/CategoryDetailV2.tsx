@@ -9,17 +9,13 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { ResultadoConsultaV2Publica } from "@/types";
-import {
-  aggregateClimate,
-  formatNumber,
-  ruleForSlug,
-  statusLabel,
-} from "@/lib/results/presentation";
+import { ruleForSlug, representativeRule, statusLabel } from "@/lib/results/presentation";
+import { categoryForSlug } from "@/lib/results/category-presentation";
+import { CATEGORY_ICONS, RequiredDataList } from "@/components/results/CategoryRiskCard";
 import {
   CategoryIconChip,
   ResultScopeNote,
   SEVERITY_TONES,
-  categoryIcons,
   severityOf,
 } from "@/components/results/shared";
 import {
@@ -32,6 +28,7 @@ import { CategoryInformationCard } from "@/components/results/CategoryInformatio
 import { CategoryNavigation } from "@/components/results/CategoryNavigation";
 import { CategoryClimate } from "@/components/results/CategoryClimate";
 import { CategoryRuleComparison } from "@/components/results/CategoryRuleComparison";
+import { CategoryMatches } from "@/components/results/CategoryMatches";
 export default function CategoryDetailV2({
   slug,
   initialResult,
@@ -57,9 +54,14 @@ export default function CategoryDetailV2({
         </Link>
       </main>
     );
-  const { definition, rule, rules } = selected;
-  const Icon = categoryIcons[definition.slug];
-  const severity = severityOf(rule);
+  const { definition } = selected;
+  // La cabecera usa el mismo modelo que la tarjeta del resumen, para cualquier cultivo.
+  const card = categoryForSlug(result, slug);
+  const rules = card?.rules.length ? card.rules : selected.rules;
+  const rule = card?.rules.length ? representativeRule(card.rules) : selected.rule;
+  const categoryKey = card?.key ?? definition.slug;
+  const Icon = CATEGORY_ICONS[categoryKey] ?? CATEGORY_ICONS.enfermedades_foliares;
+  const severity = card?.tone ?? severityOf(rule);
   const tone = SEVERITY_TONES[severity];
   const days = rule?.ventana.dias ?? 14;
   const ruleSeries = result.clima.serie.slice(-days);
@@ -81,14 +83,20 @@ export default function CategoryDetailV2({
               Detalle por categoría
             </p>
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
-              {definition.name}
+              {card?.title ?? definition.name}
             </h1>
             <p className={`mt-2 text-base font-bold ${tone.text}`}>
-              {statusLabel(rule, definition.name)}
+              {card?.display_status ?? statusLabel(rule)}
             </p>
             <p className="mt-4 max-w-xl text-sm leading-6 text-[#405369]">
-              {detailExplanation(rule)}
+              {card?.message ?? detailExplanation(rule)}
             </p>
+            {card ? (
+              <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#081a31]">
+                {card.recommended_action}
+              </p>
+            ) : null}
+            {card ? <RequiredDataList items={card.required_data} /> : null}
           </div>
         </div>
         <CategoryDetailMetadata
@@ -99,21 +107,22 @@ export default function CategoryDetailV2({
       </section>
       <CategoryNavigation
         result={result}
-        activeSlug={definition.slug}
+        activeSlug={categoryKey}
         basePath={basePath}
       />
-      {definition.slug === "enfermedades_foliares" && rules.length ? (
+      {card?.matched_rules.length ? <CategoryMatches matches={card.matched_rules} /> : null}
+      {categoryKey === "enfermedades_foliares" && rules.length ? (
         <DiseaseEvaluationCards rules={rules} cultivo={result.cultivo} />
       ) : null}
       <div className="mt-3">
         <CategoryClimate
           series={visualSeries}
-          category={definition.slug}
+          category={categoryKey}
           historico={result.historico_temperatura}
         />
       </div>
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <CategoryRuleComparison rule={rule} categoryName={definition.name} />
+        <CategoryRuleComparison rule={rule} categoryName={card?.title ?? definition.name} />
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <CategoryInformationCard
@@ -157,101 +166,10 @@ export default function CategoryDetailV2({
 function detailExplanation(
   rule: ResultadoConsultaV2Publica["reglas"][number] | undefined,
 ) {
-  if (!rule) return "Esta categoría no pudo evaluarse.";
-  if (rule.explicacion) return rule.explicacion;
-  if (rule.estado === "evaluacion_incompleta")
-    return "Se muestran las variables climáticas disponibles, pero faltan requisitos agronómicos para completar la evaluación.";
-  if (rule.motivo === "datos_insuficientes")
-    return "No hay datos suficientes para evaluar esta categoría con la cobertura requerida.";
+  if (rule?.explicacion && rule.estado !== "no_evaluable") return rule.explicacion;
+  if (!rule || rule.estado === "no_evaluable" || rule.estado === "requiere_validacion_agronoma")
+    return "Conviene seguir esta categoría con monitoreo a campo mientras se suman los datos del lote.";
   if (rule.estado === "sin_condiciones")
     return "Durante el período analizado, los valores observados no alcanzaron el umbral definido para esta regla.";
-  return "Los datos observados no coinciden por completo con ninguno de los niveles definidos para esta regla.";
-}
-function DiseaseEvaluations({
-  rules,
-  summary,
-  fenologia,
-}: {
-  rules: ResultadoConsultaV2Publica["reglas"];
-  summary: ReturnType<typeof aggregateClimate>;
-  fenologia: ResultadoConsultaV2Publica["contexto_fenologico"];
-}) {
-  return (
-    <section className="mt-3 rounded-xl border bg-white p-5">
-      <h2 className="text-base font-bold">Enfermedades evaluadas</h2>
-      <p className="mt-1 text-sm text-[#526477]">
-        Cada señal corresponde a una regla ambiental específica y no constituye
-        un diagnóstico.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rules.map((item) => {
-          const name = item.regla.nombre ?? item.riesgo.replaceAll("_", " ");
-          const tone = SEVERITY_TONES[severityOf(item)];
-          const temperature = item.observado.find(
-            (value) => value.variable === "temperatura_media",
-          );
-          const rain = item.observado.find(
-            (value) => value.variable === "precipitacion",
-          );
-          return (
-            <article
-              key={`${item.regla.clave}-${item.regla.version}`}
-              className={`rounded-lg border p-4 ${tone.border}`}
-            >
-              <h3 className="text-sm font-bold">{name}</h3>
-              <p className={`mt-2 text-sm font-semibold ${tone.text}`}>
-                {statusLabel(item, name)}
-              </p>
-              <dl className="mt-3 space-y-1 text-xs text-[#405369]">
-                <div>
-                  <dt className="inline font-semibold">Temperatura: </dt>
-                  <dd className="inline">
-                    {temperature
-                      ? `${formatNumber(temperature.valor)} °C · referencia ${temperature.umbral} °C · ${temperature.cumple ? "coincide" : "no coincide"}`
-                      : "No disponible"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="inline font-semibold">Humedad relativa: </dt>
-                  <dd className="inline">
-                    {formatNumber(summary.humidity)} % (disponible; no equivale
-                    a mojado foliar)
-                  </dd>
-                </div>
-                <div>
-                  <dt className="inline font-semibold">Precipitación: </dt>
-                  <dd className="inline">
-                    {rain
-                      ? `${formatNumber(rain.valor)} mm · ${rain.cumple ? "coincide" : "no coincide"}`
-                      : `${formatNumber(summary.precipitation)} mm observados`}
-                  </dd>
-                </div>
-                {item.riesgo === "fusariosis_espiga" ? (
-                  <div>
-                    <dt className="inline font-semibold">Fenología: </dt>
-                    <dd className="inline">
-                      {fenologia.disponible
-                        ? (fenologia.descripcion ?? fenologia.estadio_estimado)
-                        : "No informada"}
-                    </dd>
-                  </div>
-                ) : null}
-                <div>
-                  <dt className="inline font-semibold">Variable faltante: </dt>
-                  <dd className="inline">
-                    Mojado foliar e inóculo no disponibles.
-                  </dd>
-                </div>
-              </dl>
-              {item.motivo ? (
-                <p className="mt-2 text-xs text-[#526477]">
-                  Motivo: {item.motivo.replaceAll("_", " ")}
-                </p>
-              ) : null}
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
+  return "Algunas condiciones del período justifican seguir el lote de cerca.";
 }

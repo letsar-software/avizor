@@ -211,7 +211,7 @@ export default function PestDetailV2({
               <option value="todas">Todos los estados</option>
               <option value="informacion">Información disponible</option>
               <option value="en_validacion">En validación</option>
-              <option value="no_evaluable">No evaluable</option>
+              <option value="no_evaluable">Monitoreo recomendado</option>
             </select>
           </div>
           <p className="mt-3 text-sm text-[#526477]">
@@ -391,7 +391,7 @@ function PestCard({
       ? "Información disponible para monitoreo"
       : ficha.estado === "en_validacion"
         ? "Información en validación"
-        : "No evaluable con los datos disponibles";
+        : "Monitoreo recomendado";
   const label = hasEvaluation ? "Con evaluación climática" : estado;
   return (
     <article className="flex min-h-[190px] flex-col rounded-xl border p-4">

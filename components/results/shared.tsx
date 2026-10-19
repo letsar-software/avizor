@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { CloudRain, Droplets, Leaf, Snowflake } from "lucide-react";
 import type { EstadoEvaluacionPlaga, ResultadoReglaV2 } from "@/types";
 import { statusLabel } from "@/lib/results/presentation";
+import { toneOf } from "@/lib/results/category-presentation";
 import { InfoMessage } from "@/components/ui/InfoMessage";
 
 export const categoryIcons: Record<"heladas" | "enfermedades_foliares" | "estres_hidrico" | "exceso_hidrico", LucideIcon> = {
@@ -14,23 +15,10 @@ export const categoryIcons: Record<"heladas" | "enfermedades_foliares" | "estres
 
 export type Severity = "attention" | "monitor" | "calm" | "neutral";
 
-/**
- * Espeja la misma convención de lectura que ya usa lib/rules/score-v2.ts para
- * componer el Estado General (favorables/condiciones_detectadas => atención,
- * moderadas/indeterminado => monitoreo). No reimplementa ni cambia esa lógica,
- * solo la reutiliza para elegir un color consistente por severidad real en vez
- * de un color fijo por categoría.
- */
-const ATTENTION_STATES = new Set(["favorables", "condiciones_detectadas"]);
-const MONITOR_STATES = new Set(["moderadas"]);
-
+/** Misma escala que las tarjetas consolidadas (lib/results/category-presentation.ts). */
 export function severityOf(rule?: ResultadoReglaV2): Severity {
-  if (!rule) return "neutral";
-  if (rule.estado === "indeterminado" || rule.estado === "evaluacion_incompleta") return "neutral";
-  if (rule.estado === "condiciones_parciales") return "monitor";
-  if (ATTENTION_STATES.has(rule.estado)) return "attention";
-  if (MONITOR_STATES.has(rule.estado)) return "monitor";
-  return "calm";
+  if (!rule) return "monitor";
+  return toneOf(rule.estado);
 }
 
 const PEST_ATTENTION: EstadoEvaluacionPlaga[] = ["favorabilidad_alta", "periodo_relevante_monitoreo"];
@@ -58,9 +46,9 @@ export function CategoryIconChip({ Icon, severity, size = "sm" }: { Icon: Lucide
   return <span className={`flex ${dim} shrink-0 items-center justify-center rounded-full ${tone.chipBg} ${tone.chipText}`}><Icon className={iconDim} aria-hidden="true" /></span>;
 }
 
-export function StatusLabelText({ rule, categoryName, className = "" }: { rule?: ResultadoReglaV2; categoryName?: string; className?: string }) {
+export function StatusLabelText({ rule, className = "" }: { rule?: ResultadoReglaV2; className?: string }) {
   const tone = SEVERITY_TONES[severityOf(rule)];
-  return <span className={`${tone.text} ${className}`}>{statusLabel(rule, categoryName)}</span>;
+  return <span className={`${tone.text} ${className}`}>{statusLabel(rule)}</span>;
 }
 
 export function ResultScopeNote() {

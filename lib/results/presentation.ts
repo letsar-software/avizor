@@ -3,6 +3,7 @@ import type {
   ResultadoReglaV2,
   SerieClimaticaDiaria,
 } from "@/types";
+import { displayStatus } from "@/lib/rules/display";
 
 export const categoryDefinitions = [
   {
@@ -54,12 +55,7 @@ export function rulesForDefinition(
   const diseases = result.reglas.filter(
     (item) => !environmentalRisks.has(item.riesgo),
   );
-  const stable = diseases.filter(
-    (item) =>
-      item.regla.estado !== "experimental" &&
-      item.regla.modo !== "experimental",
-  );
-  return stable.length ? stable : diseases;
+  return diseases;
 }
 
 export function representativeRuleForDefinition(
@@ -69,77 +65,22 @@ export function representativeRuleForDefinition(
   return representativeRule(rulesForDefinition(result, risk));
 }
 
-function representativeRule(rules: ResultadoReglaV2[]) {
+export function representativeRule(rules: ResultadoReglaV2[]) {
   const rank = (rule: ResultadoReglaV2) => {
-    if (
-      rule.estado === "favorables" ||
-      rule.estado === "condiciones_detectadas"
-    )
-      return 4;
-    if (rule.estado === "moderadas") return 3;
-    // Una coincidencia experimental no es una alerta productiva, pero debe
-    // prevalecer sobre una regla sin coincidencia al resumir la categoría.
-    if (rule.estado === "condiciones_parciales") return 3;
-    if (rule.estado === "evaluacion_incompleta") return 2;
-    if (rule.estado === "indeterminado") return 2;
-    if (rule.estado === "sin_condiciones" || rule.estado === "desfavorables")
-      return 1;
+    if (rule.estado === "favorable") return 4;
+    if (rule.estado === "vigilancia") return 3;
+    if (rule.estado === "sin_condiciones") return 1;
     return 0;
   };
-  return [...rules].sort((left, right) => rank(right) - rank(left))[0];
+  return [...rules].sort((left, right) =>
+    rank(right) - rank(left) ||
+    (right.regla.prioridad ?? 0) - (left.regla.prioridad ?? 0),
+  )[0];
 }
 
-export function statusLabel(rule?: ResultadoReglaV2, categoryName?: string) {
-  if (!rule) return "No evaluada";
-  if (rule.estado === "no_evaluable")
-    return "No evaluable con los datos y la validación disponibles";
-  if (rule.estado === "evaluacion_incompleta")
-    return "Evaluación incompleta: se muestran las variables disponibles y faltantes";
-  if (rule.estado === "condiciones_parciales")
-    return "Evaluación experimental: coincidencia parcial con la referencia";
-  const category = categoryName?.toLowerCase();
-  if (rule.estado === "sin_condiciones")
-    return category
-      ? `Sin condiciones asociadas a ${category}`
-      : "Sin condiciones asociadas al fenómeno evaluado";
-  if (rule.estado === "indeterminado")
-    return "No fue posible evaluar esta categoría con los datos disponibles";
-  if (
-    rule.estado === "favorables" ||
-    rule.estado === "condiciones_detectadas"
-  ) {
-    if (category === "heladas")
-      return "Temperaturas bajo el umbral para heladas";
-    if (category === "enfermedades foliares")
-      return "Condiciones que pueden favorecer enfermedades foliares";
-    if (category === "estrés hídrico") return "Precipitación acumulada baja";
-    if (category === "exceso hídrico") return "Precipitación acumulada elevada";
-  }
-  if (rule.estado === "moderadas") {
-    if (category === "enfermedades foliares")
-      return "Condiciones moderadas para enfermedades foliares";
-    if (category === "heladas")
-      return "Condiciones moderadas asociadas a heladas";
-    if (category === "estrés hídrico")
-      return "Disponibilidad hídrica para monitorear";
-    if (category === "exceso hídrico")
-      return "Acumulación de agua para monitorear";
-  }
-  return deduplicateLabel(rule.etiqueta) ?? rule.estado.replaceAll("_", " ");
-}
-
-function deduplicateLabel(value?: string) {
-  if (!value?.trim()) return undefined;
-  const parts = value
-    .split(/\s*[-–—]\s*/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  if (
-    parts.length === 2 &&
-    parts[0].localeCompare(parts[1], "es", { sensitivity: "base" }) === 0
-  )
-    return parts[0];
-  return value.trim();
+/** Mismo texto de producto que las tarjetas consolidadas (lib/rules/display.ts). */
+export function statusLabel(rule?: ResultadoReglaV2) {
+  return displayStatus(rule?.estado);
 }
 
 export function aggregateClimate(series: SerieClimaticaDiaria[]) {

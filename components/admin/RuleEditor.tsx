@@ -8,8 +8,11 @@ import { REGLA_ESTADOS } from "@/lib/rules/condition-spec";
 import { useRuleDefinitionEditor } from "@/components/admin/rule-editor/useRuleDefinitionEditor";
 import RuleMetaFields from "@/components/admin/rule-editor/RuleMetaFields";
 import NivelEditor from "@/components/admin/rule-editor/NivelEditor";
+import RuleVariablesEditor from "@/components/admin/rule-editor/RuleVariablesEditor";
+import type { CatalogEntry } from "@/lib/variables/catalog";
+import { initialVariableLists, validateVariableLists } from "@/lib/variables/lists";
 
-export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; rol: AdminRole }) {
+export default function RuleEditor({ regla, rol, catalog: initialCatalog }: { regla: ReglaAgronomicaV2; rol: AdminRole; catalog: CatalogEntry[] }) {
   const router = useRouter();
   const locked = regla.estado === "vigente"; // RN-004: una vigente no se edita in place.
   const puedePromover = hasAccess(rol, "reglas_promover", "write");
@@ -24,6 +27,14 @@ export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; r
   const [message, setMessage] = useState<string | null>(null);
 
   const editor = useRuleDefinitionEditor(regla.definicion.niveles);
+  const initialLists = initialVariableLists(regla);
+  const [lists, setLists] = useState({ critical: initialLists.critical, complementary: initialLists.complementary });
+  const [catalog, setCatalog] = useState(initialCatalog);
+  const listsChanged = initialLists.legacy
+    ? false
+    : lists.critical.join() !== initialLists.critical.join() || lists.complementary.join() !== initialLists.complementary.join();
+  // Una regla histórica guarda sus listas al confirmar explícitamente o si se editan.
+  const [saveLegacyLists, setSaveLegacyLists] = useState(false);
 
   async function handleFork() {
     setForking(true);
@@ -51,6 +62,12 @@ export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; r
       if (!locked) payload.definicion = { niveles: editor.niveles, sin_coincidencia: regla.definicion.sin_coincidencia };
       if (validadoPor && validadoPor !== (regla.validado_por ?? "")) payload.validado_por = validadoPor;
       if (validadoEn) payload.validado_en = new Date(validadoEn).toISOString();
+      if (!locked && (listsChanged || saveLegacyLists)) {
+        const issues = validateVariableLists(lists.critical, lists.complementary, new Set(catalog.map((entry) => entry.clave)));
+        if (issues.length) throw new Error(issues[0].message);
+        payload.critical_required_variables = lists.critical;
+        payload.complementary_required_variables = lists.complementary;
+      }
 
       if (Object.keys(payload).length === 0) {
         setMessage("No hay cambios para guardar.");
@@ -94,6 +111,17 @@ export default function RuleEditor({ regla, rol }: { regla: ReglaAgronomicaV2; r
         onValidadoPorChange={setValidadoPor}
         validadoEn={validadoEn}
         onValidadoEnChange={setValidadoEn}
+      />
+
+      <RuleVariablesEditor
+        critical={lists.critical}
+        complementary={lists.complementary}
+        onChange={(next) => { setLists(next); if (initialLists.legacy) setSaveLegacyLists(true); }}
+        catalog={catalog}
+        onCatalogChange={setCatalog}
+        locked={locked}
+        legacy={initialLists.legacy && !saveLegacyLists}
+        canCreate={hasAccess(rol, "reglas", "write")}
       />
 
       <div className="space-y-4">

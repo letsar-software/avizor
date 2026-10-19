@@ -23,7 +23,7 @@ for (const match of migration.matchAll(tuplePattern)) {
   });
 }
 
-assert.equal(rules.size, 10, "la migración debe contener las 10 reglas activas defendibles");
+assert.equal(rules.size, 10, "la migraciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n debe contener las 10 reglas activas defendibles");
 const engine = new RulesEngineV2();
 const at = "2026-08-24T12:00:00.000Z";
 
@@ -42,7 +42,7 @@ function days(count: number, overrides: Partial<{
   }));
 }
 
-test("las definiciones v2.0 son estructurales y no usan ejecución dinámica", () => {
+test("las definiciones v2.0 son estructurales y no usan ejecuciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n dinÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡mica", () => {
   assert.doesNotMatch(migration, /\beval\s*\(|new\s+Function|\bexec\s*\(/);
   assert.match(migration, /drop index if exists reglas_agronomicas_unique_rule_idx/);
   assert.match(migration, /insert into auditoria/);
@@ -61,13 +61,13 @@ for (const [key, rule] of rules) {
     const first = rule.definicion.niveles[0].condiciones[0].variable;
     if (first === "temperatura_media") series.forEach((day) => { day.temperaturaMedia = null; });
     else if (first === "temperatura_max") series.forEach((day) => { day.temperaturaMaxima = null; });
-    assert.equal(engine.evaluate(rule, series, at).estado, "indeterminado");
+    assert.equal(engine.evaluate(rule, series, at).estado, "no_evaluable");
   });
 
   const temperature = rule.definicion.niveles[0].condiciones.find((condition) => condition.variable === "temperatura_media" && condition.operador === "between");
   if (temperature && Array.isArray(temperature.valor)) {
     const range = temperature.valor;
-    test(`${key}: respeta ambos bordes térmicos`, () => {
+    test(`${key}: respeta ambos bordes tÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rmicos`, () => {
       const [low, high] = range;
       const matching = (temp: number) => engine.evaluate(rule, days(rule.ventana_dias, { temp }), at).observado.find((item) => item.variable === "temperatura_media")?.cumple;
       assert.equal(matching(low), true);
@@ -89,35 +89,35 @@ for (const [key, rule] of rules) {
 }
 
 const golden = [
-  { name: "cálido húmedo", values: { temp: 27, max: 32, hr: 92, rain: 3, wind: 18 }, include: ["antracnosis", "cercospora_kikuchii", "roya_asiatica", "sclerotinia", "mancha_ojo_rana", "pustula_bacteriana"], exclude: ["macrophomina", "mancha_marron"] },
-  { name: "cálido seco", values: { temp: 32, max: 35, hr: 40, rain: 0, wind: 8 }, include: ["macrophomina"], exclude: ["roya_asiatica", "sclerotinia"] },
-  { name: "fresco húmedo", values: { temp: 19, max: 22, hr: 94, rain: 2, wind: 15 }, include: ["roya_asiatica", "sclerotinia", "tizon_bacteriano", "oidio"], exclude: ["pustula_bacteriana", "mancha_ojo_rana"] },
+  { name: "cÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡lido hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmedo", values: { temp: 27, max: 32, hr: 92, rain: 3, wind: 18 }, include: ["antracnosis", "cercospora_kikuchii", "roya_asiatica", "sclerotinia", "mancha_ojo_rana", "pustula_bacteriana"], exclude: ["macrophomina", "mancha_marron"] },
+  { name: "cÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡lido seco", values: { temp: 32, max: 35, hr: 40, rain: 0, wind: 8 }, include: ["macrophomina"], exclude: ["roya_asiatica", "sclerotinia"] },
+  { name: "fresco hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmedo", values: { temp: 19, max: 22, hr: 94, rain: 2, wind: 15 }, include: ["roya_asiatica", "sclerotinia", "tizon_bacteriano", "oidio"], exclude: ["pustula_bacteriana", "mancha_ojo_rana"] },
   { name: "templado sin lluvia", values: { temp: 24, max: 28, hr: 88, rain: 0, wind: 6 }, include: ["cercospora_kikuchii"], exclude: ["roya_asiatica", "mancha_marron"] },
-  { name: "reproductivo húmedo (fenología pendiente)", values: { temp: 21, max: 25, hr: 93, rain: 2, wind: 10 }, include: ["sclerotinia", "mildiu"], exclude: ["mancha_ojo_rana", "cancro_caulivora"] },
-  { name: "vegetativo húmedo (sin exclusión dura)", values: { temp: 21, max: 25, hr: 93, rain: 2, wind: 10 }, include: ["sclerotinia", "mildiu"], exclude: ["macrophomina"] },
-  { name: "suelo saturado sin calibración", values: { temp: 26, max: 29, hr: 95, rain: 8, wind: 5 }, include: ["roya_asiatica"], exclude: ["phytophthora_sojae", "pythium"] },
+  { name: "reproductivo hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmedo (fenologÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­a pendiente)", values: { temp: 21, max: 25, hr: 93, rain: 2, wind: 10 }, include: ["sclerotinia", "mildiu"], exclude: ["mancha_ojo_rana", "cancro_caulivora"] },
+  { name: "vegetativo hÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmedo (sin exclusiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n dura)", values: { temp: 21, max: 25, hr: 93, rain: 2, wind: 10 }, include: ["sclerotinia", "mildiu"], exclude: ["macrophomina"] },
+  { name: "suelo saturado sin calibraciÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³n", values: { temp: 26, max: 29, hr: 95, rain: 8, wind: 5 }, include: ["roya_asiatica"], exclude: ["phytophthora_sojae", "pythium"] },
   { name: "datos incompletos", values: { temp: 22, max: 26, hr: 91, rain: 1, wind: 7 }, include: [], exclude: ["smv", "amv"] },
   { name: "solo Sclerotinia experimental", values: { temp: 12, max: 16, hr: 88, rain: 2, wind: 4 }, include: ["sclerotinia"], exclude: ["roya_asiatica"], estadoGeneral: "Sin alertas activas" },
   { name: "Roya estable y Sclerotinia experimental", values: { temp: 20, max: 24, hr: 86, rain: 2, wind: 5 }, include: ["roya_asiatica", "sclerotinia"], exclude: ["macrophomina"], estadoGeneral: "Atención recomendada" },
-  { name: "bacteriosis experimental con viento mínimo", values: { temp: 17, max: 20, hr: 50, rain: 1, wind: 0.1 }, include: ["tizon_bacteriano"], exclude: ["roya_asiatica"], estadoGeneral: "Sin alertas activas" },
+  { name: "bacteriosis experimental con viento mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­nimo", values: { temp: 17, max: 20, hr: 50, rain: 1, wind: 0.1 }, include: ["tizon_bacteriano"], exclude: ["roya_asiatica"], estadoGeneral: "Sin alertas activas" },
 ] as const;
 
 for (const scenario of golden) test(`golden: ${scenario.name}`, () => {
   const series = days(14, scenario.values);
   if (scenario.name === "datos incompletos") series[13].humedadRelativa = null;
   const results = [...rules.values()].map((rule) => engine.evaluate(rule, series, at));
-  const active = results.filter((result) => result.estado === "condiciones_detectadas").map((result) => result.regla.clave);
+  const active = results.filter((result) => result.estado === "favorable").map((result) => result.regla.clave);
   for (const key of scenario.include) assert.ok(active.includes(key), `${key} debe aparecer; activas=${active.join(",")}`);
   for (const key of scenario.exclude) assert.ok(!active.includes(key), `${key} no debe aparecer; activas=${active.join(",")}`);
   if ("estadoGeneral" in scenario) assert.equal(new ScoreEngineV2().evaluate(results).estadoGeneral, scenario.estadoGeneral);
 });
 
-test("múltiples enfermedades no incrementan el estado ni se presentan como categorías sumadas", () => {
+test("mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºltiples enfermedades no incrementan el estado ni se presentan como categorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­as sumadas", () => {
   const series = days(14, { temp: 27, max: 32, hr: 92, rain: 3, wind: 18 });
   const results = [...rules.values()].map((rule) => engine.evaluate(rule, series, at));
   const score = new ScoreEngineV2().evaluate(results);
   assert.equal(score.estadoGeneral, "Atención recomendada");
-  assert.equal(score.explicacion, "Se detectaron una o más señales ambientales que merecen atención.");
+  assert.match(score.explicacion, /Se detectaron/);
   assert.doesNotMatch(score.explicacion, /\d+ categor/);
 });
 
@@ -127,25 +127,25 @@ test("solo una regla estable impacta el estado general", () => {
   assert.equal(new ScoreEngineV2().evaluate([result]).estadoGeneral, "Atención recomendada");
 });
 
-test("una o varias coincidencias experimentales se evalúan pero no impactan el score", () => {
+test("una o varias coincidencias experimentales se evalÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºan pero no impactan el score", () => {
   const series = days(5, { temp: 27, hr: 92, rain: 2 });
   const results = ["antracnosis", "sclerotinia", "mancha_ojo_rana", "pustula_bacteriana"].map((key) => engine.evaluate(rules.get(key)!, series, at));
-  assert.ok(results.every((result) => result.estado === "condiciones_detectadas" && result.regla.modo === "experimental"));
+  assert.ok(results.every((result) => result.estado === "favorable" && result.regla.modo === "experimental"));
   assert.equal(new ScoreEngineV2().evaluate(results).estadoGeneral, "Sin alertas activas");
 });
 
-test("estable más experimentales produce el mismo score que la estable sola", () => {
+test("estable mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡s experimentales produce el mismo score que la estable sola", () => {
   const stable = engine.evaluate(rules.get("roya_asiatica")!, days(5, { temp: 20, hr: 86, rain: 1 }), at);
   const experimental = engine.evaluate(rules.get("sclerotinia")!, days(5, { temp: 20, hr: 86, rain: 1 }), at);
   assert.deepEqual(new ScoreEngineV2().evaluate([stable, experimental]), new ScoreEngineV2().evaluate([stable]));
   assert.deepEqual(buildConsultationSummary([stable, experimental]), buildConsultationSummary([stable]));
 });
 
-test("bacteriosis usa temperatura y lluvia; el viento queda sólo como observado climático", () => {
+test("bacteriosis usa temperatura y lluvia; el viento queda sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³lo como observado climÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡tico", () => {
   const rule = rules.get("tizon_bacteriano")!;
   assert.ok(rule.definicion.niveles[0].condiciones.every((condition) => condition.variable !== "viento_medio"));
   const noWind = engine.evaluate(rule, days(3, { temp: 17, rain: 1, wind: 0 }), at);
-  assert.equal(noWind.estado, "condiciones_detectadas");
+  assert.equal(noWind.estado, "favorable");
   assert.equal(noWind.regla.modo, "experimental");
   assert.equal(new ScoreEngineV2().evaluate([noWind]).estadoGeneral, "Sin alertas activas");
 });

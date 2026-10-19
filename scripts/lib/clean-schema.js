@@ -1,4 +1,5 @@
 const EXPECTED_TABLES = [
+  "agronomic_advisories",
   "api_keys",
   "api_uso",
   "auditoria",
@@ -8,12 +9,16 @@ const EXPECTED_TABLES = [
   "consulta_logs",
   "consultas",
   "cultivos",
+  "datos_campo",
   "empresas",
   "etapas_fenologicas",
   "feedback",
   "fuentes_agronomicas",
   "interesados",
   "invitaciones_admin",
+  "lotes",
+  "migracion_031_respaldo",
+  "migracion_031_vinculos",
   "modelos_fenologicos",
   "observaciones",
   "plagas_regionales",
@@ -25,6 +30,7 @@ const EXPECTED_TABLES = [
   "sesiones_admin",
   "subcategorias_agronomicas",
   "usuarios_admin",
+  "variables_agronomicas",
   "zonas_agronomicas",
 ];
 

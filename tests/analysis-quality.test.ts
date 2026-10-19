@@ -17,12 +17,12 @@ test("valores diarios faltantes bajan cobertura aunque existan las 14 fechas", (
 });
 
 test("datos_insuficientes nunca informa cobertura completa", () => {
-  const quality = calculateAnalysisQuality([rule({ estado: "indeterminado", motivo: "datos_insuficientes", detalle: { variable: "humedad_relativa", dias_esperados: 14, dias_disponibles: 10 }, calidad_dato: { cobertura_min: 10 / 14, dias_faltantes: 4, distancia_punto_km: null } })]);
+  const quality = calculateAnalysisQuality([rule({ estado: "no_evaluable", motivo: "datos_insuficientes", detalle: { variable: "humedad_relativa", dias_esperados: 14, dias_disponibles: 10 }, calidad_dato: { cobertura_min: 10 / 14, dias_faltantes: 4, distancia_punto_km: null } })]);
   assert.equal(quality.estado, "datos_insuficientes"); assert.equal(quality.cobertura, 10 / 14); assert.deepEqual(quality.variables_faltantes_relevantes, ["humedad_relativa"]);
 });
 
 test("fenología no informada no reduce la cobertura climática", () => {
-  const quality = calculateAnalysisQuality([rule({ estado: "indeterminado", motivo: "fenologia_no_disponible" })]);
+  const quality = calculateAnalysisQuality([rule({ estado: "no_evaluable", motivo: "fenologia_no_disponible" })]);
   assert.equal(quality.estado, "datos_completos"); assert.equal(quality.cobertura, 1);
 });
 
@@ -37,7 +37,7 @@ test("varias categorías usan el mínimo de cobertura estable", () => {
 });
 
 test("la ausencia de reglas estables aplicables usa cobertura de respaldo sin clasificarla como déficit climático", () => {
-  const experimental = rule({ regla: { clave: "EXP-01", version: "1", estado: "experimental", modo: "experimental" }, calidad_dato: { cobertura_min: 0, dias_faltantes: 14, distancia_punto_km: null }, estado: "indeterminado", motivo: "datos_insuficientes" });
+  const experimental = rule({ regla: { clave: "EXP-01", version: "1", estado: "experimental", modo: "experimental" }, calidad_dato: { cobertura_min: 0, dias_faltantes: 14, distancia_punto_km: null }, estado: "no_evaluable", motivo: "datos_insuficientes" });
   const quality = calculateAnalysisQuality([experimental], 1);
   assert.equal(quality.cobertura, 1); assert.equal(quality.estado, "datos_completos");
 });

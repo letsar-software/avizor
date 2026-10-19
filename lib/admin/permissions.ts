@@ -12,6 +12,7 @@ export type AdminModule =
   | "usuarios"
   | "empresas"
   | "auditoria"
+  | "datos_campo"
   | "configuracion";
 
 export type AdminAccess = "none" | "read" | "support" | "write";
@@ -26,6 +27,8 @@ const MATRIX: Record<AdminModule, Record<AdminRole, AdminAccess>> = {
   // Agrónomo: "soporte (lectura + atención)" — puede leer y atender empresas, pero no administrarlas.
   empresas: { administrador: "write", agronomo: "support", soporte: "read" },
   auditoria: { administrador: "read", agronomo: "none", soporte: "none" },
+  // Datos de lote que alimentan las evaluaciones; soporte sólo consulta.
+  datos_campo: { administrador: "write", agronomo: "write", soporte: "read" },
   configuracion: { administrador: "write", agronomo: "none", soporte: "none" },
 };
 

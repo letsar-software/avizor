@@ -19,7 +19,7 @@ import { logSafeError } from "@/lib/logging/safe";
 const USER_MESSAGES: Record<ConsultaErrorCode, string> = {
   CLIMA_NO_DISPONIBLE: "No pudimos obtener datos climáticos. Intentá nuevamente en unos minutos.",
   LOCALIDAD_NO_RECONOCIDA: "No encontramos esa localidad. Probá con el nombre completo.",
-  CULTIVO_NO_SOPORTADO: "Avizor todavía no cubre ese cultivo. Por ahora solo soja está disponible.",
+  CULTIVO_NO_SOPORTADO: "Avizor todavía no cubre ese cultivo.",
   REGLAS_NO_DISPONIBLES: "No pudimos evaluar las reglas agronómicas. Intentá nuevamente en unos minutos.",
   REQUEST_INVALIDO: "La consulta no tiene los datos necesarios.",
 };

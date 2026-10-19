@@ -10,6 +10,13 @@ const ESTADO_STYLES: Record<ReglaAgronomicaV2["estado"], string> = {
   retirada: "bg-gray-100 text-gray-500",
 };
 
+const ESTADO_LABELS: Record<ReglaAgronomicaV2["estado"], string> = {
+  experimental: "En revisión técnica",
+  revisada: "Revisada",
+  vigente: "Vigente",
+  retirada: "Retirada",
+};
+
 export default async function AdminReglasPage() {
   await requireAdminPageAccess("reglas", "read");
   const reglas = await getReglasAdministrables();
@@ -44,7 +51,7 @@ export default async function AdminReglasPage() {
                 <td className="px-4 py-3 text-gray-600">{regla.categoria ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-600">{regla.version}</td>
                 <td className="px-4 py-3">
-                  <span className={`rounded px-2 py-1 text-xs font-medium ${ESTADO_STYLES[regla.estado]}`}>{regla.estado}</span>
+                  <span className={`rounded px-2 py-1 text-xs font-medium ${ESTADO_STYLES[regla.estado]}`}>{ESTADO_LABELS[regla.estado]}</span>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{regla.ventana_dias} días</td>
               </tr>

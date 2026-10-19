@@ -11,8 +11,15 @@ import {
 } from "@/lib/localidades/normalize";
 import type { PhenologyProviderV2 } from "@/lib/phenology/provider-v2";
 import { CalculatedPhenologyProvider } from "@/lib/phenology/provider-v2";
+import { getCodigoZadoksEtapa } from "@/lib/phenology/stage-repository";
 import { getReglasVigentes } from "@/lib/rules/repository-v2";
-import { RulesEngineV2 } from "@/lib/rules/engine-v2";
+import { getActiveRiskCategories } from "@/lib/rules/category-repository";
+import { consolidateCategoryRisks } from "@/lib/rules/consolidation";
+import { getActiveAgronomicAdvisories } from "@/lib/advisories/repository";
+import { loadVariableLabels } from "@/lib/variables/repository";
+import { dataProvenance, evaluateRules, loadLotContext, type LotContextDependencies } from "@/lib/rules/evaluation-core";
+import type { LotActor } from "@/lib/lots/access";
+import type { ConsolidatedCategoryRisk, DataProvenance } from "@/types";
 import { ScoreEngineV2 } from "@/lib/rules/score-v2";
 import { buildConsultationSummary } from "@/lib/results/consultation-summary";
 import { calculateAnalysisQuality } from "@/lib/results/analysis-quality";
@@ -32,6 +39,8 @@ import type {
   ReglaAgronomicaV2,
   ReglaPlaga,
   ResultadoReglaV2,
+  RiskCategory,
+  AgronomicAdvisory,
 } from "@/types";
 
 export class DomainError extends Error {
@@ -46,7 +55,17 @@ export class DomainError extends Error {
 }
 
 export interface ConsultaResultadoV2 {
-  id: string | null; request_id: string; share_token: string; interaction_token?: string; estado_general: EstadoGeneral; explicacion: string;
+  id: string | null;
+  /** Sólo cuando la consulta se hizo con lot_id. */
+  lot_id?: string;
+  data_provenance?: DataProvenance;
+  /** Resultado consolidado por categoría (cuando hay categorías administrables). */
+  categorias?: ConsolidatedCategoryRisk[];
+  request_id: string;
+  share_token: string;
+  interaction_token?: string;
+  estado_general: EstadoGeneral;
+  explicacion: string;
   resumen_consulta: { descripcion: string; destaque: string };
   localidad: ReturnType<typeof normalizeLocalidad>;
   cultivo: string;
@@ -76,10 +95,15 @@ export interface ConsultaResultadoV2 {
   historico_temperatura?: HistoricalTemperature;
 }
 
-interface Dependencies {
+interface Dependencies extends LotContextDependencies {
   climate?: ClimateSeriesProvider;
   phenology?: PhenologyProviderV2;
+  resolveStageCode?: (cultivo: string, etapa: string) => Promise<number | null>;
   loadRules?: (cultivo: string) => Promise<ReglaAgronomicaV2[]>;
+  loadCategories?: () => Promise<RiskCategory[]>;
+  /** Etiquetas administrables del catálogo de variables (clave → etiqueta visible). */
+  loadVariableLabels?: () => Promise<ReadonlyMap<string, string>>;
+  loadAdvisories?: (cropId: string, scope: { regionId?: string | null; farmId?: string | null; fieldId?: string | null }, at: string) => Promise<AgronomicAdvisory[]>;
   persist?: typeof persistConsultaV2;
   resolveLocation?: typeof resolveLocalidad;
   enablePests?: boolean;
@@ -98,6 +122,7 @@ export class ConsultaService {
   async ejecutar(
     input: ConsultaInput,
     requestId = crypto.randomUUID(),
+    context: { actor?: LotActor } = {},
   ): Promise<ConsultaResultadoV2> {
     const started = performance.now();
     const cultivo = input.cultivo.trim().toLowerCase();
@@ -106,7 +131,7 @@ export class ConsultaService {
     if (!cultivoHabilitado)
       throw new DomainError(
         "CULTIVO_NO_SOPORTADO",
-        "Avizor todavía no cubre ese cultivo. Por ahora solo soja está disponible.",
+        "Avizor todavía no cubre ese cultivo.",
       );
     let localidad;
     try {
@@ -127,6 +152,8 @@ export class ConsultaService {
         404,
       );
     const fechaRef = normalizeDate(input.fechaRef);
+    // Lote: se valida acceso antes de cualquier otra lectura; sin lot_id no cambia nada.
+    const { lot, fieldData } = await loadLotContext(input.lotId, context.actor ?? { kind: "anonymous" }, `${fechaRef}T12:00:00.000Z`, this.dependencies);
     const rules = await (this.dependencies.loadRules ?? getReglasVigentes)(
       cultivo,
     );
@@ -150,7 +177,6 @@ export class ConsultaService {
     }
 
     const evaluatedAt = `${fechaRef}T12:00:00.000Z`;
-    const engine = new RulesEngineV2();
     let phenology: ContextoFenologico;
     try {
       phenology = await (
@@ -172,6 +198,9 @@ export class ConsultaService {
       };
     }
     if (input.etapaFenologica) {
+      const codigoZadoks = await (
+        this.dependencies.resolveStageCode ?? getCodigoZadoksEtapa
+      )(cultivo, input.etapaFenologica);
       phenology = {
         disponible: true,
         estadio_estimado: input.etapaFenologica,
@@ -182,11 +211,18 @@ export class ConsultaService {
           nota: "Etapa informada por la persona usuaria; no es una estimación automática.",
         },
         modifica_reglas: false,
+        codigo_zadoks: codigoZadoks,
       };
     }
-    const results = rules.map((rule) =>
-      engine.evaluate(rule, climate.serie, evaluatedAt, phenology),
+    const results = evaluateRules({ rules, series: climate.serie, evaluatedAt, phenology, fieldData });
+    const categories = await (this.dependencies.loadCategories ?? getActiveRiskCategories)();
+    const advisories = await (this.dependencies.loadAdvisories ?? getActiveAgronomicAdvisories)(
+      cultivo,
+      lot ? { fieldId: lot.id } : {},
+      evaluatedAt,
     );
+    const labels = await (this.dependencies.loadVariableLabels ?? loadVariableLabels)();
+    const categorias = consolidateCategoryRisks(categories, results, advisories, { labels });
     const baseScore = new ScoreEngineV2().evaluate(results);
     const score = baseScore;
     const calidadAnalisis = calculateAnalysisQuality(
@@ -217,9 +253,56 @@ export class ConsultaService {
           }
         : { evaluaciones: [], disponibilidad: "zona_no_resuelta" };
     }
-    const result: ConsultaResultadoV2 = { id: null, request_id: requestId, share_token: crypto.randomUUID(), estado_general: score.estadoGeneral, explicacion: score.explicacion, resumen_consulta: buildConsultationSummary(results), localidad, cultivo, fecha_ref: fechaRef, generado_en: new Date().toISOString(), proveedor_climatico: climate.proveedor, reglas: results, ...(plagas ? { plagas } : {}), contexto_fenologico: phenology, calidad_analisis: calidadAnalisis, clima: { serie: climate.serie, rango_temporal: climate.rangoTemporal, cobertura: climate.cobertura, variables_disponibles: climate.variablesDisponibles, variables_faltantes: climate.variablesFaltantes, dias_solicitados: climate.diasSolicitados, dias_disponibles: climate.diasDisponibles, obtenido_en: climate.obtenidoEn, adapter_version: climate.adapterVersion }, ...(historicoTemperatura ? { historico_temperatura: historicoTemperatura } : {}), ...(climate.prevision.length ? { prevision: climate.prevision } : {}), duracion_ms: Math.round(performance.now() - started) };
+    const result: ConsultaResultadoV2 = {
+      id: null,
+      request_id: requestId,
+      share_token: crypto.randomUUID(),
+      estado_general: score.estadoGeneral,
+      explicacion: score.explicacion,
+      resumen_consulta: buildConsultationSummary(results),
+      localidad,
+      cultivo,
+      fecha_ref: fechaRef,
+      generado_en: new Date().toISOString(),
+      proveedor_climatico: climate.proveedor,
+      reglas: results,
+      ...(categorias.length ? { categorias } : {}),
+      ...(plagas ? { plagas } : {}),
+      contexto_fenologico: phenology,
+      ...(lot ? { lot_id: lot.id, data_provenance: dataProvenance(lot.id, results, fieldData, categorias) } : {}),
+      calidad_analisis: calidadAnalisis,
+      clima: {
+        serie: climate.serie,
+        rango_temporal: climate.rangoTemporal,
+        cobertura: climate.cobertura,
+        variables_disponibles: climate.variablesDisponibles,
+        variables_faltantes: climate.variablesFaltantes,
+        dias_solicitados: climate.diasSolicitados,
+        dias_disponibles: climate.diasDisponibles,
+        obtenido_en: climate.obtenidoEn,
+        adapter_version: climate.adapterVersion,
+      },
+      ...(historicoTemperatura
+        ? { historico_temperatura: historicoTemperatura }
+        : {}),
+      ...(climate.prevision.length ? { prevision: climate.prevision } : {}),
+      duracion_ms: Math.round(performance.now() - started),
+    };
     const interactionToken = createInteractionToken();
-    result.id = await (this.dependencies.persist ?? persistConsultaV2)({ input: { ...input, cultivo, localidad: input.localidad.trim(), canal: input.canal ?? "web", fechaRef }, localidad, climate, rules, result, interactionToken });
+    result.id = await (this.dependencies.persist ?? persistConsultaV2)({
+      input: {
+        ...input,
+        cultivo,
+        localidad: input.localidad.trim(),
+        canal: input.canal ?? "web",
+        fechaRef,
+      },
+      localidad,
+      climate,
+      rules,
+      result,
+      interactionToken,
+    });
     if (result.id) result.interaction_token = interactionToken;
     return result;
   }

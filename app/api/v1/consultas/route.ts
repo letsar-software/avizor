@@ -1,4 +1,5 @@
 import { ConsultaService } from "@/lib/consultas/service";
+import { empresaActor } from "@/lib/lots/request-actor";
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
 import { failure, requestId, success } from "@/lib/http/responses";
 import { authenticateApiKey } from "@/lib/security/api-keys";
@@ -13,7 +14,8 @@ export async function POST(request: Request) {
     keyId = await authenticateApiKey(request, "consultas:crear", { requestId: id, endpoint: "POST /api/v1/consultas" });
     await enforceEnterpriseBurstLimit(keyId);
     const body = parseInput(consultaV2Schema, await readJsonBody(request)) as ConsultaInput;
-    const result = await new ConsultaService().ejecutar({ ...body, canal: "api_empresa" }, id);
+    // Un lot_id sólo da acceso a lotes de la empresa dueña de la API key.
+    const result = await new ConsultaService().ejecutar({ ...body, canal: "api_empresa" }, id, { actor: await empresaActor(keyId) });
     return success(result, id, { version: "v1" }, status);
   } catch (error) { status = error && typeof error === "object" && "status" in error ? Number(error.status) : 500; return failure(error, id); }
   finally { if (keyId && hasDatabaseConfig()) await query("update api_uso set status=$3,duracion_ms=$4 where api_key_id=$1 and request_id=$2", [keyId,id,status,Math.round(performance.now()-started)]).catch(() => undefined); }

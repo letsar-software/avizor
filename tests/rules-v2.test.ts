@@ -47,7 +47,7 @@ const foliar = base(
   [
     {
       orden: 1,
-      clave: "favorables",
+      clave: "favorable",
       orden_visual: 1,
       etiqueta: "Favorables",
       condiciones: [
@@ -58,7 +58,7 @@ const foliar = base(
     },
     {
       orden: 2,
-      clave: "moderadas",
+      clave: "vigilancia",
       orden_visual: 2,
       etiqueta: "Moderadas",
       condiciones: [
@@ -69,7 +69,7 @@ const foliar = base(
     },
     {
       orden: 3,
-      clave: "desfavorables",
+      clave: "sin_condiciones",
       orden_visual: 3,
       etiqueta: "Desfavorables",
       condiciones: [
@@ -78,21 +78,21 @@ const foliar = base(
       ],
     },
   ],
-  { estado: "indeterminado", motivo: "sin_nivel_coincidente" },
+  { estado: "no_evaluable", motivo: "sin_nivel_coincidente" },
 );
 const frost = base("temperatura_bajo_umbral", 3, [
   {
     orden: 1,
-    clave: "condiciones_detectadas",
+    clave: "favorable",
     orden_visual: 1,
-    etiqueta: "Frío",
+    etiqueta: "FrÃ­o",
     condiciones: [c("temperatura_min", "min_ventana", "lt", 2, "C")],
   },
 ]);
 const dry = base("baja_precipitacion", 14, [
   {
     orden: 1,
-    clave: "condiciones_detectadas",
+    clave: "favorable",
     orden_visual: 1,
     etiqueta: "Baja P",
     condiciones: [c("precipitacion", "suma_ventana", "lt", 10, "mm")],
@@ -101,12 +101,39 @@ const dry = base("baja_precipitacion", 14, [
 const wet = base("precipitacion_elevada", 7, [
   {
     orden: 1,
-    clave: "condiciones_detectadas",
+    clave: "favorable",
     orden_visual: 1,
     etiqueta: "Alta P",
     condiciones: [c("precipitacion", "suma_ventana", "gt", 100, "mm")],
   },
 ]);
+const royaAmarillaOpenMeteo = {
+  ...base("roya_amarilla", 1, [
+  {
+    orden: 1,
+    clave: "vigilancia",
+    orden_visual: 1,
+    etiqueta: "Vigilancia tÃ©rmica",
+    condiciones: [c("temperatura_media", "media_ventana", "between", [10, 15], "Â°C")],
+  },
+  ]),
+  variables_requeridas: ["temperatura_media"],
+};
+const royaAmarillaMojado = {
+  ...base("roya_amarilla_mojado_foliar", 1, [
+    {
+      orden: 1,
+      clave: "favorable",
+      orden_visual: 1,
+      etiqueta: "Mojado foliar medido",
+      condiciones: [
+        c("temperatura_media", "media_ventana", "between", [10, 15], "Â°C"),
+        c("leaf_wetness_hours", "media_ventana", "gte", 6, "h"),
+      ],
+    },
+  ]),
+  variables_requeridas: ["temperatura_media", "leaf_wetness_hours"],
+};
 function days(
   count: number,
   {
@@ -155,38 +182,38 @@ const cases: [string, SerieClimaticaDiaria[], string][] = [
   [
     "1 favorable",
     days(5, { hr: 85, rainDays: 3, totalRain: 6, temp: 22 }),
-    "favorables",
+    "favorable",
   ],
   [
     "2 moderada",
     days(5, { hr: 75, rainDays: 2, totalRain: 4, temp: 21 }),
-    "moderadas",
+    "vigilancia",
   ],
-  ["3 desfavorable", days(5, { hr: 60 }), "desfavorables"],
+  ["3 desfavorable", days(5, { hr: 60 }), "sin_condiciones"],
   [
     "4 HR alta y poca lluvia",
     days(5, { hr: 85, rainDays: 1, temp: 24 }),
-    "indeterminado",
+    "no_evaluable",
   ],
   [
     "5 HR intermedia y mucha lluvia",
     days(5, { hr: 70, rainDays: 4, temp: 22 }),
-    "indeterminado",
+    "no_evaluable",
   ],
   [
     "6 temperatura fuera de rango",
     days(5, { hr: 85, rainDays: 4, temp: 31 }),
-    "indeterminado",
+    "no_evaluable",
   ],
-  ["7 HR baja con lluvia", days(5, { hr: 60, rainDays: 2 }), "indeterminado"],
-  ["8 invierno", days(5, { hr: 75, rainDays: 2, temp: 8 }), "indeterminado"],
-  ["9 borde HR 80", days(5, { hr: 80, rainDays: 2 }), "moderadas"],
+  ["7 HR baja con lluvia", days(5, { hr: 60, rainDays: 2 }), "no_evaluable"],
+  ["8 invierno", days(5, { hr: 75, rainDays: 2, temp: 8 }), "no_evaluable"],
+  ["9 borde HR 80", days(5, { hr: 80, rainDays: 2 }), "vigilancia"],
   [
     "10 borde HR 80 lluvia fuera",
     days(5, { hr: 80, rainDays: 3 }),
-    "indeterminado",
+    "no_evaluable",
   ],
-  ["11 borde HR 65", days(5, { hr: 65, rainDays: 1, temp: 20 }), "moderadas"],
+  ["11 borde HR 65", days(5, { hr: 65, rainDays: 1, temp: 20 }), "vigilancia"],
 ];
 for (const [name, series, expected] of cases)
   test(name, () =>
@@ -204,45 +231,45 @@ test("12 traza 0.3 no cuenta", () => {
 test("13 helada activa", () =>
   assert.equal(
     engine.evaluate(frost, days(3, { min: 1.9 }), at).estado,
-    "condiciones_detectadas",
+    "favorable",
   ));
 test("14 helada borde", () =>
   assert.equal(
     engine.evaluate(frost, days(3, { min: 2 }), at).estado,
     "sin_condiciones",
   ));
-test("15 un día bajo umbral", () => {
+test("15 un dÃ­a bajo umbral", () => {
   const s = days(3);
   s[0].temperaturaMinima = 4.1;
   s[1].temperaturaMinima = 1.7;
   s[2].temperaturaMinima = 3.5;
-  assert.equal(engine.evaluate(frost, s, at).estado, "condiciones_detectadas");
+  assert.equal(engine.evaluate(frost, s, at).estado, "favorable");
 });
-test("16 baja precipitación bordes", () => {
+test("16 baja precipitaciÃ³n bordes", () => {
   assert.equal(
     engine.evaluate(dry, days(14, { totalRain: 9.9, rainDays: 1 }), at).estado,
-    "condiciones_detectadas",
+    "favorable",
   );
   assert.equal(
     engine.evaluate(dry, days(14, { totalRain: 10, rainDays: 1 }), at).estado,
     "sin_condiciones",
   );
 });
-test("17 precipitación elevada bordes", () => {
+test("17 precipitaciÃ³n elevada bordes", () => {
   assert.equal(
     engine.evaluate(wet, days(7, { totalRain: 100, rainDays: 1 }), at).estado,
     "sin_condiciones",
   );
   assert.equal(
     engine.evaluate(wet, days(7, { totalRain: 100.1, rainDays: 1 }), at).estado,
-    "condiciones_detectadas",
+    "favorable",
   );
 });
 test("18 null no es cero", () => {
   const s = days(14, { totalRain: 3, rainDays: 1 });
   s[4].precipitacion = null;
   const r = engine.evaluate(dry, s, at);
-  assert.equal(r.estado, "indeterminado");
+  assert.equal(r.estado, "no_evaluable");
   assert.equal(r.motivo, "datos_insuficientes");
 });
 test("19 variables nuevas quedan disponibles para agregaciones futuras", () => {
@@ -275,8 +302,8 @@ test("20 una regla configurable aplica Zadoks sin ramificaciones por cultivo", (
         orden: 1,
         clave: "vigilancia",
         orden_visual: 1,
-        etiqueta: "Temperatura mínima a monitorear",
-        condiciones: [c("temperatura_min", "min_ventana", "lte", -1, "°C")],
+        etiqueta: "Temperatura mÃ­nima a monitorear",
+        condiciones: [c("temperatura_min", "min_ventana", "lte", -1, "Â°C")],
       },
     ]),
     cultivo: "trigo",
@@ -284,18 +311,18 @@ test("20 una regla configurable aplica Zadoks sin ramificaciones por cultivo", (
     zadoks_desde: 60,
     zadoks_hasta: 69,
     nivel_resultado: "vigilancia",
-    texto_alerta: "Temperatura mínima a monitorear",
+    texto_alerta: "Temperatura mÃ­nima a monitorear",
     condiciones_logicas: {
-      all: [c("temperatura_min", "min_ventana", "lte", -1, "°C")],
+      all: [c("temperatura_min", "min_ventana", "lte", -1, "Â°C")],
       sin_coincidencia: { estado: "sin_condiciones" },
     },
   };
   const result = engine.evaluate(configurable, days(1, { min: -1 }), at, {
     disponible: true,
-    estadio_estimado: "Floración",
+    estadio_estimado: "FloraciÃ³n",
     descripcion: "",
     fuente: "manual",
-    modifica_reglas: false,
+    modifica_reglas: false as const,
     codigo_zadoks: 65,
   });
   assert.equal(result.estado, "vigilancia");
@@ -321,20 +348,44 @@ test("21 una variable de plan pago ausente devuelve no evaluable", () => {
         orden: 1,
         clave: "vigilancia",
         orden_visual: 1,
-        etiqueta: "Contexto hídrico",
+        etiqueta: "Contexto hÃ­drico",
         condiciones: [
-          c("humedad_suelo_9_27cm", "media_ventana", "lt", 0.2, "m³/m³"),
+          c("humedad_suelo_9_27cm", "media_ventana", "lt", 0.2, "mÂ³/mÂ³"),
         ],
       },
     ]),
     variables_requeridas: ["humedad_suelo_9_27cm"],
     texto_no_evaluable:
-      "Se requiere información de suelo o balance hídrico del lote.",
+      "Se requiere informaciÃ³n de suelo o balance hÃ­drico del lote.",
   };
   const result = engine.evaluate(requiresSoil, days(3), at);
   assert.equal(result.estado, "no_evaluable");
   assert.equal(
     result.explicacion,
-    "Se requiere información de suelo o balance hídrico del lote.",
+    "Se requiere informaciÃ³n de suelo o balance hÃ­drico del lote.",
   );
+});
+test("22 roya amarilla prioriza vigilancia tÃ©rmica si falta mojado foliar real", () => {
+  const series = days(1, { temp: 12 });
+  const phenology = {
+    disponible: true,
+    estadio_estimado: "EncaÃ±azÃ³n",
+    descripcion: "",
+    fuente: "manual" as const,
+    modifica_reglas: false,
+    codigo_zadoks: 35,
+  } as const;
+  assert.equal(engine.evaluate(royaAmarillaMojado, series, at, phenology).estado, "no_evaluable");
+  assert.equal(engine.evaluate(royaAmarillaOpenMeteo, series, at, phenology).estado, "vigilancia");
+});
+test("23 roya amarilla completa requiere temperatura y mojado foliar medido", () => {
+  const series = days(1, { temp: 12 });
+  series[0].leafWetnessHours = 6;
+  assert.equal(engine.evaluate(royaAmarillaMojado, series, at).estado, "favorable");
+  series[0].leafWetnessHours = 5;
+  assert.equal(engine.evaluate(royaAmarillaMojado, series, at).estado, "sin_condiciones");
+  assert.equal(engine.evaluate(royaAmarillaOpenMeteo, days(1, { temp: 16 }), at).estado, "sin_condiciones");
+  const withoutTemperature = days(1, { temp: 12 });
+  withoutTemperature[0].temperaturaMedia = null;
+  assert.equal(engine.evaluate(royaAmarillaOpenMeteo, withoutTemperature, at).estado, "no_evaluable");
 });

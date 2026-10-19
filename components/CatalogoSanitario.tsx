@@ -7,7 +7,7 @@ import { filtrarFichas, type EstadoFicha, type FichaSanitaria, type TipoFicha } 
 const estados: Record<EstadoFicha, { titulo: string; clase: string; detalle: string }> = {
   informacion: { titulo: "Información disponible", clase: "bg-[#edf7f0] text-[#087b4b]", detalle: "Hay información descriptiva. No hay una evaluación climática activa para esta ficha." },
   en_validacion: { titulo: "En validación", clase: "bg-[#fff5e5] text-[#9a5a00]", detalle: "La información o la regla climática todavía está siendo revisada. No se muestra una señal climática." },
-  no_evaluable: { titulo: "No evaluable con los datos disponibles", clase: "bg-[#eef2f5] text-[#526477]", detalle: "Faltan variables necesarias para calcular una señal confiable." },
+  no_evaluable: { titulo: "Monitoreo recomendado", clase: "bg-[#eef2f5] text-[#526477]", detalle: "Conviene seguirla con monitoreo a campo; sumar datos del lote permite completar la evaluación." },
 };
 function Estado({ estado }: { estado: EstadoFicha }) { const value = estados[estado]; return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${value.clase}`}>{value.titulo}</span>; }
 

@@ -23,7 +23,20 @@ const VALUE_BY_VARIABLE: Record<SpecVariable, (day: SerieClimaticaDiaria) => num
   temperatura_suelo_18cm: (day) => day.temperaturaSuelo.profundidad18cm,
   temperatura_suelo_54cm: (day) => day.temperaturaSuelo.profundidad54cm,
   radiacion_solar: (day) => day.radiacionSolar,
+  leaf_wetness_hours: (day) => day.leafWetnessHours ?? null,
 };
+
+export function isSpecVariable(variable: string): variable is SpecVariable {
+  return variable in VALUE_BY_VARIABLE;
+}
+
+/** true si la serie trae al menos un valor de la variable dentro de la ventana. */
+export function hasObservations(variable: SpecVariable, series: SerieClimaticaDiaria[], windowDays: number) {
+  return series.slice(-windowDays).some((day) => {
+    const value = VALUE_BY_VARIABLE[variable](day);
+    return typeof value === "number" && Number.isFinite(value);
+  });
+}
 
 export interface IndicadorCalculado {
   valor: number | null;
