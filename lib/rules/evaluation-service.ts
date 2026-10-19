@@ -1,7 +1,7 @@
-import { getActiveAgronomicAdvisories, type AdvisoryScope } from "@/lib/advisories/repository";
+import { getCandidateAdvisories, type AdvisoryScope } from "@/lib/advisories/repository";
 import { getActiveRiskCategories } from "@/lib/rules/category-repository";
 import { consolidateCategoryRisks } from "@/lib/rules/consolidation";
-import { dataProvenance, evaluateRules, loadLotContext, type LotContextDependencies } from "@/lib/rules/evaluation-core";
+import { dataProvenance, evaluateRules, loadLotContext, selectAdvisories, type AdvisoryTrace, type LotContextDependencies } from "@/lib/rules/evaluation-core";
 import type { LotActor } from "@/lib/lots/access";
 import { getReglasVigentes } from "@/lib/rules/repository-v2";
 import type { AgronomicAdvisory, ContextoFenologico, ReglaAgronomicaV2, RiskCategory, SerieClimaticaDiaria } from "@/types";
@@ -34,7 +34,8 @@ function weatherSeries(weather: GenericWeatherInput, date: string): SerieClimati
 interface Dependencies extends LotContextDependencies {
   loadRules?: (cropId: string) => Promise<ReglaAgronomicaV2[]>;
   loadCategories?: () => Promise<RiskCategory[]>;
-  loadAdvisories?: (cropId: string, scope: AdvisoryScope, at: string) => Promise<AgronomicAdvisory[]>;
+  loadAdvisories?: (cropId: string) => Promise<AgronomicAdvisory[]>;
+  traceAdvisories?: AdvisoryTrace;
   loadVariableLabels?: () => Promise<ReadonlyMap<string, string>>;
 }
 
@@ -52,11 +53,16 @@ export class RulesEvaluationService {
       : { disponible: false, motivo: "entradas_insuficientes", modifica_reglas: false };
     const series = weatherSeries(input.weather, date);
     const evaluatedRules = evaluateRules({ rules, series, evaluatedAt, phenology, fieldData });
-    const [categories, advisories, labels] = await Promise.all([
+    const [categories, candidates, labels] = await Promise.all([
       (this.dependencies.loadCategories ?? getActiveRiskCategories)(),
-      (this.dependencies.loadAdvisories ?? getActiveAgronomicAdvisories)(input.crop_id, { ...input.scope, fieldId: lot?.id ?? input.scope?.fieldId }, evaluatedAt),
+      (this.dependencies.loadAdvisories ?? getCandidateAdvisories)(input.crop_id),
       (this.dependencies.loadVariableLabels ?? loadVariableLabels)(),
     ]);
+    // Región explícita del pedido; establecimiento y lote sólo a través del lote validado.
+    const { applied: advisories } = selectAdvisories({
+      candidates, cropId: input.crop_id, fechaRef: date, lot, now: new Date(evaluatedAt), trace: this.dependencies.traceAdvisories,
+      regionKeys: input.scope?.regionId ? [input.scope.regionId] : [],
+    });
     const consolidated = consolidateCategoryRisks(categories, evaluatedRules, advisories, { labels });
     return {
       ...(lot ? { lot_id: lot.id } : {}), crop_id: input.crop_id, evaluated_at: evaluatedAt,

@@ -11,7 +11,7 @@ import {
 import type { ResultadoConsultaV2Publica } from "@/types";
 import { ruleForSlug, representativeRule, statusLabel } from "@/lib/results/presentation";
 import { categoryForSlug } from "@/lib/results/category-presentation";
-import { CATEGORY_ICONS, RequiredDataList } from "@/components/results/CategoryRiskCard";
+import { AdvisoryNote, CATEGORY_ICONS, RequiredDataList } from "@/components/results/CategoryRiskCard";
 import {
   CategoryIconChip,
   ResultScopeNote,
@@ -96,6 +96,7 @@ export default function CategoryDetailV2({
                 {card.recommended_action}
               </p>
             ) : null}
+            {card?.advisory ? <AdvisoryNote reviewedAt={card.advisory.reviewed_at} /> : null}
             {card ? <RequiredDataList items={card.required_data} /> : null}
           </div>
         </div>

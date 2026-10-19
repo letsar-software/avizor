@@ -4,6 +4,7 @@ import type { AgronomicVariable } from "@/lib/variables/catalog";
 import { FIELD_DATA_SOURCES } from "@/lib/variables/catalog";
 import { expiresAt, isCurrent, type FieldDatum } from "@/lib/field-data/current";
 import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
+import { localDateTimeInputValue } from "@/lib/admin/datetime";
 import type { Lot } from "@/lib/lots/access";
 
 const SOURCE_LABEL: Record<string, string> = { manual: "Manual", sensor: "Sensor", import: "Importación", calculated: "Calculado" };
@@ -94,7 +95,7 @@ export default function FieldDataManager({ variables, initial, lots: initialLots
               ? <select name="value" className={FIELD_INPUT_CLASS}><option value="si">Sí</option><option value="no">No</option></select>
               : <input required name="value" type={selected?.tipo_valor === "numero" ? "number" : selected?.tipo_valor === "fecha" ? "date" : "text"} step="any" className={FIELD_INPUT_CLASS} />}
           </label>
-          <label className="text-sm">Observado el<input required name="observed_at" type="datetime-local" defaultValue={now.toISOString().slice(0, 16)} className={FIELD_INPUT_CLASS} /></label>
+          <label className="text-sm">Observado el<input required name="observed_at" type="datetime-local" defaultValue={localDateTimeInputValue(now)} className={FIELD_INPUT_CLASS} /></label>
           <label className="text-sm">Vence el (opcional)<input name="valid_until" type="datetime-local" className={FIELD_INPUT_CLASS} /></label>
           <label className="text-sm">Origen
             <select name="source" className={FIELD_INPUT_CLASS}>{FIELD_DATA_SOURCES.map((source) => <option key={source} value={source}>{SOURCE_LABEL[source]}</option>)}</select>

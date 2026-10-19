@@ -11,9 +11,18 @@ function limitedEvaluation(rule: ResultadoReglaV2): EvaluacionLimitadaPorClima |
   return { riesgo: rule.riesgo, ...(rule.regla.categoria ? { categoria: rule.regla.categoria } : {}), ...(variable ? { variable } : {}), dias_esperados: expected, dias_disponibles: available, dias_faltantes: Math.max(0, expected - available), cobertura: normalizedCoverage(rule.calidad_dato.cobertura_min), motivo: "datos_insuficientes" };
 }
 export function analysisCoverageLabel(state: EstadoCoberturaAnalisis) { return ({ datos_completos: "Datos completos", datos_parciales: "Datos parciales", datos_insuficientes: "Datos insuficientes" })[state]; }
-/** Cobertura = mínimo observado entre reglas estables evaluadas; para `datos_insuficientes`, también considera días disponibles/esperados. */
+/** La regla usó (o le faltó) la serie climática; las incompletas por configuración o datos de campo no miden cobertura. */
+function measuresClimate(rule: ResultadoReglaV2) {
+  const incomplete = rule.estado === "no_evaluable" || rule.estado === "requiere_validacion_agronoma";
+  return !incomplete || rule.observado.length > 0 || rule.motivo === "datos_insuficientes";
+}
+/**
+ * Cobertura = mínimo observado entre reglas estables que usaron la serie climática; para
+ * `datos_insuficientes`, también considera días disponibles/esperados. Sin ninguna, se usa
+ * la cobertura de la serie (antes una regla pendiente de evidencia forzaba 0 %).
+ */
 export function calculateAnalysisQuality(results: ResultadoReglaV2[], fallbackCoverage = 1): CoberturaAnalisis {
-  const stable = results.filter(isStable); const coverages = stable.map((rule) => normalizedCoverage(rule.calidad_dato.cobertura_min));
+  const stable = results.filter(isStable); const coverages = stable.filter(measuresClimate).map((rule) => normalizedCoverage(rule.calidad_dato.cobertura_min));
   const limited = stable.map(limitedEvaluation).filter((item): item is EvaluacionLimitadaPorClima => item !== null);
   const limitedCoverages = limited.map((item) => item.dias_esperados > 0 ? normalizedCoverage(item.dias_disponibles / item.dias_esperados) : item.cobertura);
   const cobertura = coverages.length ? Math.min(...coverages, ...limitedCoverages) : normalizedCoverage(fallbackCoverage);

@@ -12,6 +12,9 @@ import { fieldValueSource, type CurrentFieldData } from "@/lib/field-data/curren
 import { loadCurrentFieldData } from "@/lib/field-data/repository";
 import { resolveLotAccess, type Lot, type LotActor } from "@/lib/lots/access";
 import { getLot } from "@/lib/lots/repository";
+import { applicableAdvisories, referenceWindow, type AdvisoryContext, type AdvisoryDiagnostic } from "@/lib/advisories/applicability";
+import { hasDatabaseConfig } from "@/lib/db/postgres";
+import { resolveAgronomicZone } from "@/lib/pests/zone-resolver";
 
 /**
  * Único camino de evaluación de reglas configurables. La consulta pública, la API de
@@ -72,4 +75,55 @@ export function dataProvenance(
     .filter((category) => category.resolution_source === "agronomic_advisory" || category.resolution_source === "combined")
     .flatMap((category) => category.applied_advisories.slice(0, 1).map((advisory: AgronomicAdvisory) => ({ category: category.category, advisory_id: advisory.id, title: advisory.title })));
   return { lot_id: lotId, variables: [...variables.values()], advisories };
+}
+
+/** Claves de región de una localidad: provincia y, si está definida, su zona agronómica. */
+export async function localityRegionKeys(
+  localidad: { nombre: string; provincia?: string | null } | null | undefined,
+  resolveZone?: (localidad: never) => Promise<string | null>,
+) {
+  if (!localidad) return [];
+  const keys = localidad.provincia ? [localidad.provincia] : [];
+  try {
+    const zone = resolveZone
+      ? await resolveZone(localidad as never)
+      : hasDatabaseConfig() ? await resolveAgronomicZone(localidad as never) : null;
+    if (zone) keys.push(zone);
+  } catch {
+    // Sin zona resuelta, la provincia sigue siendo una clave de región válida.
+  }
+  return keys;
+}
+
+export type AdvisoryTrace = (diagnostics: AdvisoryDiagnostic[], context: AdvisoryContext) => void;
+
+/** Traza sólo en desarrollo: nunca llega a la respuesta ni a la interfaz. */
+const developmentTrace: AdvisoryTrace = (diagnostics, context) => {
+  if (process.env.NODE_ENV === "development") console.debug("[avizor:alertas-tecnicas]", JSON.stringify({ context, diagnostics }));
+};
+
+/**
+ * Alertas técnicas aplicables a la consulta, con la misma regla en todos los caminos:
+ * vigencia en el día consultado, cultivo y alcance (global/región por localidad;
+ * establecimiento/lote sólo con lote validado).
+ */
+export function selectAdvisories(input: {
+  candidates: AgronomicAdvisory[];
+  cropId: string;
+  fechaRef: string;
+  regionKeys: string[];
+  lot?: Pick<Lot, "id" | "establecimiento_id"> | null;
+  now?: Date;
+  trace?: AdvisoryTrace;
+}) {
+  const context: AdvisoryContext = {
+    cropId: input.cropId,
+    ...referenceWindow(input.fechaRef, input.now),
+    regionKeys: input.regionKeys,
+    farmId: input.lot?.establecimiento_id ?? null,
+    fieldId: input.lot?.id ?? null,
+  };
+  const result = applicableAdvisories(input.candidates, context);
+  (input.trace ?? developmentTrace)(result.diagnostics, context);
+  return result;
 }
