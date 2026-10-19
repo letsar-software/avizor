@@ -39,12 +39,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       [id, version],
     );
 
+    // Columnas configurables (027/031) que la nueva versión debe conservar; en una base
+    // sin esas migraciones se omiten. condiciones_logicas no se copia: la versión nueva
+    // se edita y evalúa desde definicion.
+    for (const columns of [
+      "categoria_id, variables_requeridas, critical_required_variables, complementary_required_variables",
+      "categoria_id, variables_requeridas",
+    ]) {
+      try {
+        const assignments = columns.split(", ").map((column) => `${column} = origen.${column}`).join(", ");
+        await query(
+          `update reglas_agronomicas nueva set ${assignments}
+           from reglas_agronomicas origen where origen.id::text = $1 and nueva.id::text = $2`,
+          [id, nueva.rows[0].id],
+        );
+        break;
+      } catch (error) {
+        if (!(typeof error === "object" && error !== null && "code" in error && error.code === "42703")) throw error;
+      }
+    }
+    const creada = await query("select * from reglas_agronomicas where id::text=$1", [nueva.rows[0].id]);
+
     await query(
       "insert into auditoria(actor_id,actor_tipo,accion,entidad,entidad_id,valor_anterior,valor_nuevo,request_id) values($1,$2,'crear_version','regla',$3,null,$4::jsonb,$5)",
-      [actor.actorId, actor.actorTipo, nueva.rows[0].id, JSON.stringify(nueva.rows[0]), rid],
+      [actor.actorId, actor.actorTipo, nueva.rows[0].id, JSON.stringify(creada.rows[0]), rid],
     );
 
-    return success(nueva.rows[0], rid, {}, 201);
+    return success(creada.rows[0], rid, {}, 201);
   } catch (error) {
     return failure(error, rid);
   }

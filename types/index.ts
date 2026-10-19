@@ -158,6 +158,8 @@ export interface ConsultaInput {
   sessionId?: string;
   canal?: CanalConsulta;
   fechaRef?: string;
+  /** Lote cuyos datos de campo vigentes se aplican (requiere acceso). */
+  lotId?: string;
 }
 export interface SerieClimaticaDiaria {
   fecha: string;
@@ -185,6 +187,8 @@ export interface SerieClimaticaDiaria {
     profundidad54cm: number | null;
   };
   radiacionSolar: number | null;
+  /** Horas de mojado foliar medidas por sensor o modelo calibrado. */
+  leafWetnessHours?: number | null;
 }
 /** Información futura complementaria. No participa de la evaluación agronómica. */
 export interface PrevisionClimaticaDiaria {
@@ -199,6 +203,23 @@ export interface PrevisionClimaticaDiaria {
 export type AggregatorKey = (typeof SPEC_AGGREGATORS)[number];
 export type SpecOperator = (typeof SPEC_OPERATORS)[number];
 export type SpecVariable = (typeof SPEC_VARIABLES)[number];
+export type EstadoResultadoRegla =
+  | "no_evaluable"
+  | "sin_condiciones"
+  | "informativo"
+  | "vigilancia"
+  | "moderado"
+  | "alto"
+  | "critico"
+  | "favorable"
+  | "requiere_validacion_agronoma";
+/** Estado normalizado para reglas, avisos técnicos y su consolidación. */
+export type RiskStatus = EstadoResultadoRegla;
+export type ValidationStatus =
+  | "validada"
+  | "requiere_calibracion_local"
+  | "requiere_validacion_agronoma";
+export type EvidenceLevel = "alta" | "media" | "limitada";
 export interface CondicionDefinicion {
   variable: SpecVariable;
   agregador: AggregatorKey;
@@ -237,6 +258,9 @@ export interface ReglaAgronomicaV2 {
   estado: "experimental" | "revisada" | "vigente" | "retirada";
   nombre?: string;
   categoria?: string;
+  nombre_cientifico?: string | null;
+  /** Clave de categorias_agronomicas vinculada por categoria_id; agrupa la regla en el resumen. */
+  categoria_clave?: string | null;
   cultivo_id?: string | null;
   categoria_id?: string | null;
   subcategoria_id?: string | null;
@@ -258,6 +282,10 @@ export interface ReglaAgronomicaV2 {
     sin_coincidencia?: { estado: string; motivo?: string };
   };
   variables_requeridas?: string[];
+  /** Indispensables para calcular la regla; si falta una, la regla no eleva el riesgo. */
+  critical_required_variables?: string[] | null;
+  /** Mejoran la recomendación; si faltan, la regla se evalúa igual y se piden como dato. */
+  complementary_required_variables?: string[] | null;
   condiciones_logicas?: CondicionesLogicasRegla;
   etapa_fenologica_desde?: string | null;
   etapa_fenologica_hasta?: string | null;
@@ -269,15 +297,24 @@ export interface ReglaAgronomicaV2 {
   requiere_validacion_agronomica?: boolean;
   url_fuente?: string | null;
   nivel_evidencia?: string | null;
+  prioridad?: number;
+  validation_status?: ValidationStatus | null;
+  evidence_level?: EvidenceLevel | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  reviewed_at?: string | null;
+  notes?: string | null;
   vigencia_desde?: string | null;
   vigencia_hasta?: string | null;
   nivel_resultado?:
     | "no_evaluable"
     | "sin_condiciones"
+    | "informativo"
     | "vigilancia"
-    | "riesgo_moderado"
-    | "riesgo_alto"
-    | "riesgo_critico"
+    | "moderado"
+    | "alto"
+    | "critico"
+    | "favorable"
     | null;
 }
 
@@ -440,13 +477,234 @@ export interface PlagaRegional {
   created_at: string;
   updated_at: string;
 }
-export interface EvaluacionObservada { variable: SpecVariable; agregador: AggregatorKey; valor: number; unidad: string; umbral: string; cumple: boolean; cobertura: number; }
-export interface ResultadoReglaV2 { riesgo: string; regla: { clave: string; version: string; estado: ReglaAgronomicaV2["estado"]; modo?: "estable" | "experimental"; nombre?: string; categoria?: string; evaluabilidad?: ReglaAgronomicaV2["evaluabilidad"] }; estado: string; etiqueta?: string; explicacion?: string; recomendacion?: string; fuente_tecnica?: string | null; limitaciones_declaradas?: string | null; orden_visual?: number; ventana: { desde: string; hasta: string; dias: number }; observado: EvaluacionObservada[]; calidad_dato: { cobertura_min: number; dias_faltantes: number; distancia_punto_km: number | null }; motivo?: string; detalle?: Record<string, unknown>; evaluado_en: string; }
-export type EstadoCoberturaAnalisis = "datos_completos" | "datos_parciales" | "datos_insuficientes";
-export interface EvaluacionLimitadaPorClima { riesgo: string; categoria?: string; variable?: string; dias_esperados: number; dias_disponibles: number; dias_faltantes: number; cobertura: number; motivo: "datos_insuficientes"; }
-export interface CoberturaAnalisis { cobertura: number; estado: EstadoCoberturaAnalisis; variables_faltantes_relevantes: string[]; evaluaciones_limitadas: EvaluacionLimitadaPorClima[]; }
-export interface ContextoFenologico { disponible: boolean; codigo_zadoks?: number | null; detalle?: FenologiaEstimada; motivo?: "proveedor_no_configurado" | "entradas_insuficientes" | "error_proveedor"; estadio_estimado?: string; descripcion?: string; fuente?: string; entradas?: Record<string, string | null>; incertidumbre?: { nota: string }; modifica_reglas: false; }
-export interface ResultadoConsultaV2Publica { id: string | null; request_id: string; share_token: string; interaction_token?: string; estado_general: EstadoGeneral; explicacion: string; resumen_consulta?: { descripcion: string; destaque: string }; localidad: LocalidadNormalizada | null; cultivo: string; fecha_ref: string; generado_en: string; proveedor_climatico: string; reglas: ResultadoReglaV2[]; plagas?: { evaluaciones: EvaluacionPlaga[]; disponibilidad: "disponible" | "zona_no_resuelta" }; contexto_fenologico: ContextoFenologico; duracion_ms: number; clima: { serie: SerieClimaticaDiaria[]; rango_temporal: { desde: string; hasta: string }; cobertura: number; variables_disponibles: string[]; variables_faltantes?: string[]; dias_solicitados?: number; dias_disponibles?: number; obtenido_en?: string; adapter_version: string }; historico_temperatura?: import("@/lib/climate/historical-provider").HistoricalTemperature; calidad_analisis?: CoberturaAnalisis; prevision?: PrevisionClimaticaDiaria[]; }
+export interface EvaluacionObservada {
+  variable: SpecVariable;
+  agregador: AggregatorKey;
+  valor: number;
+  unidad: string;
+  umbral: string;
+  cumple: boolean;
+  cobertura: number;
+  /** Origen cuando el valor viene de un dato de lote vigente; ausente = estimación climática. */
+  fuente?: FieldValueSource;
+}
+export interface ResultadoReglaV2 {
+  riesgo: string;
+  regla: {
+    clave: string;
+    version: string;
+    estado: ReglaAgronomicaV2["estado"];
+    modo?: "estable" | "experimental";
+    nombre?: string;
+    categoria?: string;
+    categoria_clave?: string | null;
+    evaluabilidad?: ReglaAgronomicaV2["evaluabilidad"];
+    prioridad?: number;
+    validation_status?: ValidationStatus | null;
+    evidence_level?: EvidenceLevel | null;
+    source_name?: string | null;
+    source_url?: string | null;
+    reviewed_at?: string | null;
+    notes?: string | null;
+    critical_required_variables?: string[];
+    complementary_required_variables?: string[];
+    /** id de reglas_agronomicas (para trazabilidad del detalle). */
+    id?: string;
+    nombre_cientifico?: string | null;
+  };
+  estado: EstadoResultadoRegla;
+  etiqueta?: string;
+  explicacion?: string;
+  recomendacion?: string;
+  fuente_tecnica?: string | null;
+  limitaciones_declaradas?: string | null;
+  orden_visual?: number;
+  ventana: { desde: string; hasta: string; dias: number };
+  observado: EvaluacionObservada[];
+  calidad_dato: {
+    cobertura_min: number;
+    dias_faltantes: number;
+    distancia_punto_km: number | null;
+  };
+  motivo?: string;
+  detalle?: Record<string, unknown>;
+  /** Críticas sin dato en esta consulta (sólo en resultados incompletos). */
+  missing_critical_variables?: string[];
+  /** Datos complementarios sin valor en esta consulta; no afectan el estado. */
+  missing_complementary_variables?: string[];
+  evaluado_en: string;
+}
+export type AdvisoryScopeType = "global" | "region" | "farm" | "field";
+export type AdvisorySourceType =
+  | "agronomic_validation"
+  | "official_alert"
+  | "field_observation"
+  | "technical_report";
+export interface AgronomicAdvisory {
+  id: string;
+  crop_id: string | null;
+  category_id: string;
+  category_key?: string;
+  scope_type: AdvisoryScopeType;
+  scope_id: string | null;
+  status: Extract<RiskStatus, "informativo" | "vigilancia" | "moderado" | "alto" | "critico">;
+  title: string;
+  message: string;
+  recommended_action: string;
+  starts_at: string;
+  ends_at: string | null;
+  active: boolean;
+  priority: number;
+  source_type: AdvisorySourceType;
+  source_name: string;
+  source_url: string | null;
+  validated_by: string;
+  reviewed_at: string;
+  notes: string | null;
+}
+export interface RiskCategory {
+  id: string;
+  key: string;
+  name: string;
+}
+/** Origen de un valor usado por una regla. */
+export type FieldValueSource = "field_data" | "sensor" | "import" | "calculated";
+export type VariableValueSource = FieldValueSource | "weather";
+/** Una regla cuyas condiciones se cumplieron, tal como se muestra en el detalle. */
+export interface MatchedRule {
+  rule_id: string;
+  rule_name: string;
+  scientific_name?: string;
+  internal_status: RiskStatus;
+  display_status: string;
+  message: string;
+  recommended_action: string;
+  variables_used: Array<{ key: string; source: VariableValueSource }>;
+  required_data: Array<{ variable: string; label: string }>;
+  source_name?: string;
+  source_url?: string;
+  reviewed_at?: string;
+}
+/** Qué datos usó una consulta y de dónde salieron (sólo cuando se envía lot_id). */
+export interface DataProvenance {
+  lot_id: string;
+  variables: Array<{ key: string; source: VariableValueSource; observed_at?: string; field_datum_id?: string }>;
+  advisories: Array<{ category: string; advisory_id: string; title: string }>;
+}
+export interface RequiredDataItem {
+  variable: string;
+  label: string;
+  reason?: string;
+}
+export type CalculationCompleteness = "complete" | "partial" | "needs_data";
+export type CategoryResolutionSource =
+  | "automatic_rule"
+  | "agronomic_advisory"
+  | "monitoring_fallback"
+  /** Alerta técnica vigente + reglas automáticas con coincidencias. */
+  | "combined";
+/** Valores históricos guardados en resultados compartidos antes del contrato de display. */
+export type LegacyCategoryResolutionSource = "automatic" | "combined";
+export interface ConsolidatedCategoryRisk {
+  category: string;
+  /** Estado del motor; sólo para administración, auditoría y soporte. */
+  internal_status: RiskStatus;
+  /** Texto de producto; la UI de usuario usa este campo, nunca internal_status. */
+  display_status: string;
+  title: string;
+  message: string;
+  recommended_action: string;
+  required_data: RequiredDataItem[];
+  calculation_completeness: CalculationCompleteness;
+  resolution_source: CategoryResolutionSource;
+  /** Todas las reglas con condiciones cumplidas; la primera es el resultado principal. */
+  matched_rules: MatchedRule[];
+  /** Coincidencias (por nombre) que no entran en el resumen de la tarjeta (máx. 3 visibles). */
+  additional_matches_count: number;
+  reviewed_at?: string;
+  validated_by?: string;
+  automatic_result?: {
+    status: RiskStatus;
+    missing_variables: string[];
+  };
+  evaluated_rules: ResultadoReglaV2[];
+  applied_advisories: AgronomicAdvisory[];
+}
+/** Forma persistida por versiones anteriores (status + resolution_source legacy). */
+export type StoredCategoryRisk =
+  | ConsolidatedCategoryRisk
+  | (Omit<ConsolidatedCategoryRisk, "internal_status" | "display_status" | "required_data" | "calculation_completeness" | "resolution_source" | "matched_rules" | "additional_matches_count"> &
+      Partial<Pick<ConsolidatedCategoryRisk, "display_status" | "required_data" | "calculation_completeness" | "matched_rules" | "additional_matches_count">> & {
+        status: RiskStatus;
+        resolution_source: CategoryResolutionSource | LegacyCategoryResolutionSource;
+      });
+export type EstadoCoberturaAnalisis =
+  "datos_completos" | "datos_parciales" | "datos_insuficientes";
+export interface EvaluacionLimitadaPorClima {
+  riesgo: string;
+  categoria?: string;
+  variable?: string;
+  dias_esperados: number;
+  dias_disponibles: number;
+  dias_faltantes: number;
+  cobertura: number;
+  motivo: "datos_insuficientes";
+}
+export interface CoberturaAnalisis {
+  cobertura: number;
+  estado: EstadoCoberturaAnalisis;
+  variables_faltantes_relevantes: string[];
+  evaluaciones_limitadas: EvaluacionLimitadaPorClima[];
+}
+export interface ContextoFenologico {
+  disponible: boolean;
+  detalle?: FenologiaEstimada;
+  motivo?:
+    "proveedor_no_configurado" | "entradas_insuficientes" | "error_proveedor";
+  estadio_estimado?: string;
+  codigo_zadoks?: number | null;
+  descripcion?: string;
+  fuente?: string;
+  entradas?: Record<string, string | null>;
+  incertidumbre?: { nota: string };
+  modifica_reglas: false;
+}
+export interface ResultadoConsultaV2Publica {
+  id: string | null;
+  request_id: string;
+  share_token: string;
+  interaction_token?: string;
+  estado_general: EstadoGeneral;
+  explicacion: string;
+  resumen_consulta?: { descripcion: string; destaque: string };
+  localidad: LocalidadNormalizada | null;
+  cultivo: string;
+  fecha_ref: string;
+  generado_en: string;
+  proveedor_climatico: string;
+  reglas: ResultadoReglaV2[];
+  categorias?: StoredCategoryRisk[];
+  plagas?: {
+    evaluaciones: EvaluacionPlaga[];
+    disponibilidad: "disponible" | "zona_no_resuelta";
+  };
+  contexto_fenologico: ContextoFenologico;
+  duracion_ms: number;
+  clima: {
+    serie: SerieClimaticaDiaria[];
+    rango_temporal: { desde: string; hasta: string };
+    cobertura: number;
+    variables_disponibles: string[];
+    variables_faltantes?: string[];
+    dias_solicitados?: number;
+    dias_disponibles?: number;
+    obtenido_en?: string;
+    adapter_version: string;
+  };
+  historico_temperatura?: import("@/lib/climate/historical-provider").HistoricalTemperature;
+  calidad_analisis?: CoberturaAnalisis;
+  prevision?: PrevisionClimaticaDiaria[];
+}
 
 export type TipoReglaPlaga = "climatica" | "prioridad_monitoreo";
 export type EstadoEvaluacionPlaga =

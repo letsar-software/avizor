@@ -10,6 +10,19 @@ import {
   evaluateOperator,
   formatThreshold,
 } from "@/lib/indicators/engine";
+import {
+  complementaryVariables,
+  criticalVariables,
+  declaredCriticalVariables,
+  isVariableAvailable,
+} from "@/lib/rules/variables";
+import { fieldValueSource, numericValue, type CurrentFieldData } from "@/lib/field-data/current";
+import { explicitMissingVariables } from "@/lib/rules/required-data";
+
+type Condition = ReglaAgronomicaV2["definicion"]["niveles"][number]["condiciones"][number];
+
+/** Un dato de campo reemplaza a la estimación sólo para variables de estado (no acumuladas). */
+const FIELD_OVERRIDE_AGGREGATORS = new Set<Condition["agregador"]>(["media_ventana", "min_ventana"]);
 
 export class RulesEngineV2 {
   constructor(private readonly indicators = new IndicatorEngine()) {}
@@ -19,6 +32,48 @@ export class RulesEngineV2 {
     series: SerieClimaticaDiaria[],
     evaluatedAt: string,
     phenology?: ContextoFenologico,
+    fieldData?: CurrentFieldData,
+  ): ResultadoReglaV2 {
+    // Una etapa cargada en el lote (vigente) prevalece sobre la estimada.
+    const stage = numericValue(fieldData?.get("codigo_zadoks"));
+    const effectivePhenology: ContextoFenologico | undefined = stage !== null
+      ? { ...(phenology ?? { modifica_reglas: false }), disponible: true, codigo_zadoks: stage, fuente: "Dato de campo", modifica_reglas: false }
+      : phenology;
+    const evaluated = this.evaluateLevels(rule, series, evaluatedAt, effectivePhenology, fieldData);
+    if (evaluated.motivo === "fuera_fenologia") return evaluated;
+    // Sólo se piden las críticas que realmente no tienen dato (el motivo puede ser otro).
+    const incomplete = evaluated.estado === "no_evaluable" || evaluated.estado === "requiere_validacion_agronoma";
+    const result = incomplete
+      ? {
+          ...evaluated,
+          missing_critical_variables: explicitMissingVariables(evaluated) ?? criticalVariables(rule).filter(
+            (variable) => !isVariableAvailable(variable, series, rule.ventana_dias, effectivePhenology, fieldData),
+          ),
+        }
+      : evaluated;
+    // Los complementarios nunca cambian el estado: sólo se informan como dato a sumar.
+    const missing = complementaryVariables(rule).filter(
+      (variable) => !isVariableAvailable(variable, series, rule.ventana_dias, effectivePhenology, fieldData),
+    );
+    return missing.length ? { ...result, missing_complementary_variables: missing } : result;
+  }
+
+  /** Dato de campo vigente (medido) antes que la estimación del proveedor climático. */
+  private indicator(condition: Condition, series: SerieClimaticaDiaria[], windowDays: number, fieldData?: CurrentFieldData) {
+    const measured = FIELD_OVERRIDE_AGGREGATORS.has(condition.agregador) ? numericValue(fieldData?.get(condition.variable)) : null;
+    if (measured !== null) {
+      const datum = fieldData!.get(condition.variable)!;
+      return { valor: measured, cobertura: 1, disponible: true, diasEsperados: windowDays, diasDisponibles: windowDays, coberturaRequerida: 1, fuente: fieldValueSource(datum.source) };
+    }
+    return { ...this.indicators.calculate(condition, series, windowDays), fuente: undefined };
+  }
+
+  private evaluateLevels(
+    rule: ReglaAgronomicaV2,
+    series: SerieClimaticaDiaria[],
+    evaluatedAt: string,
+    phenology?: ContextoFenologico,
+    fieldData?: CurrentFieldData,
   ): ResultadoReglaV2 {
     const window = series.slice(-rule.ventana_dias);
     const modo: "estable" | "experimental" =
@@ -26,13 +81,25 @@ export class RulesEngineV2 {
     const base = {
       riesgo: rule.clave,
       regla: {
+        id: rule.id,
         clave: rule.clave,
         version: rule.version,
         estado: rule.estado,
         modo,
         nombre: rule.nombre,
+        ...(rule.nombre_cientifico ? { nombre_cientifico: rule.nombre_cientifico } : {}),
         categoria: rule.categoria,
+        ...(rule.categoria_clave ? { categoria_clave: rule.categoria_clave } : {}),
         evaluabilidad: rule.evaluabilidad,
+        prioridad: rule.prioridad,
+        validation_status: rule.validation_status ?? validationStatusFromLegacy(rule),
+        evidence_level: rule.evidence_level ?? evidenceLevelFromLegacy(rule),
+        source_name: rule.source_name ?? rule.fuente_tecnica,
+        source_url: rule.source_url ?? rule.url_fuente,
+        reviewed_at: rule.reviewed_at ?? rule.validado_en,
+        notes: rule.notes ?? rule.limitaciones_declaradas,
+        critical_required_variables: criticalVariables(rule),
+        complementary_required_variables: complementaryVariables(rule),
       },
       ventana: {
         desde: window[0]?.fecha ?? "",
@@ -49,7 +116,8 @@ export class RulesEngineV2 {
       return noEvaluable(base, rule, "configuracion_incompleta");
     }
 
-    const requiredVariables = rule.variables_requeridas ?? [];
+    // Críticas declaradas (o variables_requeridas en reglas históricas).
+    const requiredVariables = declaredCriticalVariables(rule);
     const definition = resolveDefinition(rule);
     const configuredVariables = new Set(
       definition.niveles.flatMap((level) =>
@@ -60,7 +128,9 @@ export class RulesEngineV2 {
       variable === "codigo_zadoks"
         ? phenology?.codigo_zadoks === null ||
           phenology?.codigo_zadoks === undefined
-        : !configuredVariables.has(variable as never),
+        : // Fuera de las condiciones, una crítica cuenta si hay dato (serie, etapa o lote).
+          !configuredVariables.has(variable as never) &&
+          !isVariableAvailable(variable, series, rule.ventana_dias, phenology, fieldData),
     );
     if (missingContext.length) {
       return noEvaluable(
@@ -76,11 +146,7 @@ export class RulesEngineV2 {
         .flatMap((level) => level.condiciones)
         .find((item) => item.variable === variable);
       if (!condition) continue;
-      const indicator = this.indicators.calculate(
-        condition,
-        series,
-        rule.ventana_dias,
-      );
+      const indicator = this.indicator(condition, series, rule.ventana_dias, fieldData);
       if (!indicator.disponible || indicator.valor === null) {
         return noEvaluable(
           base,
@@ -112,15 +178,11 @@ export class RulesEngineV2 {
     )) {
       const observed: EvaluacionObservada[] = [];
       for (const condition of level.condiciones) {
-        const indicator = this.indicators.calculate(
-          condition,
-          series,
-          rule.ventana_dias,
-        );
+        const indicator = this.indicator(condition, series, rule.ventana_dias, fieldData);
         if (!indicator.disponible || indicator.valor === null) {
           return {
             ...base,
-            estado: "indeterminado",
+            estado: "no_evaluable",
             motivo: "datos_insuficientes",
             observado: observed,
             detalle: {
@@ -150,13 +212,14 @@ export class RulesEngineV2 {
             condition.valor,
           ),
           cobertura: indicator.cobertura,
+          ...(indicator.fuente ? { fuente: indicator.fuente } : {}),
         });
       }
 
       if (observed.every((item) => item.cumple)) {
         return {
           ...base,
-          estado: level.clave,
+          estado: normalizeResultState(level.clave),
           etiqueta: level.etiqueta,
           explicacion: level.explicacion,
           recomendacion: level.recomendacion,
@@ -177,7 +240,7 @@ export class RulesEngineV2 {
 
     return {
       ...base,
-      estado: definition.sin_coincidencia?.estado ?? "indeterminado",
+      estado: normalizeResultState(definition.sin_coincidencia?.estado ?? "no_evaluable"),
       motivo: definition.sin_coincidencia?.motivo ?? "sin_nivel_coincidente",
       fuente_tecnica: rule.fuente_tecnica,
       limitaciones_declaradas: rule.limitaciones_declaradas,
@@ -185,6 +248,37 @@ export class RulesEngineV2 {
       calidad_dato: quality(bestObserved, rule.ventana_dias),
     };
   }
+}
+
+/** Compatibilidad de lectura para reglas históricas; la API nunca emite estos alias. */
+function normalizeResultState(value: string) {
+  const aliases: Record<string, import("@/types").EstadoResultadoRegla> = {
+    favorables: "favorable",
+    condiciones_detectadas: "favorable",
+    moderadas: "vigilancia",
+    condiciones_parciales: "vigilancia",
+    indeterminado: "no_evaluable",
+    evaluacion_incompleta: "no_evaluable",
+    desfavorables: "sin_condiciones",
+  };
+  if (value in aliases) return aliases[value];
+  if (["no_evaluable", "sin_condiciones", "informativo", "vigilancia", "moderado", "alto", "critico", "favorable", "requiere_validacion_agronoma"].includes(value)) {
+    return value as import("@/types").EstadoResultadoRegla;
+  }
+  return "no_evaluable";
+}
+
+function validationStatusFromLegacy(rule: ReglaAgronomicaV2) {
+  return rule.requiere_validacion_agronomica
+    ? "requiere_validacion_agronoma"
+    : "validada";
+}
+
+function evidenceLevelFromLegacy(rule: ReglaAgronomicaV2) {
+  if (rule.nivel_evidencia === "alta" || rule.nivel_evidencia === "media" || rule.nivel_evidencia === "limitada") {
+    return rule.nivel_evidencia;
+  }
+  return "limitada";
 }
 
 function noEvaluable(

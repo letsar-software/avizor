@@ -6,31 +6,18 @@ export interface ResumenConsulta {
   destaque: string;
 }
 
-const ACTIVE_STATES = new Set(["favorables", "condiciones_detectadas"]);
+const ACTIVE_STATES = new Set(["favorable"]);
 
 export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenConsulta {
   const stableRules = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
-  const experimentalRules = results.filter((result) => result.regla.estado === "experimental" || result.regla.modo === "experimental");
-  const experimentalPartial = experimentalRules.filter((result) => result.estado === "condiciones_parciales");
-  if (stableRules.length === 0 && experimentalRules.length > 0) {
-    const names = experimentalPartial.map((result) => result.regla.nombre ?? result.riesgo.replaceAll("_", " "));
-    return {
-      descripcion: experimentalPartial.length
-        ? `Se observaron coincidencias parciales con referencias ambientales en ${names.join(", ")}. Son evaluaciones experimentales: no confirman enfermedad ni reemplazan el monitoreo del lote.`
-        : "Los datos climáticos están disponibles, pero las evaluaciones experimentales de trigo no permiten confirmar una coincidencia ambiental completa.",
-      destaque: experimentalPartial.length
-        ? "Revisá el detalle de las coincidencias parciales y sus limitaciones antes de tomar decisiones de manejo."
-        : "Tomá este resultado como orientativo: las reglas de trigo permanecen pendientes de validación agronómica.",
-    };
-  }
   const stableResults = collapsePresentationCategories(stableRules);
   const active = stableResults.filter((result) => ACTIVE_STATES.has(result.estado));
-  const moderate = stableResults.filter((result) => result.estado === "moderadas");
-  const indeterminate = stableResults.filter((result) => result.estado === "indeterminado");
+  const moderate = stableResults.filter((result) => result.estado === "vigilancia");
+  const indeterminate = stableResults.filter((result) => result.estado === "no_evaluable");
   const insufficient = stableResults.length === 0 || indeterminate.length === stableResults.length;
 
   const opening = insufficient
-    ? "Los datos disponibles no permiten realizar una evaluación completa de las condiciones ambientales."
+    ? "Se recomienda monitoreo del lote; sumar datos del lote permite completar la evaluación de las condiciones ambientales."
     : active.length === 0
     ? moderate.length > 0
       ? "Las condiciones ambientales analizadas indican que conviene mantener un monitoreo preventivo del lote."
@@ -41,15 +28,15 @@ export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenCo
 
   const details = categoryDetails(stableRules);
   const uncertainty = indeterminate.length === 1
-    ? "Una de las categorías no pudo evaluarse con suficiente información y conviene revisar su detalle."
+    ? "En una de las categorías se recomienda monitoreo; su detalle indica qué datos completan la evaluación."
     : indeterminate.length > 1
-      ? "Algunas categorías no pudieron evaluarse con suficiente información y conviene revisar su detalle."
+      ? "En algunas categorías se recomienda monitoreo; su detalle indica qué datos completan la evaluación."
       : "";
 
   return {
     descripcion: [opening, ...details, uncertainty].filter(Boolean).join(" "),
     destaque: insufficient
-      ? "Tomá este resultado como orientativo y revisá las categorías con información insuficiente."
+      ? "Tomá este resultado como orientativo y revisá en cada categoría qué datos completan la evaluación."
       : closing(active, moderate),
   };
 }
@@ -64,16 +51,16 @@ function categoryDetails(results: ResultadoReglaV2[]) {
 
   if (frost) details.push(ACTIVE_STATES.has(frost.estado)
     ? "Se detectaron temperaturas mínimas por debajo del umbral considerado para heladas."
-    : frost.estado === "indeterminado"
-      ? "No fue posible evaluar las condiciones para heladas con la información disponible."
+    : frost.estado === "no_evaluable"
+      ? "Para heladas se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
       : "No se detectaron temperaturas mínimas por debajo del umbral considerado para heladas.");
 
   if (foliar) details.push(ACTIVE_STATES.has(foliar.estado)
     ? "Se identificaron condiciones de humedad, precipitaciones y temperatura que pueden favorecer enfermedades foliares."
-    : foliar.estado === "moderadas"
+    : foliar.estado === "vigilancia"
       ? "Algunas de las condiciones ambientales analizadas pueden favorecer enfermedades foliares, aunque no se cumplen todos los criterios evaluados."
-      : foliar.estado === "indeterminado"
-        ? "No fue posible determinar las condiciones para enfermedades foliares con la información disponible."
+      : foliar.estado === "no_evaluable"
+        ? "Para enfermedades foliares se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
         : "No se identificaron condiciones ambientales favorables para enfermedades foliares durante el período analizado.");
 
   if (drought && excess && drought.estado === "sin_condiciones" && excess.estado === "sin_condiciones") {
@@ -81,13 +68,13 @@ function categoryDetails(results: ResultadoReglaV2[]) {
   } else {
     if (drought) details.push(ACTIVE_STATES.has(drought.estado)
       ? "Las precipitaciones acumuladas del período se encuentran por debajo del umbral considerado para estrés hídrico."
-      : drought.estado === "indeterminado"
-        ? "No fue posible evaluar las condiciones para estrés hídrico con la información disponible."
+      : drought.estado === "no_evaluable"
+        ? "Para estrés hídrico se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
         : "Las precipitaciones acumuladas no muestran condiciones favorables para estrés hídrico según los criterios evaluados.");
     if (excess) details.push(ACTIVE_STATES.has(excess.estado)
       ? "Las precipitaciones acumuladas superaron el umbral considerado para condiciones de exceso hídrico."
-      : excess.estado === "indeterminado"
-        ? "No fue posible evaluar las condiciones para exceso hídrico con la información disponible."
+      : excess.estado === "no_evaluable"
+        ? "Para exceso hídrico se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
         : "Las precipitaciones acumuladas no muestran condiciones favorables para exceso hídrico según los criterios evaluados.");
   }
   return details;

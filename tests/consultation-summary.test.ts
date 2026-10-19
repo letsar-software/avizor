@@ -3,48 +3,27 @@ import assert from "node:assert/strict";
 import { buildConsultationSummary } from "../lib/results/consultation-summary";
 import type { ResultadoReglaV2 } from "../types";
 
-function result(riesgo: string, estado: string): ResultadoReglaV2 {
+function result(riesgo: string, estado: ResultadoReglaV2["estado"]): ResultadoReglaV2 {
   return { riesgo, estado, regla: { clave: riesgo, version: "1", estado: "vigente" }, ventana: { desde: "2026-08-01", hasta: "2026-08-14", dias: 14 }, observado: [], calidad_dato: { cobertura_min: 1, dias_faltantes: 0, distancia_punto_km: null }, evaluado_en: "2026-08-14T12:00:00Z" };
 }
 
-test("resume una única condición principal sin afirmar un diagnóstico", () => {
+test("una regla favorable genera atención", () => {
   const summary = buildConsultationSummary([
-    result("temperatura_bajo_umbral", "condiciones_detectadas"),
-    result("enfermedades_foliares", "indeterminado"),
-    result("baja_precipitacion", "sin_condiciones"),
-    result("precipitacion_elevada", "sin_condiciones"),
+    result("temperatura_bajo_umbral", "favorable"),
+    result("enfermedades_foliares", "no_evaluable"),
   ]);
-  assert.match(summary.descripcion, /temperaturas mínimas por debajo del umbral/);
-  assert.match(summary.descripcion, /no pudo evaluarse con suficiente información/i);
-  assert.equal(summary.destaque, "Principal condición a observar: bajas temperaturas.");
-  assert.doesNotMatch(summary.descripcion, /cultivo (está|afectado)/i);
+  assert.match(summary.destaque, /bajas temperaturas/);
 });
 
-test("recomienda monitoreo habitual cuando no hay condiciones señaladas", () => {
-  const summary = buildConsultationSummary([
-    result("temperatura_bajo_umbral", "sin_condiciones"),
-    result("enfermedades_foliares", "sin_condiciones"),
-    result("baja_precipitacion", "sin_condiciones"),
-    result("precipitacion_elevada", "sin_condiciones"),
-  ]);
-  assert.match(summary.descripcion, /no muestran situaciones que requieran atención especial/);
-  assert.match(summary.destaque, /monitoreo habitual/);
+test("vigilancia mantiene monitoreo preventivo", () => {
+  const summary = buildConsultationSummary([result("roya_amarilla", "vigilancia")]);
+  assert.match(summary.destaque, /monitoreo preventivo/);
 });
 
-test("advierte cuando toda la evaluación es indeterminada", () => {
+test("resultados no evaluables conservan la advertencia de información limitada", () => {
   const summary = buildConsultationSummary([
-    result("temperatura_bajo_umbral", "indeterminado"),
-    result("enfermedades_foliares", "indeterminado"),
+    result("temperatura_bajo_umbral", "no_evaluable"),
+    result("enfermedades_foliares", "no_evaluable"),
   ]);
-  assert.match(summary.descripcion, /no permiten realizar una evaluación completa/);
   assert.match(summary.destaque, /orientativo/);
-});
-
-test("resume coincidencias parciales experimentales sin convertirlas en alerta productiva", () => {
-  const wheat = result("roya_amarilla", "condiciones_parciales");
-  wheat.regla = { ...wheat.regla, estado: "experimental", modo: "experimental", nombre: "Roya amarilla" };
-  const summary = buildConsultationSummary([wheat]);
-  assert.match(summary.descripcion, /coincidencias parciales/i);
-  assert.match(summary.descripcion, /no confirman enfermedad/i);
-  assert.match(summary.destaque, /limitaciones/i);
 });

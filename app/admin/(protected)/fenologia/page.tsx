@@ -10,6 +10,12 @@ const ESTADO_STYLES: Record<ModeloFenologico["estado"], string> = {
   vigente: "bg-avizor-green-light text-avizor-green",
   retirada: "bg-gray-100 text-gray-500",
 };
+const ESTADO_LABELS: Record<ModeloFenologico["estado"], string> = {
+  experimental: "En revisión técnica",
+  revisada: "Revisada",
+  vigente: "Vigente",
+  retirada: "Retirada",
+};
 
 export default async function AdminFenologiaPage() {
   const actor = await requireAdminPageAccess("plagas_cultivos_fenologia", "read");
@@ -48,7 +54,7 @@ export default async function AdminFenologiaPage() {
                   <Link href={`/admin/fenologia/${modelo.id}`} className="font-medium text-avizor-green hover:underline">v{modelo.version}</Link>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{modelo.proveedor}</td>
-                <td className="px-4 py-3"><span className={`rounded px-2 py-1 text-xs font-medium ${ESTADO_STYLES[modelo.estado]}`}>{modelo.estado}</span></td>
+                <td className="px-4 py-3"><span className={`rounded px-2 py-1 text-xs font-medium ${ESTADO_STYLES[modelo.estado]}`}>{ESTADO_LABELS[modelo.estado]}</span></td>
               </tr>
             ))}
             {modelos.length === 0 && (

@@ -12,8 +12,7 @@ export class ScoreEngineV2 {
     );
     const active = scoreable.filter(
       (item) =>
-        item.estado === "favorables" ||
-        item.estado === "condiciones_detectadas",
+        item.estado === "favorable",
     );
     if (active.length)
       return {
@@ -24,13 +23,14 @@ export class ScoreEngineV2 {
     if (
       scoreable.some(
         (item) =>
-          item.estado === "moderadas" || item.estado === "indeterminado",
+          item.estado === "vigilancia" ||
+          item.estado === "requiere_validacion_agronoma",
       )
     )
       return {
         estadoGeneral: "Monitoreo preventivo sugerido",
         explicacion:
-          "Conviene mantener el monitoreo: hay condiciones moderadas o datos que no permiten cerrar todas las evaluaciones.",
+          "Conviene mantener el monitoreo: hay condiciones para seguir de cerca o datos del lote que pueden completar la evaluación.",
       };
     return {
       estadoGeneral: "Sin alertas activas",

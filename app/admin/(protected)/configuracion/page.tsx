@@ -7,7 +7,6 @@ const FLAG_LABELS: Record<keyof typeof featureFlags, string> = {
   enableMaiz: "Cultivo maíz",
   enableAlertas: "Alertas automáticas",
   enableObservaciones: "Observación del lote",
-  enableModoExperimental: "Modo experimental",
   enablePlagas: "Módulo de plagas",
 };
 

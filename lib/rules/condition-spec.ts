@@ -8,7 +8,7 @@ export const SPEC_VARIABLES = [
   "viento_medio", "punto_rocio", "deficit_presion_vapor", "evapotranspiracion", "et0_fao_56",
   "humedad_suelo_0_1cm", "humedad_suelo_1_3cm", "humedad_suelo_3_9cm", "humedad_suelo_9_27cm", "humedad_suelo_27_81cm",
   "temperatura_suelo_0cm", "temperatura_suelo_6cm", "temperatura_suelo_18cm", "temperatura_suelo_54cm",
-  "radiacion_solar",
+  "radiacion_solar", "leaf_wetness_hours",
 ] as const;
 
 export const SPEC_AGGREGATORS = ["media_ventana", "min_ventana", "suma_ventana", "dias_con_condicion"] as const;

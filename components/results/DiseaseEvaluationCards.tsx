@@ -71,7 +71,7 @@ export function DiseaseEvaluationCards({
           <option value="todas">Todos los estados</option>
           <option value="informacion">Información disponible</option>
           <option value="en_validacion">En validación</option>
-          <option value="no_evaluable">No evaluable</option>
+          <option value="no_evaluable">Monitoreo recomendado</option>
         </select>
       </div>
       <p className="mt-3 text-sm text-[#526477]">
@@ -120,9 +120,9 @@ function Card({
   const [open, setOpen] = useState(false);
   const tone = rule ? SEVERITY_TONES[severityOf(rule)] : null;
   const state = rule
-    ? statusLabel(rule, ficha.nombre)
+    ? statusLabel(rule)
     : ficha.estado === "no_evaluable"
-      ? "No evaluable con los datos disponibles"
+      ? "Monitoreo recomendado"
       : "Información disponible";
   return (
     <article

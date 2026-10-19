@@ -20,11 +20,13 @@ const postgres = createDisposablePostgres({
 });
 
 function applyMigrations(databaseUrl, options = {}) {
+  // Node directo (equivale a `npm run db:migrate`): spawnSync("npm") falla en Windows.
   const result = runCommand(
-    options.cwd ? process.execPath : "npm",
-    options.cwd ? [path.join(__dirname, "apply-migrations.js")] : ["run", "db:migrate"],
+    process.execPath,
+    [path.join(__dirname, "apply-migrations.js")],
     {
       ...options,
+      cwd: options.cwd ?? path.join(__dirname, ".."),
       capture: true,
       env: {
         ...process.env,

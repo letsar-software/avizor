@@ -4,7 +4,7 @@ function isStable(rule: ResultadoReglaV2) { return rule.regla.modo !== "experime
 function normalizedCoverage(value: number) { return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0; }
 function detailNumber(detail: Record<string, unknown> | undefined, key: string, fallback: number) { const value = detail?.[key]; return typeof value === "number" && Number.isFinite(value) ? value : fallback; }
 function limitedEvaluation(rule: ResultadoReglaV2): EvaluacionLimitadaPorClima | null {
-  if (rule.estado !== "indeterminado" || rule.motivo !== "datos_insuficientes") return null;
+  if (rule.estado !== "no_evaluable" || rule.motivo !== "datos_insuficientes") return null;
   const expected = detailNumber(rule.detalle, "dias_esperados", rule.ventana.dias);
   const available = detailNumber(rule.detalle, "dias_disponibles", Math.max(0, expected - rule.calidad_dato.dias_faltantes));
   const variable = typeof rule.detalle?.variable === "string" ? rule.detalle.variable : undefined;

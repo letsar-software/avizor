@@ -2,6 +2,13 @@
 import type { ReglaAgronomicaV2 } from "@/types";
 import { FIELD_INPUT_CLASS } from "@/components/admin/form-styles";
 
+const ESTADO_LABELS: Record<ReglaAgronomicaV2["estado"], string> = {
+  experimental: "En revisión técnica",
+  revisada: "Revisada",
+  vigente: "Vigente",
+  retirada: "Retirada",
+};
+
 interface RuleMetaFieldsProps {
   estado: ReglaAgronomicaV2["estado"];
   estadoOptions: readonly ReglaAgronomicaV2["estado"][];
@@ -18,7 +25,7 @@ export default function RuleMetaFields({ estado, estadoOptions, onEstadoChange, 
       <label className="text-sm text-gray-700">
         Estado
         <select value={estado} onChange={(event) => onEstadoChange(event.target.value as ReglaAgronomicaV2["estado"])} className={FIELD_INPUT_CLASS}>
-          {estadoOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+          {estadoOptions.map((value) => <option key={value} value={value}>{ESTADO_LABELS[value]}</option>)}
         </select>
       </label>
       <label className="text-sm text-gray-700">

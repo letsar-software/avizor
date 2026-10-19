@@ -4,7 +4,7 @@ const GROUPS = [
   { title: "Evaluación parcial", pattern: /evaluaci[oó]n parcial|parcialmente evaluable|implementaci[oó]n parcial/i },
   { title: "Datos no observados / no disponibles", pattern: /no (?:se )?(?:observa|dispone|incluye|cuenta)|datos? (?:no disponible|faltante)|sin datos/i },
   { title: "Alcance de la evaluación", pattern: /alcance|no reemplaza|no constituye|solo considera|s[oó]lo considera/i },
-  { title: "Reglas experimentales", pattern: /experimental|en validaci[oó]n|pendiente de validar/i },
+  { title: "Alcance de la regla", pattern: /en validaci[oó]n|pendiente de validar/i },
 ] as const;
 
 export function groupLimitations(limitations: string[]): LimitationGroup[] {

@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireAdminPageAccess } from "@/lib/admin/access";
-import { getReglaAdministrableById } from "@/lib/rules/repository-v2";
+import { getReglaAdministrableById, getReglasAdministrables } from "@/lib/rules/repository-v2";
+import { listVariables, variableUsage } from "@/lib/variables/repository";
+import { catalogEntries } from "@/lib/variables/catalog";
 import RuleEditor from "@/components/admin/RuleEditor";
 
 export default async function AdminReglaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -8,12 +10,13 @@ export default async function AdminReglaDetailPage({ params }: { params: Promise
   const { id } = await params;
   const regla = await getReglaAdministrableById(id);
   if (!regla) notFound();
+  const [catalog, rules] = await Promise.all([listVariables(), getReglasAdministrables()]);
 
   return (
     <div>
       <h1 className="mb-1 text-xl font-semibold text-avizor-navy">{regla.nombre ?? regla.clave}</h1>
       <p className="mb-6 text-sm text-gray-500">{regla.cultivo} · versión {regla.version} · {regla.clave}</p>
-      <RuleEditor regla={regla} rol={actor.rol} />
+      <RuleEditor regla={regla} rol={actor.rol} catalog={catalogEntries(catalog.variables, variableUsage(rules))} />
     </div>
   );
 }

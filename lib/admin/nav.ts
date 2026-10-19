@@ -7,6 +7,9 @@ export interface AdminNavItem { href: string; label: string; modulo: AdminModule
 export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin", label: "Dashboard", modulo: "dashboard" },
   { href: "/admin/reglas", label: "Reglas", modulo: "reglas" },
+  { href: "/admin/advisories", label: "Validaciones técnicas", modulo: "reglas" },
+  { href: "/admin/variables", label: "Variables", modulo: "reglas" },
+  { href: "/admin/datos-campo", label: "Datos de campo", modulo: "datos_campo" },
   { href: "/admin/laboratorio", label: "Laboratorio", modulo: "laboratorio" },
   { href: "/admin/plagas", label: "Plagas", modulo: "plagas_cultivos_fenologia" },
   { href: "/admin/zonas", label: "Zonas", modulo: "plagas_cultivos_fenologia" },

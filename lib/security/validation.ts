@@ -13,11 +13,14 @@ import { ADMIN_ROLES, ADMIN_USER_ESTADOS } from "@/lib/admin/user-spec";
 import { API_KEY_SCOPES, EMPRESA_ESTADOS } from "@/lib/empresas/spec";
 import { GRUPOS_MADUREZ, HITOS_FENOLOGICOS_MAX, HITOS_FENOLOGICOS_MIN, HITO_FENOLOGICO_CODIGO_PATTERN } from "@/lib/phenology/spec";
 import { ETAPAS_TRIGO } from "@/lib/phenology/trigo";
+import { FIELD_DATA_SOURCES, VARIABLE_KEY_PATTERN, VARIABLE_ORIGINS, VARIABLE_VALUE_TYPES } from "@/lib/variables/catalog";
+import { validateVariableLists } from "@/lib/variables/lists";
 
 const shortText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Fecha inválida");
 const uuid = z.string().uuid();
+const finite = z.number().finite();
 const email = z.string().trim().email().max(254).transform((value) => value.toLowerCase());
 const grupoMadurez = z.enum(GRUPOS_MADUREZ);
 
@@ -25,7 +28,34 @@ export const consultaV2Schema = z.object({
   localidad: shortText(120), cultivo: shortText(30), fechaSiembra: isoDate.optional(),
   grupoMadurez: grupoMadurez.optional(), cultivar: optionalText(120), etapaFenologica: z.enum(ETAPAS_TRIGO).optional(),
   sessionId: optionalText(128), canal: z.enum(["web", "whatsapp", "api_empresa", "admin"]).optional(), fechaRef: isoDate.optional(),
+  lot_id: uuid.optional(),
+}).strict().transform(({ lot_id, ...rest }) => (lot_id ? { ...rest, lotId: lot_id } : rest));
+
+const riskStatus = z.enum(["no_evaluable", "sin_condiciones", "informativo", "vigilancia", "moderado", "alto", "critico", "favorable", "requiere_validacion_agronoma"]);
+const evaluateWeatherSchema = z.object({
+  temperature_c: finite.nullish(), temperature_min_c: finite.nullish(), temperature_max_c: finite.nullish(),
+  relative_humidity_pct: finite.nullish(), precipitation_mm: finite.nullish(), wind_speed_kmh: finite.nullish(),
+  soil_moisture_pct: finite.nullish(), soil_temperature_c: finite.nullish(), reference_evapotranspiration_mm: finite.nullish(),
+  leaf_wetness_hours: finite.nullish(), leaf_wetness_probability: finite.nullish(), provider: shortText(80).optional(),
 }).strict();
+export const rulesEvaluateSchema = z.object({
+  lot_id: uuid.optional(), crop_id: shortText(40),
+  phenology: z.object({ scale: z.enum(["Zadoks", "BBCH", "manual"]), stage: finite.min(0).max(999), source: shortText(80) }).strict().optional(),
+  scope: z.object({ region_id: uuid.optional(), farm_id: uuid.optional(), field_id: uuid.optional() }).strict().optional(),
+  weather: evaluateWeatherSchema,
+}).strict();
+
+const advisoryScope = z.enum(["global", "region", "farm", "field"]);
+export const adminRiskCategoryCreateSchema = z.object({ key: shortText(80).regex(/^[a-z0-9_]+$/), name: shortText(120), active: z.boolean().optional() }).strict();
+export const adminAdvisoryCreateSchema = z.object({
+  crop_id: shortText(40).nullable().optional(), category_id: uuid, scope_type: advisoryScope, scope_id: uuid.nullable().optional(),
+  status: riskStatus.extract(["informativo", "vigilancia", "moderado", "alto", "critico"]), title: shortText(240), message: shortText(2000), recommended_action: shortText(2000),
+  starts_at: z.string().datetime({ offset: true }), ends_at: z.string().datetime({ offset: true }).nullable().optional(), active: z.boolean().optional(), priority: z.number().int().min(-10000).max(10000).optional(),
+  source_type: z.enum(["agronomic_validation", "official_alert", "field_observation", "technical_report"]), source_name: shortText(240), source_url: z.string().url().max(2000).nullable().optional(), validated_by: shortText(160), reviewed_at: z.string().datetime({ offset: true }), notes: optionalText(2000),
+}).strict().superRefine((value, ctx) => {
+  if ((value.scope_type === "global") !== !value.scope_id) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["scope_id"], message: "El alcance global no lleva identificador; los demás alcances sí." });
+  if (value.ends_at && value.ends_at < value.starts_at) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ends_at"], message: "La vigencia final debe ser posterior al inicio." });
+});
 
 export const consultaLegacySchema = z.object({
   localidad: shortText(120), cultivo: shortText(30), session_id: optionalText(128), fecha_siembra: isoDate.optional(),
@@ -50,7 +80,6 @@ export const feedbackLegacySchema = z.object({ utilidad: z.enum(["si", "parcialm
 const operator = z.enum(SPEC_OPERATORS);
 const variable = z.enum(SPEC_VARIABLES);
 const aggregator = z.enum(SPEC_AGGREGATORS);
-const finite = z.number().finite();
 const conditionSchema = z.object({
   variable, agregador: aggregator, operador: operator, valor: z.union([finite, z.tuple([finite, finite])]), unidad: shortText(30),
   cobertura_minima: finite.min(0).max(1).optional(), subcondicion: z.object({ operador: operator, valor: finite, unidad: shortText(30) }).strict().optional(), provisorio: z.boolean().optional(),
@@ -67,13 +96,63 @@ export const ruleDefinitionSchema = z.object({
   sin_coincidencia: z.object({ estado: shortText(80), motivo: optionalText(240) }).strict().optional(),
 }).strict();
 
+const variableKey = z.string().trim().regex(VARIABLE_KEY_PATTERN, "Clave de variable inválida");
+const variableList = z.array(variableKey).max(30);
+
 export const adminRulePatchSchema = z.object({
   estado: z.enum(REGLA_ESTADOS).optional(),
   definicion: ruleDefinitionSchema.optional(),
   validado_por: shortText(120).optional(),
   validado_en: z.string().datetime({ offset: true }).optional(),
+  critical_required_variables: variableList.optional(),
+  complementary_required_variables: variableList.optional(),
 }).strict()
-  .refine((value) => value.estado !== undefined || value.definicion !== undefined || value.validado_por !== undefined || value.validado_en !== undefined, "No hay cambios");
+  .refine((value) => value.estado !== undefined || value.definicion !== undefined || value.validado_por !== undefined || value.validado_en !== undefined
+    || value.critical_required_variables !== undefined || value.complementary_required_variables !== undefined, "No hay cambios")
+  .refine((value) => (value.critical_required_variables === undefined) === (value.complementary_required_variables === undefined),
+    "Las listas crítica y complementaria se guardan juntas")
+  .superRefine((value, context) => {
+    if (!value.critical_required_variables || !value.complementary_required_variables) return;
+    for (const issue of validateVariableLists(value.critical_required_variables, value.complementary_required_variables)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: issue.message, path: [issue.list === "complementary" ? "complementary_required_variables" : "critical_required_variables"] });
+    }
+  });
+
+export const adminVariableCreateSchema = z.object({
+  clave: variableKey,
+  etiqueta: shortText(160),
+  descripcion: optionalText(500),
+  unidad: z.union([shortText(30), z.null()]).optional(),
+  tipo_valor: z.enum(VARIABLE_VALUE_TYPES),
+  origen: z.enum(VARIABLE_ORIGINS),
+  proveedores: z.array(shortText(40).regex(/^[a-z0-9_]+$/)).max(10).default([]),
+  vigencia_dias: z.union([z.number().int().min(1).max(3650), z.null()]).optional(),
+}).strict();
+
+export const adminLotCreateSchema = z.object({
+  nombre: shortText(160),
+  empresa_id: z.union([uuid, z.null()]).optional(),
+  cultivo: z.union([shortText(40), z.null()]).optional(),
+}).strict();
+
+export const adminFieldDatumCreateSchema = z.object({
+  field_id: uuid,
+  variable_key: variableKey,
+  value: z.union([finite, shortText(2000), z.boolean()]),
+  unit: z.union([shortText(30), z.null()]).optional(),
+  observed_at: z.string().datetime({ offset: true }),
+  valid_until: z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
+  source: z.enum(FIELD_DATA_SOURCES),
+  notes: optionalText(2000),
+}).strict()
+  .refine((value) => !value.valid_until || Date.parse(value.valid_until) > Date.parse(value.observed_at), { message: "El vencimiento debe ser posterior a la observación", path: ["valid_until"] })
+  .refine((value) => Date.parse(value.observed_at) <= Date.now() + 5 * 60 * 1000, { message: "La observación no puede ser futura", path: ["observed_at"] });
+
+export const adminFieldDatumPatchSchema = z.object({
+  status: z.literal("historico").optional(),
+  valid_until: z.union([z.string().datetime({ offset: true }), z.null()]).optional(),
+  notes: optionalText(2000),
+}).strict().refine((value) => Object.keys(value).length > 0, "No hay cambios");
 export const adminLoginSchema = z.object({ email, password: z.string().min(8).max(200) }).strict();
 
 const adminPassword = z.string().min(8).max(200);
