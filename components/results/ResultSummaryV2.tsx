@@ -62,6 +62,13 @@ import {
   type ResultViewProps,
 } from "@/components/results/useResult";
 
+const HEADER_TONES: Record<NonNullable<ResultadoConsultaV2Publica["nivel_alerta"]>, { text: string; chip: string }> = {
+  critico: { text: "text-red-700", chip: "bg-red-50 text-red-700" },
+  prioritario: { text: "text-orange-600", chip: "bg-orange-50 text-orange-600" },
+  monitoreo: { text: "text-indigo-700", chip: "bg-indigo-50 text-indigo-700" },
+  sin_alertas: { text: "text-[#087b4b]", chip: "bg-green-50 text-[#087b4b]" },
+};
+
 const phenologyImages: Record<string, string> = {
   E: "/phenology/soja-e.svg",
   R1: "/phenology/soja-r1.svg",
@@ -99,7 +106,8 @@ export default function ResultSummaryV2({
         </Link>
       </main>
     );
-  const title = result.estado_general;
+  const title = result.estado_general_visible ?? result.estado_general;
+  const headerTone = HEADER_TONES[result.nivel_alerta ?? "sin_alertas"];
   return (
     <main className="mx-auto max-w-[1420px] px-4 py-5 text-[#081a31] sm:px-7 lg:py-8">
       <Link
@@ -111,14 +119,14 @@ export default function ResultSummaryV2({
       </Link>
       <section className="mt-2 rounded-xl border border-[#8fc9a8] bg-white p-5 lg:grid lg:grid-cols-[.9fr_1.15fr_.9fr] lg:gap-7 lg:p-7">
         <div className="flex gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-green-50 text-[#087b4b]">
-            <ShieldCheck className="h-9 w-9" />
+          <span className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${headerTone.chip}`}>
+            {result.nivel_alerta === "critico" || result.nivel_alerta === "prioritario" ? <TriangleAlert className="h-9 w-9" /> : <ShieldCheck className="h-9 w-9" />}
           </span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#087b4b]">
+            <p className={`text-xs font-bold uppercase tracking-wide ${headerTone.text}`}>
               Estado general
             </p>
-            <h1 className="mt-1 text-2xl font-bold uppercase leading-tight text-[#087b4b] sm:text-3xl">
+            <h1 className={`mt-1 text-2xl font-bold uppercase leading-tight sm:text-3xl ${headerTone.text}`}>
               {title}
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#405369]">

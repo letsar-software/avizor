@@ -113,7 +113,8 @@ export function consolidateCategoryRisks(
     const pending = winner(incomplete);
     const automaticResult = automatic ?? pending ?? winner(evaluatedRules);
     // Todas las coincidencias: varias reglas empatadas no se descartan ni elevan la severidad.
-    const matches = complete.filter((rule) => MATCH.has(rule.estado)).sort(compareRules).map((rule) => matchedRule(rule, options.labels));
+    // Sólo con evidencia: una coincidencia sin variables observadas no puede afirmar una condición.
+    const matches = complete.filter((rule) => MATCH.has(rule.estado) && rule.observado.length > 0).sort(compareRules).map((rule) => matchedRule(rule, options.labels));
     const shared = {
       category: category.key,
       title: category.name,

@@ -1,6 +1,7 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import type { AgronomicAdvisory, RiskCategory } from "@/types";
+import { localDateTimeInputValue } from "@/lib/admin/datetime";
 
 export default function AdvisoryManager({ categories, initial }: { categories: RiskCategory[]; initial: AgronomicAdvisory[] }) {
   const [items, setItems] = useState(initial);
@@ -25,7 +26,7 @@ export default function AdvisoryManager({ categories, initial }: { categories: R
     } catch (reason) { setError(reason instanceof Error ? reason.message : "No pudimos guardar la validación."); }
     finally { setSaving(false); }
   }
-  const now = new Date().toISOString().slice(0, 16);
+  const now = localDateTimeInputValue();
   return <div className="space-y-6">
     <form onSubmit={submit} className="grid gap-3 rounded-lg border bg-white p-4 md:grid-cols-2">
       <select required name="category_id" className="rounded border p-2"><option value="">Categoría</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>

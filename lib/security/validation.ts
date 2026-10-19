@@ -132,6 +132,7 @@ export const adminVariableCreateSchema = z.object({
 export const adminLotCreateSchema = z.object({
   nombre: shortText(160),
   empresa_id: z.union([uuid, z.null()]).optional(),
+  establecimiento_id: z.union([shortText(128), z.null()]).optional(),
   cultivo: z.union([shortText(40), z.null()]).optional(),
 }).strict();
 

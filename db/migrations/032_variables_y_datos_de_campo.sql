@@ -64,6 +64,8 @@ on conflict (clave) do nothing;
 create table if not exists lotes (
   id uuid primary key default gen_random_uuid(),
   empresa_id uuid references empresas(id),
+  -- Establecimiento (alcance "farm" de agronomic_advisories); texto libre hasta que exista el dominio.
+  establecimiento_id text,
   nombre text not null check (length(nombre) between 1 and 160),
   cultivo text,
   activo boolean not null default true,

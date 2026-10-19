@@ -15,9 +15,10 @@ import { getCodigoZadoksEtapa } from "@/lib/phenology/stage-repository";
 import { getReglasVigentes } from "@/lib/rules/repository-v2";
 import { getActiveRiskCategories } from "@/lib/rules/category-repository";
 import { consolidateCategoryRisks } from "@/lib/rules/consolidation";
-import { getActiveAgronomicAdvisories } from "@/lib/advisories/repository";
+import { getCandidateAdvisories } from "@/lib/advisories/repository";
+import { overallFromCategories, type AlertLevel } from "@/lib/rules/overall-status";
 import { loadVariableLabels } from "@/lib/variables/repository";
-import { dataProvenance, evaluateRules, loadLotContext, type LotContextDependencies } from "@/lib/rules/evaluation-core";
+import { dataProvenance, evaluateRules, loadLotContext, localityRegionKeys, selectAdvisories, type AdvisoryTrace, type LotContextDependencies } from "@/lib/rules/evaluation-core";
 import type { LotActor } from "@/lib/lots/access";
 import type { ConsolidatedCategoryRisk, DataProvenance } from "@/types";
 import { ScoreEngineV2 } from "@/lib/rules/score-v2";
@@ -59,6 +60,9 @@ export interface ConsultaResultadoV2 {
   /** Sólo cuando la consulta se hizo con lot_id. */
   lot_id?: string;
   data_provenance?: DataProvenance;
+  /** Estado general visible derivado de las categorías consolidadas (alertas técnicas incluidas). */
+  estado_general_visible?: string;
+  nivel_alerta?: AlertLevel;
   /** Resultado consolidado por categoría (cuando hay categorías administrables). */
   categorias?: ConsolidatedCategoryRisk[];
   request_id: string;
@@ -103,7 +107,12 @@ interface Dependencies extends LotContextDependencies {
   loadCategories?: () => Promise<RiskCategory[]>;
   /** Etiquetas administrables del catálogo de variables (clave → etiqueta visible). */
   loadVariableLabels?: () => Promise<ReadonlyMap<string, string>>;
-  loadAdvisories?: (cropId: string, scope: { regionId?: string | null; farmId?: string | null; fieldId?: string | null }, at: string) => Promise<AgronomicAdvisory[]>;
+  /** Candidatas del cultivo; la aplicabilidad la decide selectAdvisories. */
+  loadAdvisories?: (cropId: string) => Promise<AgronomicAdvisory[]>;
+  /** Claves de región de la localidad (provincia, zona agronómica). */
+  resolveRegionKeys?: (localidad: ReturnType<typeof normalizeLocalidad>) => Promise<string[]>;
+  traceAdvisories?: AdvisoryTrace;
+  now?: () => Date;
   persist?: typeof persistConsultaV2;
   resolveLocation?: typeof resolveLocalidad;
   enablePests?: boolean;
@@ -216,15 +225,19 @@ export class ConsultaService {
     }
     const results = evaluateRules({ rules, series: climate.serie, evaluatedAt, phenology, fieldData });
     const categories = await (this.dependencies.loadCategories ?? getActiveRiskCategories)();
-    const advisories = await (this.dependencies.loadAdvisories ?? getActiveAgronomicAdvisories)(
-      cultivo,
-      lot ? { fieldId: lot.id } : {},
-      evaluatedAt,
-    );
+    const candidates = await (this.dependencies.loadAdvisories ?? getCandidateAdvisories)(cultivo);
+    const { applied: advisories } = selectAdvisories({
+      candidates, cropId: cultivo, fechaRef, lot, now: this.dependencies.now?.(), trace: this.dependencies.traceAdvisories,
+      regionKeys: await (this.dependencies.resolveRegionKeys ?? ((value) => localityRegionKeys(value)))(localidad),
+    });
     const labels = await (this.dependencies.loadVariableLabels ?? loadVariableLabels)();
     const categorias = consolidateCategoryRisks(categories, results, advisories, { labels });
-    const baseScore = new ScoreEngineV2().evaluate(results);
-    const score = baseScore;
+    // Con categorías consolidadas, el estado general sale de ellas (alertas técnicas incluidas);
+    // sin catálogo de categorías se conserva el cálculo histórico sobre las reglas.
+    const overall = categorias.length ? overallFromCategories(categorias) : null;
+    const score = overall
+      ? { estadoGeneral: overall.legacy, explicacion: overall.explicacion }
+      : new ScoreEngineV2().evaluate(results);
     const calidadAnalisis = calculateAnalysisQuality(
       results,
       climate.cobertura,
@@ -259,7 +272,8 @@ export class ConsultaService {
       share_token: crypto.randomUUID(),
       estado_general: score.estadoGeneral,
       explicacion: score.explicacion,
-      resumen_consulta: buildConsultationSummary(results),
+      ...(overall ? { estado_general_visible: overall.display, nivel_alerta: overall.level } : {}),
+      resumen_consulta: buildConsultationSummary(results, categorias),
       localidad,
       cultivo,
       fecha_ref: fechaRef,
