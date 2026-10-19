@@ -20,7 +20,7 @@ export function CategoryRiskCard({ category, basePath }: { category: CategoryCar
       <span className="min-w-0 flex-1">
         <strong className="text-sm">{category.title}</strong>
         <span className={`mt-1 block text-xs font-semibold sm:text-sm ${tone.text}`}>{category.display_status}</span>
-        {category.matches.names.length > 1 ? (
+        {category.matches.names.length > 1 && !category.advisory ? (
           <span className="mt-1 block text-xs leading-5 text-[#405369]">
             <span className="block">Condiciones compatibles con:</span>
             <span role="list" className="mt-0.5 block space-y-0.5">
@@ -33,13 +33,9 @@ export function CategoryRiskCard({ category, basePath }: { category: CategoryCar
         ) : (
           <span className="mt-1 block text-xs leading-5 text-[#405369]">{category.message}</span>
         )}
-        <RequiredDataList items={category.required_data} compact />
-        {category.advisory ? (
-          <span className="mt-2 block text-xs text-[#526477]">
-            Alerta técnica vigente
-            {category.advisory.reviewed_at ? ` · revisada ${formatDate(category.advisory.reviewed_at.slice(0, 10), true)}` : ""}
-          </span>
-        ) : null}
+        {/* Con alerta técnica, la tarjeta muestra la validación; los datos pendientes quedan en el detalle. */}
+        {category.advisory ? null : <RequiredDataList items={category.required_data} compact />}
+        {category.advisory ? <AdvisoryNote reviewedAt={category.advisory.reviewed_at} compact /> : null}
       </span>
       <ArrowRight className="mt-1 hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" />
     </Link>
@@ -59,6 +55,16 @@ export function RequiredDataList({ items, compact = false }: { items: CategoryCa
           </span>
         ))}
       </span>
+    </span>
+  );
+}
+
+/** Marca de alerta técnica: el estado lo determina una validación vigente, no sólo el motor. */
+export function AdvisoryNote({ reviewedAt, compact = false }: { reviewedAt?: string; compact?: boolean }) {
+  return (
+    <span className={`block ${compact ? "mt-2 text-xs" : "mt-3 text-sm"} text-[#526477]`}>
+      <span className="block font-semibold text-[#081a31]">Validación técnica vigente</span>
+      {reviewedAt ? <span className="block">Revisado el: {formatDate(reviewedAt.slice(0, 10), true)}</span> : null}
     </span>
   );
 }

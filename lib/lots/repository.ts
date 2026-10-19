@@ -1,7 +1,7 @@
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
 import type { Lot } from "@/lib/lots/access";
 
-const COLUMNS = "id::text, empresa_id::text, nombre, cultivo, activo";
+const COLUMNS = "id::text, empresa_id::text, establecimiento_id, nombre, cultivo, activo";
 
 function isMissingRelation(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "42P01";
@@ -30,10 +30,10 @@ export async function listLots(): Promise<Lot[]> {
   }
 }
 
-export async function createLot(input: { nombre: string; empresa_id?: string | null; cultivo?: string | null; creado_por: string }) {
+export async function createLot(input: { nombre: string; empresa_id?: string | null; establecimiento_id?: string | null; cultivo?: string | null; creado_por: string }) {
   const result = await query<Lot>(
-    `insert into lotes (nombre, empresa_id, cultivo, creado_por) values ($1, $2::uuid, $3, $4) returning ${COLUMNS}`,
-    [input.nombre, input.empresa_id ?? null, input.cultivo ?? null, input.creado_por],
+    `insert into lotes (nombre, empresa_id, establecimiento_id, cultivo, creado_por) values ($1, $2::uuid, $3, $4, $5) returning ${COLUMNS}`,
+    [input.nombre, input.empresa_id ?? null, input.establecimiento_id ?? null, input.cultivo ?? null, input.creado_por],
   );
   return result.rows[0];
 }

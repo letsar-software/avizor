@@ -1,4 +1,4 @@
-import type { ResultadoReglaV2 } from "@/types";
+import type { ConsolidatedCategoryRisk, ResultadoReglaV2 } from "@/types";
 import { representativeRuleForDefinition } from "@/lib/results/presentation";
 
 export interface ResumenConsulta {
@@ -8,7 +8,29 @@ export interface ResumenConsulta {
 
 const ACTIVE_STATES = new Set(["favorable"]);
 
-export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenConsulta {
+type SummaryCategory = Pick<ConsolidatedCategoryRisk, "category" | "title" | "internal_status" | "resolution_source">;
+
+const ADVISORY_SOURCES = new Set(["agronomic_advisory", "combined"]);
+
+/**
+ * Resumen en lenguaje natural. Con categorías consolidadas, una alerta técnica vigente
+ * encabeza el resumen y reemplaza las frases automáticas de su categoría.
+ */
+export function buildConsultationSummary(results: ResultadoReglaV2[], categories: SummaryCategory[] = []): ResumenConsulta {
+  const advised = categories.filter((category) => ADVISORY_SOURCES.has(category.resolution_source));
+  const base = buildRuleSummary(results, new Set(advised.map((category) => category.category)));
+  if (!advised.length) return base;
+  const titles = advised.map((category) => category.title).join(", ");
+  const critical = advised.filter((category) => category.internal_status === "critico" || category.internal_status === "alto");
+  return {
+    descripcion: [`Hay validaciones técnicas vigentes para: ${titles}.`, base.descripcion].filter(Boolean).join(" "),
+    destaque: critical.length
+      ? `Seguimiento prioritario: ${critical.map((category) => category.title).join(", ")}. Revisá el detalle de la categoría para conocer la acción recomendada.`
+      : base.destaque,
+  };
+}
+
+function buildRuleSummary(results: ResultadoReglaV2[], skipCategories: ReadonlySet<string>): ResumenConsulta {
   const stableRules = results.filter((result) => result.regla.estado !== "experimental" && result.regla.modo !== "experimental");
   const stableResults = collapsePresentationCategories(stableRules);
   const active = stableResults.filter((result) => ACTIVE_STATES.has(result.estado));
@@ -26,7 +48,7 @@ export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenCo
       ? "Las condiciones ambientales analizadas indican que conviene prestar atención a un factor del cultivo."
       : "Las condiciones ambientales analizadas indican que conviene prestar atención a varios factores del cultivo.";
 
-  const details = categoryDetails(stableRules);
+  const details = categoryDetails(stableRules).flatMap((detail) => withoutAdvised(detail, skipCategories));
   const uncertainty = indeterminate.length === 1
     ? "En una de las categorías se recomienda monitoreo; su detalle indica qué datos completan la evaluación."
     : indeterminate.length > 1
@@ -41,43 +63,55 @@ export function buildConsultationSummary(results: ResultadoReglaV2[]): ResumenCo
   };
 }
 
-function categoryDetails(results: ResultadoReglaV2[]) {
+function categoryDetails(results: ResultadoReglaV2[]): Array<{ category: string; text: string }> {
   const byRisk = new Map(results.map((result) => [result.riesgo, result]));
-  const details: string[] = [];
+  const details: Array<{ category: string; text: string }> = [];
   const frost = byRisk.get("temperatura_bajo_umbral");
   const foliar = representativeRuleForDefinition({ reglas: results }, "enfermedades_foliares");
   const drought = byRisk.get("baja_precipitacion");
   const excess = byRisk.get("precipitacion_elevada");
 
-  if (frost) details.push(ACTIVE_STATES.has(frost.estado)
+  if (frost) details.push(tag("heladas", ACTIVE_STATES.has(frost.estado)
     ? "Se detectaron temperaturas mínimas por debajo del umbral considerado para heladas."
     : frost.estado === "no_evaluable"
       ? "Para heladas se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
-      : "No se detectaron temperaturas mínimas por debajo del umbral considerado para heladas.");
+      : "No se detectaron temperaturas mínimas por debajo del umbral considerado para heladas."));
 
-  if (foliar) details.push(ACTIVE_STATES.has(foliar.estado)
+  if (foliar) details.push(tag("enfermedades_foliares", ACTIVE_STATES.has(foliar.estado)
     ? "Se identificaron condiciones de humedad, precipitaciones y temperatura que pueden favorecer enfermedades foliares."
     : foliar.estado === "vigilancia"
       ? "Algunas de las condiciones ambientales analizadas pueden favorecer enfermedades foliares, aunque no se cumplen todos los criterios evaluados."
       : foliar.estado === "no_evaluable"
         ? "Para enfermedades foliares se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
-        : "No se identificaron condiciones ambientales favorables para enfermedades foliares durante el período analizado.");
+        : "No se identificaron condiciones ambientales favorables para enfermedades foliares durante el período analizado."));
 
   if (drought && excess && drought.estado === "sin_condiciones" && excess.estado === "sin_condiciones") {
-    details.push("Las precipitaciones acumuladas no muestran condiciones favorables para estrés hídrico ni exceso hídrico según los criterios evaluados.");
+    details.push(tag("estres_hidrico|exceso_hidrico", "Las precipitaciones acumuladas no muestran condiciones favorables para estrés hídrico ni exceso hídrico según los criterios evaluados."));
   } else {
-    if (drought) details.push(ACTIVE_STATES.has(drought.estado)
+    if (drought) details.push(tag("estres_hidrico", ACTIVE_STATES.has(drought.estado)
       ? "Las precipitaciones acumuladas del período se encuentran por debajo del umbral considerado para estrés hídrico."
       : drought.estado === "no_evaluable"
         ? "Para estrés hídrico se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
-        : "Las precipitaciones acumuladas no muestran condiciones favorables para estrés hídrico según los criterios evaluados.");
-    if (excess) details.push(ACTIVE_STATES.has(excess.estado)
+        : "Las precipitaciones acumuladas no muestran condiciones favorables para estrés hídrico según los criterios evaluados."));
+    if (excess) details.push(tag("exceso_hidrico", ACTIVE_STATES.has(excess.estado)
       ? "Las precipitaciones acumuladas superaron el umbral considerado para condiciones de exceso hídrico."
       : excess.estado === "no_evaluable"
         ? "Para exceso hídrico se recomienda monitoreo; sumar datos del lote permite completar la evaluación."
-        : "Las precipitaciones acumuladas no muestran condiciones favorables para exceso hídrico según los criterios evaluados.");
+        : "Las precipitaciones acumuladas no muestran condiciones favorables para exceso hídrico según los criterios evaluados."));
   }
   return details;
+}
+
+function tag(category: string, text: string) {
+  return { category, text };
+}
+
+/** Quita frases de categorías resueltas por alerta técnica; la frase combinada se separa. */
+function withoutAdvised(detail: { category: string; text: string }, skip: ReadonlySet<string>): string[] {
+  const parts = detail.category.split("|");
+  if (!parts.some((part) => skip.has(part))) return [detail.text];
+  return parts.filter((part) => !skip.has(part)).map((part) =>
+    `Las precipitaciones acumuladas no muestran condiciones favorables para ${part === "estres_hidrico" ? "estrés hídrico" : "exceso hídrico"} según los criterios evaluados.`);
 }
 
 function closing(active: ResultadoReglaV2[], moderate: ResultadoReglaV2[]) {

@@ -3,6 +3,8 @@ import { DomainError } from "@/lib/consultas/service";
 export interface Lot {
   id: string;
   empresa_id: string | null;
+  /** Establecimiento al que pertenece el lote (alcance "farm" de las alertas técnicas). */
+  establecimiento_id?: string | null;
   nombre: string;
   cultivo: string | null;
   activo: boolean;

@@ -675,6 +675,9 @@ export interface ResultadoConsultaV2Publica {
   share_token: string;
   interaction_token?: string;
   estado_general: EstadoGeneral;
+  /** Estado general visible derivado de las categorías consolidadas (alertas técnicas incluidas). */
+  estado_general_visible?: string;
+  nivel_alerta?: "critico" | "prioritario" | "monitoreo" | "sin_alertas";
   explicacion: string;
   resumen_consulta?: { descripcion: string; destaque: string };
   localidad: LocalidadNormalizada | null;

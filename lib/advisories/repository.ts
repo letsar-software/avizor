@@ -1,5 +1,5 @@
 import { hasDatabaseConfig, query } from "@/lib/db/postgres";
-import type { AdvisoryScopeType, AgronomicAdvisory } from "@/types";
+import type { AgronomicAdvisory } from "@/types";
 
 export interface AdvisoryScope {
   regionId?: string | null;
@@ -10,20 +10,12 @@ export interface AdvisoryScope {
 type AdvisoryRow = Omit<AgronomicAdvisory, "category_key"> & { category_key: string };
 
 /**
- * Only returns currently applicable advisories. The scope comparison is data
- * driven: callers may omit identifiers until the corresponding domain exists.
+ * Candidatas del cultivo (o globales de cultivo). La decisión de vigencia y alcance
+ * se toma en lib/advisories/applicability.ts para que sea la misma en todos los
+ * caminos y quede diagnosticable; acá sólo se acota el volumen.
  */
-export async function getActiveAgronomicAdvisories(
-  cropId: string,
-  scope: AdvisoryScope = {},
-  at = new Date().toISOString(),
-): Promise<AgronomicAdvisory[]> {
+export async function getCandidateAdvisories(cropId: string): Promise<AgronomicAdvisory[]> {
   if (!hasDatabaseConfig()) return [];
-  const scopeValues: Record<Exclude<AdvisoryScopeType, "global">, string | null | undefined> = {
-    region: scope.regionId,
-    farm: scope.farmId,
-    field: scope.fieldId,
-  };
   try {
     const result = await query<AdvisoryRow>(
       `select a.id::text, a.crop_id::text, a.category_id::text, c.clave as category_key,
@@ -33,21 +25,14 @@ export async function getActiveAgronomicAdvisories(
         a.reviewed_at::text, a.notes
        from agronomic_advisories a
        join categorias_agronomicas c on c.id = a.category_id
-       where a.active = true
-         and (a.crop_id is null or a.crop_id::text = $1)
-         and a.starts_at <= $2::timestamptz
-         and (a.ends_at is null or a.ends_at >= $2::timestamptz)
-         and (a.scope_type = 'global'
-           or (a.scope_type = 'region' and a.scope_id::text = $3)
-           or (a.scope_type = 'farm' and a.scope_id::text = $4)
-           or (a.scope_type = 'field' and a.scope_id::text = $5))
+       where (a.crop_id is null or lower(a.crop_id::text) = lower($1))
+         and (a.ends_at is null or a.ends_at >= now() - interval '400 days')
        order by a.priority desc, a.reviewed_at desc`,
-      [cropId, at, scopeValues.region ?? null, scopeValues.farm ?? null, scopeValues.field ?? null],
+      [cropId],
     );
     return result.rows;
   } catch (error) {
-    // The application remains backward compatible until the reviewed migration
-    // is applied; no advisory is silently fabricated.
+    // Sin la migración 030 no hay alertas técnicas; nunca se fabrican.
     if (typeof error === "object" && error !== null && "code" in error && error.code === "42P01") return [];
     throw error;
   }
